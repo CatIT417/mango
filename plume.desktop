@@ -1,0 +1,7 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Plume
+Comment=Plume WM
+Exec=env XDG_CURRENT_DESKTOP=sway plume
+Icon=plume
+Type=Application

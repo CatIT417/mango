@@ -1,5 +1,5 @@
-project('dwl', ['c', 'cpp'],
-  version : '0.4'
+project('plume', ['c', 'cpp'],
+  version : '0.1'
 )
 
 subdir('protocols')
@@ -27,8 +27,8 @@ if xcb.found() and xlibs.found()
   c_args += '-DIM'
  endif
 
-executable('dwl',
-  'dwl.c',
+executable('plume',
+  'main.c',
   'util.c',
   'wlr_foreign_toplevel_management_v1.c',
   'wlr_foreign_toplevel_management_v1.h',
@@ -47,4 +47,6 @@ executable('dwl',
   c_args : c_args
 )
 
-install_man('dwl.1')
+prefix = get_option('prefix')
+desktop_install_dir = join_paths(prefix, 'share/wayland-sessions')
+install_data('plume.desktop', install_dir : desktop_install_dir)

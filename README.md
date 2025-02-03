@@ -34,13 +34,11 @@ cd wlroots
 meson build -Dprefix=/usr
 sudo ninja -C build install
 
-git clone https://github.com/DreamMaoMao/mydwl.git
-cd mydwl
+git clone https://github.com/DreamMaoMao/plume.git
+cd plume
 meson build -Dprefix=/usr
 sudo ninja -C build install
 
-sed -i s#/home/user#$HOME#g dwl.desktop
-sudo cp dwl.desktop /usr/share/wayland-sessions/
 ```
 # dependcy
 
@@ -52,7 +50,7 @@ yay -S wofi foot
 # waybar (must use this waybar)
 ```
 git clone https://gitee.com/DreamMaoMao/Waybar.git
-cd mywaybar
+cd Waybar
 meson build -Dprefix=/usr
 sudo ninja -C build install
 ```
