@@ -1,0 +1,163 @@
+{
+    "layer": "bottom", 
+    "position": "top", 
+    "height": 62,
+    "spacing": 5, 
+
+    "margin-bottom":-11,
+    "modules-left": ["dwl/tags","wlr/taskbar","dwl/window"],
+    "modules-right": ["custom/notification","tray","network","cpu","temperature","memory","clock","pulseaudio","backlight","battery"],
+    "dwl/tags": {
+        "num-tags":9,
+        "hide-unused-tag":true
+    },
+    "custom/notification": {
+        "tooltip": false,
+        "format": "{icon}",
+        "format-icons": {
+          "notification": "<span foreground='red'><sup></sup></span>",
+          "none": "",
+          "dnd-notification": "<span foreground='red'><sup></sup></span>",
+          "dnd-none": "",
+          "inhibited-notification": "<span foreground='red'><sup></sup></span>",
+          "inhibited-none": "",
+          "dnd-inhibited-notification": "<span foreground='red'><sup></sup></span>",
+          "dnd-inhibited-none": ""
+        },
+        "return-type": "json",
+        "exec-if": "which swaync-client",
+        "exec": "swaync-client -swb",
+        "on-click": "sleep 0.1s && swaync-client -t -sw",
+        "on-click-right": "swaync-client -d -sw",
+        "escape": true
+      },
+    "wlr/taskbar": {
+        "format": "{icon}",
+        "icon-size": 24,
+        "all-outputs": false,
+        "tooltip-format": "{title}",
+        "markup": true,
+        "on-click": "activate",
+        "on-click-right": "close",
+        "ignore-list": ["Rofi","wofi"]
+      },
+ "pulseaudio": {
+        "interval":1,
+        "scroll-step": 1, 
+        "format": "{volume}%{icon}",
+        "format-bluetooth": "{volume}%",
+        "format-bluetooth-muted": "{volume}%",
+        "format-muted": "{volume}%{icon}",
+        "format-icons": {
+            "default": ["", "", ""]
+        },
+        "on-click": "blueman-manager",
+        "on-click-right":"amixer set Master toggle",
+    },
+    "keyboard-state": {
+        "interval":1,       
+        "numlock": true,
+        "capslock": true,
+        "format": "{name} {icon}",
+        "format-icons": {
+            "locked": "",
+            "unlocked": ""
+        }
+    },
+    "tray": {
+        "interval":1,
+        "icon-size": 21,
+        "spacing": 10
+    },
+    "clock": {
+        //"format": "{:%I:%M %p}",
+        "format": "{:%H:%M} " ,
+        "format-alt": "{:%A, %b %d} ",
+        "tooltip-format": "{:%Y}",
+        // "tooltip-format": "<tt><small>{calendar}</small></tt>",
+        "on-click-right": "gnome-calendar",
+        "calendar": {
+          "mode"          : "year",
+          "mode-mon-col"  : 3,
+          "weeks-pos"     : "right",
+          "on-scroll"     : 1,
+          "on-click-right": "gnome-calendar",
+          "format": {
+          "months":     "<span color='#ffead3'><b>{}</b></span>",
+          "days":       "<span color='#ecc6d9'><b>{}</b></span>",
+          "weeks":      "<span color='#99ffdd'><b>W{}</b></span>",
+          "weekdays":   "<span color='#ffcc66'><b>{}</b></span>",
+          "today":      "<span color='#ff6699'><b><u>{}</u></b></span>"
+                    }
+      }
+    },
+    "cpu": {
+        "interval": 2,
+        "format": "{load}% ",
+        "on-click-right":"gnome-system-monitor",
+        "on-click":"nwg-drawer -ovl"
+        // "on-click-right":"bash ~/.config/eww/scripts/launcher toggle_menu quicksettings",
+        // "max-length": 10
+    },
+    "memory": {
+        "interval":2,
+        "format": "{}% 󰍛",
+        "on-click":"GDK_BACKEND=x11 nemo",
+        "on-click-right":"cliphist list | rofi -dmenu -normal-window | cliphist decode | wl-copy"
+        // "on-click-right":"clipman pick -t wofi"
+    },
+    "temperature": {
+        "thermal-zone": 2,
+        "hwmon-path": "/sys/class/hwmon/hwmon1/temp1_input",
+        "critical-threshold": 10,
+        "format-critical": "{temperatureC}°C",
+        "format": "",
+        "on-click":"rofi -normal-window -theme ~/.config/rofi/themes/fancy2.rasi -modi blocks -show blocks -blocks-wrap ~/.config/rofi/history.py",
+        "on-click-right":"rofi -normal-window -theme ~/.config/rofi/themes/fancy2.rasi -modi blocks -show blocks -blocks-wrap ~/.config/rofi/recentfile.py"
+        // "on-click":"$DWL/wofi/history_wofi.py",
+        // "on-click-right":"$DWL/wofi/recentfile_wofi.py"
+    },
+    "backlight": {
+        "interval":2,
+        "device": "amdgpu_bl0",
+        "format": "{percent}% {icon}",
+        "format-icons": ["󰖔","󰖨"],
+        "on-scroll-up":"~/.config/hypr/scripts/lightup",
+        "on-scroll-down":"~/.config/hypr/scripts/lightdown",
+        "smooth-scrolling-threshold":1
+    },
+    "battery": {
+        "bat": "BAT0",
+        "interval": 60,
+        "states": {
+            "warning": 30,      
+            "critical": 10      
+        },   
+        "format": "{capacity}% {icon}",   
+        "format-icons": ["", "", "", "", ""],
+        "on-click-right":"~/.config/eww/System-Menu/launch",
+        "on-click":"wlogout --protocol layer-shell -b 6"
+        // "on-click":"/usr/local/bin/eww open-many --toggle background-closer powermenu"
+        // "max-length": 25
+    },
+    "disk": {
+        "interval": 30,
+        //"format": "󰋊",
+        "path": "/",
+        //"format-alt-click": "click",
+        "format": "{percentage_used}% ",
+        "on-click":"nemo",
+        //"tooltip": true,
+        "tooltip-format": "{used} used out of {total} on {path} ({percentage_used}%)",
+      },
+    "network": {
+        "interval": 2,
+        "format-wifi": "{essid} ({signalStrength}%)\uf1eb",
+        "format-ethernet": "󰈀  {ifname}",
+        "format-linked": "\uf059 No IP ({ifname})",
+        "format-disconnected": "\uf071 Disconnected",
+        "tooltip-format": "{ifname} {ipaddr}/{cidr} via {gwaddr}",
+        "format-alt": "\uf1eb↓{bandwidthDownBytes} ↑{bandwidthUpBytes}",
+        "on-click-right":"~/.config/dwl/rofi/networkmanager_dmenu"
+    }
+}

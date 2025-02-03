@@ -1,0 +1,7 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Dwl
+Comment=Dynamic window manager for wayland
+Exec=env XDG_CURRENT_DESKTOP=sway DWL=/home/user/.config/dwl dwl
+Icon=dwl
+Type=Application
