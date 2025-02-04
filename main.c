@@ -2974,7 +2974,13 @@ maximizenotify(struct wl_listener *listener, void *data)
 	// if (wl_resource_get_version(c->surface.xdg->toplevel->resource)
 	// 		< XDG_TOPLEVEL_WM_CAPABILITIES_SINCE_VERSION)
 	// 	wlr_xdg_surface_schedule_configure(c->surface.xdg);
-	togglefakefullscreen(&(Arg){0});
+	// togglefakefullscreen(&(Arg){0});
+	Client *c = wl_container_of(listener, c, maximize);
+	if(c->isfakefullscreen || c->isfullscreen)
+		setfakefullscreen(c, 0);
+	else
+		setfakefullscreen(c,1);
+
 }
 
 void set_minized(Client *c) {
@@ -3013,9 +3019,8 @@ minimizenotify(struct wl_listener *listener, void *data)
 	// 		< XDG_TOPLEVEL_WM_CAPABILITIES_SINCE_VERSION)
 	// 	wlr_xdg_surface_schedule_configure(c->surface.xdg);
 	// togglefakefullscreen(&(Arg){0});
-	if(selmon->sel) {
-		set_minized(selmon->sel);
-	}
+	Client *c = wl_container_of(listener, c, minimize);
+	set_minized(c);
 }
 
 
@@ -3561,7 +3566,7 @@ int is_special_animaiton_rule(Client *c) {
 		visible_client_number++;
 	}
 
-	if (visible_client_number == 1) {
+	if (visible_client_number == 1 && !c->isfloating) {
 		return DOWN;
 	} else if (!c->isfloating && new_is_master) {
 		return LEFT;
