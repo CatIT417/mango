@@ -100,7 +100,7 @@ enum { LyrBg, LyrBottom, LyrTile, LyrFloat, LyrFS, LyrTop, LyrOverlay,
 enum { NetWMWindowTypeDialog, NetWMWindowTypeSplash, NetWMWindowTypeToolbar,
 	NetWMWindowTypeUtility, NetLast }; /* EWMH atoms */
 #endif
-enum { UP, DOWN, LEFT, RIGHT };                  /* movewin */
+enum { UP, DOWN, LEFT, RIGHT, UNDIR };                  /* movewin */
 
 typedef union {
 	int i;
@@ -3549,10 +3549,28 @@ void exchange_client(const Arg *arg) {
   exchange_two_client(c, direction_select(arg));
 }
 
+int is_special_animaiton_rule(Client *c) {
+	int visible_client_number = 0;
+	Client *count_c;
+	wl_list_for_each(count_c, &clients, link)
+	if (count_c && VISIBLEON(count_c,selmon) && !count_c->isminied){
+		visible_client_number++;
+	}
+
+	if (visible_client_number == 1) {
+		return DOWN;
+	} else if (!c->isfloating && new_is_master) {
+		return LEFT;
+	} else {
+		return UNDIR;
+	}
+}
+
 void set_open_animaiton(Client *c, struct wlr_box geo) {
 	int slide_direction;
 	int horizontal,horizontal_value;
 	int vertical,vertical_value;
+	int special_direction;
 	if (strcmp(animation_type, "zoom") == 0 || (c->animation_type && strcmp(c->animation_type, "zoom") == 0)) {
 		c->animainit_geom.width = geo.width * zoom_initial_ratio;	
 		c->animainit_geom.height = geo.height * zoom_initial_ratio;
@@ -3560,11 +3578,16 @@ void set_open_animaiton(Client *c, struct wlr_box geo) {
 		c->animainit_geom.y = geo.y + (geo.height - c->animainit_geom.height)/2;
 		return;
 	} else {
-		horizontal = c->mon->w.x + c->mon->w.width - c->geom.x < c->geom.x - c->mon->w.x ? RIGHT : LEFT;
-		horizontal_value = horizontal == LEFT ? c->geom.x - c->mon->w.x : c->mon->w.x + c->mon->w.width - c->geom.x;
-		vertical = c->mon->w.y + c->mon->w.height - c->geom.y < c->geom.y - c->mon->w.y ? DOWN : UP;
-		vertical_value = vertical == UP ? c->geom.y - c->mon->w.y : c->mon->w.y + c->mon->w.height - c->geom.y;
-		slide_direction = (horizontal_value < vertical_value) || (!c->isfloating && new_is_master) ? horizontal : vertical;
+		special_direction = is_special_animaiton_rule(c);
+		if (special_direction == UNDIR) {
+			horizontal = c->mon->w.x + c->mon->w.width - c->geom.x < c->geom.x - c->mon->w.x ? RIGHT : LEFT;
+			horizontal_value = horizontal == LEFT ? c->geom.x - c->mon->w.x : c->mon->w.x + c->mon->w.width - c->geom.x;
+			vertical = c->mon->w.y + c->mon->w.height - c->geom.y < c->geom.y - c->mon->w.y ? DOWN : UP;
+			vertical_value = vertical == UP ? c->geom.y - c->mon->w.y : c->mon->w.y + c->mon->w.height - c->geom.y;
+			slide_direction = horizontal_value < vertical_value ? horizontal : vertical;
+		} else {
+			slide_direction = special_direction;
+		}
 		c->animainit_geom.width = c->geom.width;
 		c->animainit_geom.height = c->geom.height;
 		switch (slide_direction)
