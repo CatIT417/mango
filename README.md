@@ -24,6 +24,7 @@ https://github.com/user-attachments/assets/84eb21fd-1782-4edc-b504-50de35201abe
 - window pin mode support
 - text-input-v2
 - window move/open animaition
+- workspace switch animaition
 
 
 # install 

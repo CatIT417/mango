@@ -126,6 +126,9 @@ typedef struct {
 struct dwl_animation {
   bool should_animate;
   bool running;
+  bool tagining;
+  bool tagouted;
+  bool tagouting;
   uint32_t total_frames;
   uint32_t passed_frames;
   struct wlr_box initial;
@@ -138,7 +141,7 @@ typedef struct Monitor Monitor;
 typedef struct {
 	/* Must keep these three elements in this order */
 	unsigned int type; /* XDGShell or X11* */
-	struct wlr_box geom,oldgeom,animainit_geom,current;  /* layout-relative, includes border */
+	struct wlr_box geom,oldgeom,animainit_geom,tagout_backup_geom,current;  /* layout-relative, includes border */
 	Monitor *mon;
 	struct wlr_scene_tree *scene;
 	struct wlr_scene_rect *border[4]; /* top, bottom, left, right */
@@ -328,7 +331,7 @@ static void logtofile(const char *fmt, ...); //日志函数
 static void lognumtofile(unsigned int num);  //日志函数
 static void applybounds(Client *c, struct wlr_box *bbox); //设置边界规则,能让一些窗口拥有比较适合的大小
 static void applyrules(Client *c); //窗口规则应用,应用config.h中定义的窗口规则
-static void arrange(Monitor *m); //布局函数,让窗口俺平铺规则移动和重置大小
+static void arrange(Monitor *m,bool is_tag_change); //布局函数,让窗口俺平铺规则移动和重置大小
 static void arrangelayer(Monitor *m, struct wl_list *list, 
 struct wlr_box *usable_area, int exclusive);
 static void arrangelayers(Monitor *m);
@@ -486,7 +489,7 @@ static void warp_cursor_to_selmon(const Monitor *m);
 unsigned int want_restore_fullscreen(Client *target_client);
 static void overview_restore(Client *c, const Arg *arg);
 static void overview_backup(Client *c);
-static void applyrulesgeom(Client *c);
+static int applyrulesgeom(Client *c);
 static void set_minized(Client *c);
 static void minized(const Arg *arg);
 static void restore_minized(const Arg *arg);
@@ -685,6 +688,13 @@ client_animation_next_tick(Client *c)
 	if (animation_passed == 1.0)
 	{
 		c->animation.running = false;
+		if(c->animation.tagouting) {
+			c->animation.tagouting = false;
+			wlr_scene_node_set_enabled(&c->scene->node, false);
+			client_set_suspended(c, true);
+			c->geom = c->tagout_backup_geom;
+			c->animation.tagouted = true;
+		}
 		return false;
 	}
 	else
@@ -750,8 +760,8 @@ bool client_draw_frame(Client *c)
 {
 	if (!c || !c->mon || !client_surface(c)->mapped)
 		return false;
-	if (!VISIBLEON(c, c->mon))
-		return false;
+	// if (!VISIBLEON(c, c->mon))
+	// 	return false;
 	bool need_more_frames = false;
 	if (c->animation.running) {
 		if (client_animation_next_tick(c))
@@ -981,12 +991,13 @@ void lognumtofile(unsigned int num) {
   system(cmd);
 }
 
-void // 0.5
+int // 0.5
 applyrulesgeom(Client *c)
 {
 	/* rule matching */
 	const char *appid, *title;
 	const Rule *r;
+	int hit = 0;
 
 	if (!(appid = client_get_appid(c)))
 		appid = broken;
@@ -1000,9 +1011,11 @@ applyrulesgeom(Client *c)
 			c->geom.height =  r->height;
 			//重新计算居中的坐标
 			c->geom = setclient_coordinate_center(c->geom);
+			hit = 1;
 			break;
 		}
 	}
+	return hit;
 }
 
 void // 17
@@ -1054,7 +1067,7 @@ applyrules(Client *c)
 	wl_list_for_each(fc, &clients, link)
   		if (fc && !c->ignore_clear_fullscreen && c->tags & fc->tags && ISFULLSCREEN(fc) && !c->isfloating ) {
   		  	clear_fullscreen_flag(fc);
-			arrange(c->mon);
+			arrange(c->mon,false);
   		}else if(c->ignore_clear_fullscreen && c->isfullscreen){
 			setfullscreen(c,1);
 		}
@@ -1065,7 +1078,7 @@ applyrules(Client *c)
 }
 
 void //17
-arrange(Monitor *m)
+arrange(Monitor *m,bool is_tag_change)
 {
 	Client *c;
 
@@ -1078,8 +1091,50 @@ arrange(Monitor *m)
 			focusclient(c,1);
 		}
 		if (c->mon == m) {
-			wlr_scene_node_set_enabled(&c->scene->node, VISIBLEON(c, m));
-			client_set_suspended(c, !VISIBLEON(c, m));
+			if (VISIBLEON(c, m)) {
+				wlr_scene_node_set_enabled(&c->scene->node, true);
+				client_set_suspended(c, false);
+				if ( is_tag_change && m->pertag->prevtag !=0  && m->pertag->curtag !=0) {
+					c->animation.tagining = true;
+					if (m->pertag->curtag > m->pertag->prevtag) {
+						c->animainit_geom.x = c->geom.x + m->m.width;
+					} else {
+						c->animainit_geom.x = c->geom.x - m->m.width;
+					}
+				}
+				if((c->isfloating || c->isfullscreen || c->isfakefullscreen) && (c->animation.tagouting || c->animation.tagouted)) {
+					c->animation.tagouting = false;
+					c->animation.tagouted = false;
+				// if((c->isfloating || c->isfullscreen || c->isfakefullscreen) && c->tagout_backup_geom.width != 0 && c->tagout_backup_geom.height != 0) {
+					resize(c,c->tagout_backup_geom,0);
+				} else {
+					c->animation.tagouting = false;
+					c->animation.tagouted = false;	
+					resize(c,c->geom,0);
+				}
+			} else {
+				if ((c->tags & ( 1 << (selmon->pertag->prevtag - 1) )) && is_tag_change && m->pertag->prevtag != 0 && m->pertag->curtag !=0) {
+					c->animation.tagouting = true;
+					c->tagout_backup_geom = c->geom;
+					if (m->pertag->curtag > m->pertag->prevtag) {
+						resizeclient(c, 
+						c->geom.x - m->m.width, 
+						c->geom.y, 
+						c->geom.width, 
+						c->geom.height, 0);
+					} else {
+						resizeclient(c, 
+						c->geom.x + m->m.width, 
+						c->geom.y, 
+						c->geom.width, 
+						c->geom.height, 0);
+					}
+				} else {
+					wlr_scene_node_set_enabled(&c->scene->node, false);
+					client_set_suspended(c, true);					
+				}
+			}
+
 		}
 	}
 
@@ -1285,7 +1340,7 @@ arrangelayers(Monitor *m)
 
 	if (!wlr_box_equal(&usable_area, &m->w)) {
 		m->w = usable_area;
-		arrange(m);
+		arrange(m,false);
 	}
 
 	/* Arrange non-exlusive surfaces from top->bottom */
@@ -1604,7 +1659,11 @@ void client_set_pending_state(Client *c, uint32_t x, uint32_t y,
 
 	c->geom = pending;
 
-	if (!animations || c == grabc || (!c->is_first_resize && wlr_box_equal(&c->current, &pending)))
+	if (c->animation.tagining) {
+		c->animation.tagining = false;
+		c->animation.should_animate = true;
+		c->animation.initial = c->animainit_geom;
+	} else if (!animations || c == grabc || (!c->is_first_resize && wlr_box_equal(&c->current, &pending)))
 	{
 		c->animation.should_animate = false;
 	} else if (c->is_restoring_from_ov) {
@@ -2351,7 +2410,7 @@ void dwl_ipc_output_set_client_tags(struct wl_client *client, struct wl_resource
 
     selected_client->tags = newtags;
     focusclient(focustop(selmon), 1);
-    arrange(selmon);
+    arrange(selmon,true);
     printstatus();
 }
 
@@ -2370,7 +2429,7 @@ void dwl_ipc_output_set_layout(struct wl_client *client, struct wl_resource *res
         monitor->sellt ^= 1;
 
     monitor->lt[monitor->sellt] = &layouts[index];
-    arrange(monitor);
+    arrange(monitor,false);
     printstatus();
 }
 
@@ -2391,7 +2450,7 @@ void dwl_ipc_output_set_tags(struct wl_client *client, struct wl_resource *resou
 
     monitor->tagset[monitor->seltags] = newtags;
     focusclient(focustop(monitor), 1);
-    arrange(monitor);
+    arrange(monitor,false);
     printstatus();
 }
 
@@ -2560,7 +2619,7 @@ incnmaster(const Arg *arg)
 	if (!arg || !selmon)
 		return;
 	selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag] = MAX(selmon->nmaster + arg->i, 0);
-	arrange(selmon);
+	arrange(selmon,false);
 }
 
 void
@@ -2995,7 +3054,7 @@ void set_minized(Client *c) {
 	c->is_in_scratchpad = 1;
 	c->is_scratchpad_show = 0;
 	focusclient(focustop(selmon), 1);
-	arrange(c->mon);
+	arrange(c->mon,false);
 	wlr_foreign_toplevel_handle_v1_set_activated(c->foreign_toplevel,false);
 	wlr_foreign_toplevel_handle_v1_set_minimized(c->foreign_toplevel,true);
 	wl_list_remove(&c->link);            //从原来位置移除
@@ -3547,7 +3606,7 @@ void exchange_two_client(Client *c1, Client *c2) {
 	tmp2_next->prev = &c1->link;
   }
 
-  arrange(c1->mon);
+  arrange(c1->mon,false);
   focusclient(c1,0);
 }
 
@@ -3646,7 +3705,13 @@ resize(Client *c, struct wlr_box geo, int interact)
 	c->geom = geo;
 	applybounds(c, bbox);//去掉这个推荐的窗口大小,因为有时推荐的窗口特别大导致平铺异常
 
-	if(c->is_first_resize) {
+	if(c->animation.tagouting) {
+		c->animainit_geom = c->tagout_backup_geom;
+	} else if(c->animation.tagining) {
+		c->animainit_geom.height = oldgeom.height;
+		c->animainit_geom.width = oldgeom.width;
+		c->animainit_geom.y = oldgeom.y;
+	}else if(c->is_first_resize) {
 		set_open_animaiton(c,c->geom);
 	} else {
 		c->animainit_geom = oldgeom;
@@ -3744,26 +3809,33 @@ setfloating(Client *c, int floating)
 {	
 
 	Client *fc;
+	int hit;
+	struct wlr_box target_box,backup_box;
 	c->isfloating = floating;
+
 
 	if (!c || !c->mon || !client_surface(c)->mapped)
 		return;
 
 	wlr_scene_node_reparent(&c->scene->node, layers[c->isfloating ? LyrFloat : LyrTile]);
 
+	target_box = c->geom;
 
 	if (floating == 1) { 
 		if(c->istiled) {
-			c->geom.height = c->geom.height * 0.8;
-			c->geom.width = c->geom.width * 0.8;
+			target_box.height = target_box.height * 0.8;
+			target_box.width = target_box.width * 0.8;
 		}
 		//重新计算居中的坐标
-		c->geom = setclient_coordinate_center(c->geom);
-		applyrulesgeom(c);
+		target_box = setclient_coordinate_center(target_box);
+		backup_box = c->geom;
+		hit =applyrulesgeom(c);
+		target_box = hit == 1 ? c->geom : target_box;
+		c->geom = backup_box;
 		if (c->oldgeom.width > 0 && c->oldgeom.height >0) {
 			resize(c,c->oldgeom,0);
 		} else {
-			resize(c,c->geom,0);
+			resize(c,target_box,0);
 		}
 		c->istiled = 0; 
 	} else {
@@ -3777,7 +3849,7 @@ setfloating(Client *c, int floating)
   			}
 	}
 
-	arrange(c->mon);
+	arrange(c->mon,false);
 	printstatus();
 }
 
@@ -3821,7 +3893,7 @@ setfakefullscreen(Client *c, int fakefullscreen)
 		c->isfullscreen = 0;
 		client_set_fullscreen(c, false);
 		if (c->isfloating) setfloating(c,1);
-		arrange(c->mon);
+		arrange(c->mon,false);
 	}
 }
 
@@ -3859,7 +3931,7 @@ setfullscreen(Client *c, int fullscreen) //用自定义全屏代理自带全屏
 		c->isfullscreen = 0;
 		c->isfakefullscreen = 0;
 		if (c->isfloating) setfloating(c,1);
-		arrange(c->mon);
+		arrange(c->mon,false);
 	}
 }
 
@@ -3871,7 +3943,7 @@ setgaps(int oh, int ov, int ih, int iv)
 	selmon->gappov = MAX(ov, 0);
 	selmon->gappih = MAX(ih, 0);
 	selmon->gappiv = MAX(iv, 0);
-	arrange(selmon);
+	arrange(selmon,false);
 }
 
 void //17
@@ -3887,7 +3959,7 @@ setlayout(const Arg *arg)
 		selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt] = selmon->lt[selmon->sellt];
 	}
 	strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol, LENGTH(selmon->ltsymbol));
-	arrange(selmon);
+	arrange(selmon,false);
 	printstatus();
 }
 
@@ -3902,7 +3974,7 @@ switch_layout(const Arg *arg)
 	selmon->pertag->sellts[selmon->pertag->curtag] = selmon->sellt;
 
 	/* TODO change layout symbol? */
-	arrange(selmon);
+	arrange(selmon,false);
 	printstatus();
 }
 
@@ -3919,7 +3991,7 @@ setmfact(const Arg *arg)
 	if (f < 0.1 || f > 0.9)
 		return;
 	selmon->mfact = f;
-	arrange(selmon);
+	arrange(selmon,false);
 }
 
 void //0.5
@@ -3934,7 +4006,7 @@ setmon(Client *c, Monitor *m, uint32_t newtags)
 
 	/* Scene graph sends surface leave/enter events on move and resize */
 	if (oldmon)
-		arrange(oldmon);
+		arrange(oldmon,false);
 	if (m) {
 		/* Make sure window actually overlaps with the monitor */
 		resize(c, c->geom, 0);
@@ -4384,7 +4456,7 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
   Client *tempClients[100];
   n = 0;
   wl_list_for_each(c, &clients, link)
-  	if (VISIBLEON(c, c->mon) && c->mon == selmon){
+  	if (VISIBLEON(c, c->mon) && !c->animation.tagouting && c->mon == selmon){
 			tempClients[n] = c;
     		n++;
   	}
@@ -4570,7 +4642,7 @@ tile(Monitor *m,unsigned int gappo, unsigned int uappi)
 	i = 0;
 	my = ty = m->gappoh*oe;
 	wl_list_for_each(c, &clients, link) {
-		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen || c->isfakefullscreen )
+		if (!VISIBLEON(c, m) || c->animation.tagouting || c->isfloating || c->isfullscreen || c->isfakefullscreen )
 			continue;
 		if (i < m->nmaster) {
 			r = MIN(n, m->nmaster) - i;
@@ -4650,7 +4722,7 @@ void
 togglegaps(const Arg *arg)
 {
 	enablegaps ^= 1;
-	arrange(selmon);
+	arrange(selmon,false);
 }
 
 void
@@ -4664,7 +4736,7 @@ toggletag(const Arg *arg)
 	if (newtags) {
 		sel->tags = newtags;
 		focusclient(focustop(selmon), 1);
-		arrange(selmon);
+		arrange(selmon,true);
 	}
 	printstatus();
 }
@@ -4677,7 +4749,7 @@ toggleview(const Arg *arg)
 	if (newtagset) {
 		selmon->tagset[selmon->seltags] = newtagset;
 		focusclient(focustop(selmon), 1);
-		arrange(selmon);
+		arrange(selmon,false);
 	}
 	printstatus();
 }
@@ -4814,7 +4886,7 @@ updatemons(struct wl_listener *listener, void *data)
 		/* Calculate the effective monitor geometry to use for clients */
 		arrangelayers(m);
 		/* Don't move clients to the left output when plugging monitors */
-		arrange(m);
+		arrange(m,false);
 		/* make sure fullscreen clients have the right size */
 		if ((c = focustop(m)) && c->isfullscreen)
 			resize(c, m->m, 0);
@@ -4922,7 +4994,7 @@ view(const Arg *arg)
 	selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];
 
 	focusclient(focustop(selmon), 1);
-	arrange(selmon);
+	arrange(selmon,true);
 	printstatus();
 }
 
@@ -4963,7 +5035,7 @@ viewtoleft(const Arg *arg)
 	selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];
 
 	focusclient(focustop(selmon), 1);
-	arrange(selmon);
+	arrange(selmon,true);
 	printstatus();
 }
 
@@ -5016,7 +5088,7 @@ viewtoright_have_client(const Arg *arg)
 	selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];
 
 	focusclient(focustop(selmon), 1);
-	arrange(selmon);
+	arrange(selmon,true);
 	printstatus();
 }
 
@@ -5053,7 +5125,7 @@ viewtoright(const Arg *arg)
 	selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];
 
 	focusclient(focustop(selmon), 1);
-	arrange(selmon);
+	arrange(selmon,true);
 	printstatus();
 }
 
@@ -5106,7 +5178,7 @@ viewtoleft_have_client(const Arg *arg)
 	selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];
 
 	focusclient(focustop(selmon), 1);
-	arrange(selmon);
+	arrange(selmon,true);
 	printstatus();
 }
 
@@ -5251,7 +5323,7 @@ zoom(const Arg *arg)
 	wl_list_insert(&clients, &sel->link);
 
 	focusclient(sel, 1);
-	arrange(selmon);
+	arrange(selmon,false);
 }
 
 #ifdef XWAYLAND
@@ -5298,7 +5370,7 @@ configurex11(struct wl_listener *listener, void *data)
 		resize(c, (struct wlr_box){.x = event->x - c->bw, .y = event->y - c->bw,
 				.width = event->width + c->bw * 2, .height = event->height + c->bw * 2}, 0);
 	else
-		arrange(c->mon);
+		arrange(c->mon,false);
 }
 
 /*创建窗口监测函数*/
