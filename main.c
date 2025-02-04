@@ -3568,6 +3568,8 @@ int is_special_animaiton_rule(Client *c) {
 
 	if (visible_client_number == 1 && !c->isfloating) {
 		return DOWN;
+	} else if (visible_client_number == 2 && !c->isfloating && !new_is_master) {
+		return RIGHT;
 	} else if (!c->isfloating && new_is_master) {
 		return LEFT;
 	} else {
@@ -3580,6 +3582,7 @@ void set_open_animaiton(Client *c, struct wlr_box geo) {
 	int horizontal,horizontal_value;
 	int vertical,vertical_value;
 	int special_direction;
+	int center_x,center_y;
 	if (strcmp(animation_type, "zoom") == 0 || (c->animation_type && strcmp(c->animation_type, "zoom") == 0)) {
 		c->animainit_geom.width = geo.width * zoom_initial_ratio;	
 		c->animainit_geom.height = geo.height * zoom_initial_ratio;
@@ -3588,11 +3591,13 @@ void set_open_animaiton(Client *c, struct wlr_box geo) {
 		return;
 	} else {
 		special_direction = is_special_animaiton_rule(c);
+		center_x = c->geom.x + c->geom.width/2;
+		center_y = c->geom.y + c->geom.height/2;
 		if (special_direction == UNDIR) {
-			horizontal = c->mon->w.x + c->mon->w.width - c->geom.x < c->geom.x - c->mon->w.x ? RIGHT : LEFT;
-			horizontal_value = horizontal == LEFT ? c->geom.x - c->mon->w.x : c->mon->w.x + c->mon->w.width - c->geom.x;
-			vertical = c->mon->w.y + c->mon->w.height - c->geom.y < c->geom.y - c->mon->w.y ? DOWN : UP;
-			vertical_value = vertical == UP ? c->geom.y - c->mon->w.y : c->mon->w.y + c->mon->w.height - c->geom.y;
+			horizontal = c->mon->w.x + c->mon->w.width - center_x < center_x - c->mon->w.x ? RIGHT : LEFT;
+			horizontal_value = horizontal == LEFT ? center_x - c->mon->w.x : c->mon->w.x + c->mon->w.width - center_x;
+			vertical = c->mon->w.y + c->mon->w.height - center_y < center_y - c->mon->w.y ? DOWN : UP;
+			vertical_value = vertical == UP ? center_y - c->mon->w.y : c->mon->w.y + c->mon->w.height - center_y;
 			slide_direction = horizontal_value < vertical_value ? horizontal : vertical;
 		} else {
 			slide_direction = special_direction;
@@ -3607,14 +3612,14 @@ void set_open_animaiton(Client *c, struct wlr_box geo) {
 				break;
 			case DOWN:
 				c->animainit_geom.x = c->geom.x;
-				c->animainit_geom.y = c->mon->w.y + c->geom.height;
+				c->animainit_geom.y = c->mon->w.y + c->mon->w.height + c->geom.height;
 				break;
 			case LEFT:
 				c->animainit_geom.x = 0 - c->geom.width;
 				c->animainit_geom.y = c->geom.y;
 				break;
 			case RIGHT:
-				c->animainit_geom.x = c->mon->w.x + c->geom.width;
+				c->animainit_geom.x = c->mon->w.x + c->mon->w.width + c->geom.width;
 				c->animainit_geom.y = c->geom.y;	
 				break;
 			default:
@@ -3630,20 +3635,22 @@ resize(Client *c, struct wlr_box geo, int interact)
 	if (!c || !c->mon || !client_surface(c)->mapped)
 		return;
 
-	struct wlr_box *bbox;
+	struct wlr_box *bbox,oldgeom;
 	// struct wlr_box clip;
 	
 	if (!c->mon)
 		return;
+	oldgeom = c->geom;
 	bbox = interact ? &sgeom : &c->mon->w;
-	if(c->is_first_resize) {
-		set_open_animaiton(c,geo);
-	} else {
-		c->animainit_geom = c->geom;
-	}
 	client_set_bounds(c, geo.width, geo.height); //去掉这个推荐的窗口大小,因为有时推荐的窗口特别大导致平铺异常
 	c->geom = geo;
 	applybounds(c, bbox);//去掉这个推荐的窗口大小,因为有时推荐的窗口特别大导致平铺异常
+
+	if(c->is_first_resize) {
+		set_open_animaiton(c,c->geom);
+	} else {
+		c->animainit_geom = oldgeom;
+	}
 
 
 	if(c->isnoborder) {
