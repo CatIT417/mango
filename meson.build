@@ -4,6 +4,12 @@ project('plume', ['c', 'cpp'],
 
 subdir('protocols')
 
+fs = import('fs')
+
+if not fs.exists('config.h')
+  run_command('cp', 'config.def.h', 'config.h', check: true)
+endif
+
 cc = meson.get_compiler('c')
 libm = cc.find_library('m')
 xcb = dependency('xcb', required : get_option('xwayland'))
