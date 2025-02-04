@@ -1095,7 +1095,7 @@ arrange(Monitor *m,bool want_animation)
 			if (VISIBLEON(c, m)) {
 				wlr_scene_node_set_enabled(&c->scene->node, true);
 				client_set_suspended(c, false);
-				if (!c->is_scratchpad_show && want_animation && m->pertag->prevtag !=0  && m->pertag->curtag !=0) {
+				if (want_animation && m->pertag->prevtag !=0  && m->pertag->curtag !=0) {
 					c->animation.tagining = true;
 					if (m->pertag->curtag > m->pertag->prevtag) {
 						c->animainit_geom.x = c->geom.x + m->m.width;
@@ -3626,9 +3626,7 @@ int is_special_animaiton_rule(Client *c) {
 		visible_client_number++;
 	}
 
-	if(c->is_scratchpad_show) {
-		return UP;
-	} else if (visible_client_number == 1 && !c->isfloating) {
+	if (visible_client_number == 1 && !c->isfloating) {
 		return DOWN;
 	} else if (visible_client_number == 2 && !c->isfloating && !new_is_master) {
 		return RIGHT;
