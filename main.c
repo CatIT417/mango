@@ -4464,7 +4464,7 @@ void overview_restore(Client *c, const Arg *arg) {
   c->overview_isfullscreenbak = 0;
   c->overview_isfakefullscreenbak = 0;
   c->bw = c->overview_backup_bw;
-  c->is_restoring_from_ov = true;
+  c->is_restoring_from_ov = (arg->ui & c->tags) == 0 ? true: false;
   if (c->isfloating) {
     // XRaiseWindow(dpy, c->win); // 提升悬浮窗口到顶层
     resizeclient(c, c->overview_backup_x, c->overview_backup_y, c->overview_backup_w,
