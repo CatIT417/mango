@@ -331,7 +331,7 @@ static void logtofile(const char *fmt, ...); //日志函数
 static void lognumtofile(unsigned int num);  //日志函数
 static void applybounds(Client *c, struct wlr_box *bbox); //设置边界规则,能让一些窗口拥有比较适合的大小
 static void applyrules(Client *c); //窗口规则应用,应用config.h中定义的窗口规则
-static void arrange(Monitor *m,bool is_tag_change); //布局函数,让窗口俺平铺规则移动和重置大小
+static void arrange(Monitor *m,bool want_animation); //布局函数,让窗口俺平铺规则移动和重置大小
 static void arrangelayer(Monitor *m, struct wl_list *list, 
 struct wlr_box *usable_area, int exclusive);
 static void arrangelayers(Monitor *m);
@@ -466,7 +466,8 @@ static void unmapnotify(struct wl_listener *listener, void *data);
 static void updatemons(struct wl_listener *listener, void *data);
 static void updatetitle(struct wl_listener *listener, void *data);
 static void urgent(struct wl_listener *listener, void *data);
-static void view(const Arg *arg);
+static void view(const Arg *arg,bool want_animation);
+static void bind_to_view(const Arg *arg);
 static void viewtoleft_have_client(const Arg *arg);
 static void viewtoright_have_client(const Arg *arg);
 static void viewtoleft(const Arg *arg);
@@ -1073,12 +1074,12 @@ applyrules(Client *c)
 		}
 
 	if(!(c->tags & ( 1 << (selmon->pertag->curtag - 1) ))){
-		view(&(Arg){.ui = c->tags});
+		view(&(Arg){.ui = c->tags},false);
 	}
 }
 
 void //17
-arrange(Monitor *m,bool is_tag_change)
+arrange(Monitor *m,bool want_animation)
 {
 	Client *c;
 
@@ -1094,7 +1095,7 @@ arrange(Monitor *m,bool is_tag_change)
 			if (VISIBLEON(c, m)) {
 				wlr_scene_node_set_enabled(&c->scene->node, true);
 				client_set_suspended(c, false);
-				if ( is_tag_change && m->pertag->prevtag !=0  && m->pertag->curtag !=0) {
+				if (!c->is_scratchpad_show && want_animation && m->pertag->prevtag !=0  && m->pertag->curtag !=0) {
 					c->animation.tagining = true;
 					if (m->pertag->curtag > m->pertag->prevtag) {
 						c->animainit_geom.x = c->geom.x + m->m.width;
@@ -1113,7 +1114,7 @@ arrange(Monitor *m,bool is_tag_change)
 					resize(c,c->geom,0);
 				}
 			} else {
-				if ((c->tags & ( 1 << (selmon->pertag->prevtag - 1) )) && is_tag_change && m->pertag->prevtag != 0 && m->pertag->curtag !=0) {
+				if ((c->tags & ( 1 << (selmon->pertag->prevtag - 1) )) && want_animation && m->pertag->prevtag != 0 && m->pertag->curtag !=0) {
 					c->animation.tagouting = true;
 					c->tagout_backup_geom = c->geom;
 					if (m->pertag->curtag > m->pertag->prevtag) {
@@ -3625,7 +3626,9 @@ int is_special_animaiton_rule(Client *c) {
 		visible_client_number++;
 	}
 
-	if (visible_client_number == 1 && !c->isfloating) {
+	if(c->is_scratchpad_show) {
+		return UP;
+	} else if (visible_client_number == 1 && !c->isfloating) {
 		return DOWN;
 	} else if (visible_client_number == 2 && !c->isfloating && !new_is_master) {
 		return RIGHT;
@@ -4079,7 +4082,7 @@ handle_foreign_activate_request(struct wl_listener *listener, void *data) {
 	}
 
 	target = get_tags_first_tag(c->tags); 
-	view(&(Arg){.ui = target});
+	view(&(Arg){.ui = target},true);
 	focusclient(c,1);
 	wlr_foreign_toplevel_handle_v1_set_activated(c->foreign_toplevel,true);
 
@@ -4403,10 +4406,10 @@ void tag_client(const Arg *arg, Client *target_client) {
   				clear_fullscreen_flag(fc);
   			}
   		}
-		view(&(Arg){.ui = arg->ui});
+		view(&(Arg){.ui = arg->ui},false);
 
   	} else{
-  	  	view(arg);
+  	  	view(arg,false);
 	}
 
     focusclient(target_client,1);
@@ -4597,7 +4600,7 @@ void toggleoverview(const Arg *arg) {
 		target = get_tags_first_tag(selmon->sel->tags);
   	} else if (!selmon->isoverview && !selmon->sel) {
 		target = (1 << (selmon->pertag->prevtag-1));
-		view(&(Arg){.ui = target});
+		view(&(Arg){.ui = target},false);
 		return;
   	}
 
@@ -4615,7 +4618,7 @@ void toggleoverview(const Arg *arg) {
 		}
   	}
 
-  	view(&(Arg){.ui = target});
+  	view(&(Arg){.ui = target},false);
 
 }
 
@@ -4951,7 +4954,7 @@ urgent(struct wl_listener *listener, void *data)
 		return;
 
 	if (focus_on_activate && c != selmon->sel) {
-		view(&(Arg){.ui = c->tags});
+		view(&(Arg){.ui = c->tags},true);
 		focusclient(c,1);
 	} else if(c != focustop(selmon)) {
 		if (client_surface(c)->mapped)
@@ -4961,8 +4964,12 @@ urgent(struct wl_listener *listener, void *data)
 	}
 }
 
+void bind_to_view(const Arg *arg) {
+	view(arg,true);
+}
+
 void
-view(const Arg *arg)
+view(const Arg *arg,bool want_animation)
 {
 	size_t i, tmptag;
 
@@ -4970,6 +4977,10 @@ view(const Arg *arg)
 		return;
 	}
 
+	if ((selmon->tagset[selmon->seltags] & arg->ui & TAGMASK) != 0) {
+		want_animation = false;
+	}
+	
 	selmon->seltags ^= 1; /* toggle sel tagset */
 	if (arg->ui & TAGMASK) {
 		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
@@ -4994,7 +5005,7 @@ view(const Arg *arg)
 	selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];
 
 	focusclient(focustop(selmon), 1);
-	arrange(selmon,true);
+	arrange(selmon,want_animation);
 	printstatus();
 }
 
@@ -5340,7 +5351,7 @@ activatex11(struct wl_listener *listener, void *data)
 		return;
 
 	if (focus_on_activate && c != selmon->sel) {
-		view(&(Arg){.ui = c->tags});
+		view(&(Arg){.ui = c->tags},true);
 		focusclient(c,1);
 	} else if(c != focustop(selmon)) {
 		if (client_surface(c)->mapped)
