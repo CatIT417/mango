@@ -188,7 +188,7 @@ typedef struct {
 	struct wl_listener destroy_decoration;	
 
 	unsigned int ignore_clear_fullscreen;
-	int isnoclip;
+	const char *animation_type;
 	int is_in_scratchpad;
 	int is_scratchpad_show;
 	int isglobal;
@@ -306,7 +306,7 @@ typedef struct {
 	unsigned int tags;
 	int isfloating;
 	int isfullscreen;
-	int isnoclip;
+	const char *animation_type;
 	int isnoborder;
 	int monitor;
 	unsigned int width;
@@ -1023,7 +1023,7 @@ applyrules(Client *c)
 		if ((!r->title || strstr(title, r->title))
 				&& (!r->id || strstr(appid, r->id))) {
 			c->isfloating = r->isfloating;
-			c->isnoclip = r->isnoclip;
+			c->animation_type = r->animation_type;
 			c->isnoborder = r->isnoborder;
 			newtags |= r->tags;
 			i = 0;
@@ -3549,7 +3549,48 @@ void exchange_client(const Arg *arg) {
   exchange_two_client(c, direction_select(arg));
 }
 
-
+void set_open_animaiton(Client *c, struct wlr_box geo) {
+	int slide_direction;
+	int horizontal,horizontal_value;
+	int vertical,vertical_value;
+	if (strcmp(animation_type, "zoom") == 0 || (c->animation_type && strcmp(c->animation_type, "zoom") == 0)) {
+		c->animainit_geom.width = geo.width * zoom_initial_ratio;	
+		c->animainit_geom.height = geo.height * zoom_initial_ratio;
+		c->animainit_geom.x = geo.x + (geo.width - c->animainit_geom.width)/2;
+		c->animainit_geom.y = geo.y + (geo.height - c->animainit_geom.height)/2;
+		return;
+	} else {
+		horizontal = c->mon->w.x + c->mon->w.width - c->geom.x < c->geom.x - c->mon->w.x ? RIGHT : LEFT;
+		horizontal_value = horizontal == LEFT ? c->geom.x - c->mon->w.x : c->mon->w.x + c->mon->w.width - c->geom.x;
+		vertical = c->mon->w.y + c->mon->w.height - c->geom.y < c->geom.y - c->mon->w.y ? DOWN : UP;
+		vertical_value = vertical == UP ? c->geom.y - c->mon->w.y : c->mon->w.y + c->mon->w.height - c->geom.y;
+		slide_direction = (horizontal_value < vertical_value) || (!c->isfloating && new_is_master) ? horizontal : vertical;
+		c->animainit_geom.width = c->geom.width;
+		c->animainit_geom.height = c->geom.height;
+		switch (slide_direction)
+		{
+			case UP:
+				c->animainit_geom.x = c->geom.x;
+				c->animainit_geom.y = 0 - c->geom.height;
+				break;
+			case DOWN:
+				c->animainit_geom.x = c->geom.x;
+				c->animainit_geom.y = c->mon->w.y + c->geom.height;
+				break;
+			case LEFT:
+				c->animainit_geom.x = 0 - c->geom.width;
+				c->animainit_geom.y = c->geom.y;
+				break;
+			case RIGHT:
+				c->animainit_geom.x = c->mon->w.x + c->geom.width;
+				c->animainit_geom.y = c->geom.y;	
+				break;
+			default:
+				c->animainit_geom.x = c->geom.x;
+				c->animainit_geom.y = 0 - c->geom.height;
+		} 
+	}
+}
 void
 resize(Client *c, struct wlr_box geo, int interact)
 {	
@@ -3564,10 +3605,7 @@ resize(Client *c, struct wlr_box geo, int interact)
 		return;
 	bbox = interact ? &sgeom : &c->mon->w;
 	if(c->is_first_resize) {
-		c->animainit_geom.width = geo.width * zoom_initial_ratio;	
-		c->animainit_geom.height = geo.height * zoom_initial_ratio;
-		c->animainit_geom.x = geo.x + (geo.width - c->animainit_geom.width)/2;
-		c->animainit_geom.y = geo.y + (geo.height - c->animainit_geom.height)/2;
+		set_open_animaiton(c,geo);
 	} else {
 		c->animainit_geom = c->geom;
 	}
@@ -3580,33 +3618,8 @@ resize(Client *c, struct wlr_box geo, int interact)
 		c->bw = 0;
 	}
 		
-	/* Update scene-graph, including borders */
-	// wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
-	// wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
-	// wlr_scene_rect_set_size(c->border[0], c->geom.width, c->bw);
-	// wlr_scene_rect_set_size(c->border[1], c->geom.width, c->bw);
-	// wlr_scene_rect_set_size(c->border[2], c->bw, c->geom.height - 2 * c->bw);
-	// wlr_scene_rect_set_size(c->border[3], c->bw, c->geom.height - 2 * c->bw);
-	// wlr_scene_node_set_position(&c->border[1]->node, 0, c->geom.height - c->bw);
-	// wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
-	// wlr_scene_node_set_position(&c->border[3]->node, c->geom.width - c->bw, c->bw);
-	// wlr_scene_node_set_position(&c->border[1]->node, 0, c->geom.height - c->bw);
-	// wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
-	// wlr_scene_node_set_position(&c->border[3]->node, c->geom.width - c->bw, c->bw);
-
-	// if(!c->isnoclip){
-	// 	c->resize = client_set_size(c, c->geom.width - 2 * c->bw,
-	// 			c->geom.height - 2 * c->bw);
-	// 	// client_get_clip(c, &clip);
-	// 	// wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip);
-	// }else {
-	// /* this is a no-op if size hasn't changed */
-	// c->resize = client_set_size(c, c->geom.width - 2 * c->bw,
-	// 		c->geom.height - 2 * c->bw);
-	// }
-	// apply_border(c,c->geom);
-		c->resize = client_set_size(c, c->geom.width - 2 * c->bw,
-				c->geom.height - 2 * c->bw);
+	c->resize = client_set_size(c, c->geom.width - 2 * c->bw,
+			c->geom.height - 2 * c->bw);
 	client_set_pending_state(c, geo.x,geo.y,geo.width, geo.height);
 
 	setborder_color(c);

@@ -7,6 +7,7 @@
 
 /* animation */
 static const bool animations = true; // Enable animations
+static const char *animation_type = "slide"; //slide or zoom
 static const float zoom_initial_ratio = 0.5; // Initial window ratio for animations
 static const uint32_t animation_duration = 300; // Animation speed
 // static const double animation_curve[4] = {0.05,0.9,0.1,1.05}; // Animation curve
@@ -71,23 +72,13 @@ static const char *tags[] = {
 };
 
 static const Rule rules[] = {
-	/* app_id     title       tags mask     isfloating  isfullscreen isnoclip isnoborder monitor  width height */
+	/* app_id     title       tags mask     isfloating  isfullscreen animation_type isnoborder monitor  width height */
 	/* examples:
 	{ "Gimp",     NULL,       0,            1,           -1,800,600 },
 	*/
-	{ "Google-chrome",  						NULL,       		1 << 3,       	0,   0, 	0,	0,-1, 0,0},
-	{ NULL,  									"Image Viewer",   	0,       		1,   0, 	0,	0,-1, 0,0},
-	{ NULL,  									"Image View",     	0,       		1,   0, 	0,	0,-1, 0,0},
-	{ NULL,  									"File Selector",     	0,       		1,   0, 	0,	0,-1, 1200,800},
-	{ NULL,  									"Open File",     	0,       		1,   0, 	0,	0,-1, 1200,800},
-	{ "polkit-gnome-authentication-agent-1",  	NULL,       		0,       		1,   0, 	1,	1,-1, 930,230},
-	{ "blueman-manager",  						NULL,       		0,       		1,   0, 	0,	0,-1, 700,600},
-	{ "Gnome-system-monitor",  					NULL,       		0,       		0,   0, 	0,	0,-1, 700,600},
-	{ "obs",  									NULL,       		1<<5,       	0,   0, 	0,	0,-1, 700,600},
-	{ "flameshot",  							NULL,       		0,       		0,   1, 	0,	0,-1, 0,0},
-	{ NULL,  									"rofi - Networks",  0,       		1,   0, 	1,	1,-1, 0,0},
-	{ "Rofi",  									NULL,        		0,       		1,   0, 	1,	1,-1, 0,0},
-	{ "wofi",  									NULL,        		0,       		1,   0, 	0,	1,-1, 0,0},
+	{ "Google-chrome",  						NULL,       		1 << 3,       	0,   0, 	NULL,		0,-1, 0,0},
+	{ "wofi",  									NULL,        		0,       		1,   0, 	"zoom",		1,-1, 0,0},
+	{ "pot",  									NULL,        		0,       		1,   0, 	"zoom",		1,-1, 0,0},
 
 };
 
