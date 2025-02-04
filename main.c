@@ -197,6 +197,7 @@ typedef struct {
 	struct wlr_box bounds;
 	bool resizing;
 	bool is_first_resize;
+	bool is_restoring_from_ov;
 
   	struct dwl_animation animation;
 
@@ -1605,6 +1606,9 @@ void client_set_pending_state(Client *c, uint32_t x, uint32_t y,
 
 	if (!animations || c == grabc || (!c->is_first_resize && wlr_box_equal(&c->current, &pending)))
 	{
+		c->animation.should_animate = false;
+	} else if (c->is_restoring_from_ov) {
+		c->is_restoring_from_ov = false;
 		c->animation.should_animate = false;
 	}
 	else
@@ -4460,6 +4464,7 @@ void overview_restore(Client *c, const Arg *arg) {
   c->overview_isfullscreenbak = 0;
   c->overview_isfakefullscreenbak = 0;
   c->bw = c->overview_backup_bw;
+  c->is_restoring_from_ov = true;
   if (c->isfloating) {
     // XRaiseWindow(dpy, c->win); // 提升悬浮窗口到顶层
     resizeclient(c, c->overview_backup_x, c->overview_backup_y, c->overview_backup_w,
