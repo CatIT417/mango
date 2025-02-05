@@ -49,13 +49,6 @@ sudo ninja -C build install
 yay -S wofi foot
 
 ```
-# waybar (must use this waybar)
-```
-git clone https://gitee.com/DreamMaoMao/Waybar.git
-cd Waybar
-meson build -Dprefix=/usr
-sudo ninja -C build install
-```
 
 # thanks for some refer repo 
 https://github.com/dqrk0jeste/owl - for window animation implementation code
