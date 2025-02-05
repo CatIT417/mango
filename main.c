@@ -2340,7 +2340,7 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
 	if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
 		state = 0;
 		state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-    	zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);		
+    	zdwl_ipc_output_v2_send_tag(ipc_output->resource, ~0, state, 1, 1);		
 	} else {
     	for ( tag = 0 ; tag < LENGTH(tags); tag++) {
     	    numclients = state = focused_client = 0;
