@@ -1073,7 +1073,7 @@ applyrules(Client *c)
 		}
 
 	if(!(c->tags & ( 1 << (selmon->pertag->curtag - 1) ))){
-		view(&(Arg){.ui = c->tags},false);
+		view(&(Arg){.ui = c->tags},true);
 	}
 }
 
@@ -2337,6 +2337,32 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
     focused = focustop(monitor);
     zdwl_ipc_output_v2_send_active(ipc_output->resource, monitor == selmon);
 
+	// if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
+	// 	state = 0;
+	// 	state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+    // 	zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);		
+	// } else {
+    // 	for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+    // 	    numclients = state = focused_client = 0;
+    // 	    tagmask = 1 << tag;
+    // 	    if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
+    // 	        state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+
+    // 	    wl_list_for_each(c, &clients, link) {
+    // 	        if (c->mon != monitor)
+    // 	            continue;
+    // 	        if (!(c->tags & tagmask))
+    // 	            continue;
+    // 	        if (c == focused)
+    // 	            focused_client = 1;
+    // 	        if (c->isurgent)
+    // 	            state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+
+    // 	        numclients++;
+    // 	    }
+    // 	    zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients, focused_client);
+    // 	}
+	// }
     for ( tag = 0 ; tag < LENGTH(tags); tag++) {
         numclients = state = focused_client = 0;
         tagmask = 1 << tag;
@@ -2428,7 +2454,7 @@ void dwl_ipc_output_set_tags(struct wl_client *client, struct wl_resource *resou
 
     monitor->tagset[monitor->seltags] = newtags;
     focusclient(focustop(monitor), 1);
-    arrange(monitor,false);
+    arrange(monitor,true);
     printstatus();
 }
 
