@@ -1,4 +1,4 @@
-project('plume', ['c', 'cpp'],
+project('maomao', ['c', 'cpp'],
   version : '0.1'
 )
 
@@ -33,7 +33,7 @@ if xcb.found() and xlibs.found()
   c_args += '-DIM'
  endif
 
-executable('plume',
+executable('maomao',
   'main.c',
   'util.c',
   'wlr_foreign_toplevel_management_v1.c',
@@ -55,4 +55,4 @@ executable('plume',
 
 prefix = get_option('prefix')
 desktop_install_dir = join_paths(prefix, 'share/wayland-sessions')
-install_data('plume.desktop', install_dir : desktop_install_dir)
+install_data('maomao.desktop', install_dir : desktop_install_dir)

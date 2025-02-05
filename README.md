@@ -36,13 +36,13 @@ cd wlroots
 meson build -Dprefix=/usr
 sudo ninja -C build install
 
-git clone https://github.com/DreamMaoMao/plume.git
-cd plume
+git clone https://github.com/DreamMaoMao/maomaowm.git
+cd maomaowm
 meson build -Dprefix=/usr
 sudo ninja -C build install
 
 // set your autostart cmd ih this
-touch ~/.config/plume/autostart.sh
+touch ~/.config/maomao/autostart.sh
 
 ```
 # dependcy

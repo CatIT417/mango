@@ -1,0 +1,7 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Maomao
+Comment=maomao WM
+Exec=env XDG_CURRENT_DESKTOP=sway maomao
+Icon=maomao
+Type=Application
