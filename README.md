@@ -41,6 +41,9 @@ cd plume
 meson build -Dprefix=/usr
 sudo ninja -C build install
 
+// set your autostart cmd ih this
+touch ~/.config/plume/autostart.sh
+
 ```
 # dependcy
 

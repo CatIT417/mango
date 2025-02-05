@@ -51,7 +51,7 @@ static int warpcursor = 1; /* Warp cursor to focused client */
 static const char *const autostart[] = {
 	"/bin/sh",
 	"-c",
-	"$DWL/autostart.sh",
+	"~/.config/plume/autostart.sh",
 	NULL,
 	NULL,
 };
@@ -172,7 +172,7 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 
 /* commands */
 // static const char *termcmd[] = { "foot", NULL };
-// static const char *menucmd[] = { "wofi --conf $DWL/wofi/config_menu", NULL };
+// static const char *menucmd[] = { "wofi --conf ~/.config/plume/wofi/config_menu", NULL };
 
 static const Key keys[] = {
 	/* Note that Shift changes certain key codes: c -> C, 2 -> at, etc. */
