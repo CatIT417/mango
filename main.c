@@ -1642,7 +1642,8 @@ commitlayersurfacenotify(struct wl_listener *listener, void *data)
 void client_set_pending_state(Client *c)
 {
 
-	if (c->animation.tagining) {
+	// 判断是否需要动画
+	if (animations && c->animation.tagining) {
 		c->animation.tagining = false;
 		c->animation.should_animate = true;
 		c->animation.initial = c->animainit_geom;
@@ -1659,6 +1660,7 @@ void client_set_pending_state(Client *c)
 		c->animation.initial = c->animainit_geom;
 	}
 
+	// 开始动画
 	client_commit(c);
 	c->dirty = true;
 }
@@ -1671,17 +1673,19 @@ output_frame_duration_ms(Client *c) {
 void client_commit(Client *c)
 {
 	c->dirty = false;
-	c->current = c->pending;
+	c->current = c->pending; //设置动画的结束位置
 
 	if (c->animation.should_animate)
 	{
+		// 设置动画速度
 		c->animation.passed_frames = 0;
 		c->animation.total_frames = animation_duration / output_frame_duration_ms(c);
 
+		// 标记动画开始
 		c->animation.running = true;
 		c->animation.should_animate = false;
 	}
-
+	// 请求刷新屏幕
 	wlr_output_schedule_frame(c->mon->wlr_output);
 }
 
@@ -3674,6 +3678,9 @@ void
 resize(Client *c, struct wlr_box geo, int interact)
 {	
 
+	// 动画设置的起始函数，这里用来计算一些动画的起始值
+	// 动画起始位置大小是由于c->animainit_geom确定的
+
 	if (!c || !c->mon || !client_surface(c)->mapped)
 		return;
 
@@ -3688,6 +3695,7 @@ resize(Client *c, struct wlr_box geo, int interact)
 	c->geom = geo;
 	applybounds(c, bbox);//去掉这个推荐的窗口大小,因为有时推荐的窗口特别大导致平铺异常
 
+	// 动画起始位置大小设置
 	if(c->animation.tagouting) {
 		c->animainit_geom = c->geom;
 	} else if(c->animation.tagining) {
@@ -3704,13 +3712,17 @@ resize(Client *c, struct wlr_box geo, int interact)
 	if(c->isnoborder) {
 		c->bw = 0;
 	}
-		
+	
+	// c->geom 是真实的窗口大小和位置，跟过度的动画无关，用于计算布局
 	c->resize = client_set_size(c, c->geom.width - 2 * c->bw,
 			c->geom.height - 2 * c->bw);
 
+	// 如果不是工作区切换时划出去的窗口，就让动画的结束位置，就是上面的真实位置和大小
+	// c->pending 决定动画的终点，一般在其他调用resize的函数的附近设置了
 	if(!c->animation.tagouting) {
 		c->pending = c->geom;
 	}
+	// 开始应用动画设置
 	client_set_pending_state(c);
 
 	setborder_color(c);
