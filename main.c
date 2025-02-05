@@ -141,7 +141,7 @@ typedef struct Monitor Monitor;
 typedef struct {
 	/* Must keep these three elements in this order */
 	unsigned int type; /* XDGShell or X11* */
-	struct wlr_box geom,oldgeom,animainit_geom,tagout_backup_geom,current;  /* layout-relative, includes border */
+	struct wlr_box geom,pending,oldgeom,animainit_geom,current;  /* layout-relative, includes border */
 	Monitor *mon;
 	struct wlr_scene_tree *scene;
 	struct wlr_scene_rect *border[4]; /* top, bottom, left, right */
@@ -693,7 +693,6 @@ client_animation_next_tick(Client *c)
 			c->animation.tagouting = false;
 			wlr_scene_node_set_enabled(&c->scene->node, false);
 			client_set_suspended(c, true);
-			c->geom = c->tagout_backup_geom;
 			c->animation.tagouted = true;
 		}
 		return false;
@@ -770,8 +769,8 @@ bool client_draw_frame(Client *c)
 			need_more_frames = true;
 		}
 	} else {
-		wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
-		apply_border(c, c->geom);
+		wlr_scene_node_set_position(&c->scene->node, c->pending.x, c->pending.y);
+		apply_border(c, c->pending);
 	}
 	
 	client_apply_clip(c);
@@ -1106,8 +1105,7 @@ arrange(Monitor *m,bool want_animation)
 				if((c->isfloating || c->isfullscreen || c->isfakefullscreen) && (c->animation.tagouting || c->animation.tagouted)) {
 					c->animation.tagouting = false;
 					c->animation.tagouted = false;
-				// if((c->isfloating || c->isfullscreen || c->isfakefullscreen) && c->tagout_backup_geom.width != 0 && c->tagout_backup_geom.height != 0) {
-					resize(c,c->tagout_backup_geom,0);
+					resize(c,c->geom,0);
 				} else {
 					c->animation.tagouting = false;
 					c->animation.tagouted = false;	
@@ -1116,19 +1114,14 @@ arrange(Monitor *m,bool want_animation)
 			} else {
 				if ((c->tags & ( 1 << (selmon->pertag->prevtag - 1) )) && want_animation && m->pertag->prevtag != 0 && m->pertag->curtag !=0) {
 					c->animation.tagouting = true;
-					c->tagout_backup_geom = c->geom;
 					if (m->pertag->curtag > m->pertag->prevtag) {
-						resizeclient(c, 
-						c->geom.x - m->m.width, 
-						c->geom.y, 
-						c->geom.width, 
-						c->geom.height, 0);
+						c->pending = c->geom;
+						c->pending.x -= c->geom.x + m->m.width;
+						resize(c,c->geom,0);
 					} else {
-						resizeclient(c, 
-						c->geom.x + m->m.width, 
-						c->geom.y, 
-						c->geom.width, 
-						c->geom.height, 0);
+						c->pending = c->geom;
+						c->pending.x -= c->geom.x - m->m.width;
+						resize(c,c->geom,0);
 					}
 				} else {
 					wlr_scene_node_set_enabled(&c->scene->node, false);
@@ -1646,25 +1639,14 @@ commitlayersurfacenotify(struct wl_listener *listener, void *data)
 	arrangelayers(l->mon);
 }
 
-void client_set_pending_state(Client *c, uint32_t x, uint32_t y,
-							  uint32_t width, uint32_t height)
+void client_set_pending_state(Client *c)
 {
-	//   assert(toplevel->mapped);
-
-	struct wlr_box pending = {
-		.x = x,
-		.y = y,
-		.width = width,
-		.height = height,
-	};
-
-	c->geom = pending;
 
 	if (c->animation.tagining) {
 		c->animation.tagining = false;
 		c->animation.should_animate = true;
 		c->animation.initial = c->animainit_geom;
-	} else if (!animations || c == grabc || (!c->is_first_resize && wlr_box_equal(&c->current, &pending)))
+	} else if (!animations || c == grabc || (!c->is_first_resize && wlr_box_equal(&c->current, &c->pending)))
 	{
 		c->animation.should_animate = false;
 	} else if (c->is_restoring_from_ov) {
@@ -1689,7 +1671,7 @@ output_frame_duration_ms(Client *c) {
 void client_commit(Client *c)
 {
 	c->dirty = false;
-	c->current = c->geom;
+	c->current = c->pending;
 
 	if (c->animation.should_animate)
 	{
@@ -3707,7 +3689,7 @@ resize(Client *c, struct wlr_box geo, int interact)
 	applybounds(c, bbox);//去掉这个推荐的窗口大小,因为有时推荐的窗口特别大导致平铺异常
 
 	if(c->animation.tagouting) {
-		c->animainit_geom = c->tagout_backup_geom;
+		c->animainit_geom = c->geom;
 	} else if(c->animation.tagining) {
 		c->animainit_geom.height = oldgeom.height;
 		c->animainit_geom.width = oldgeom.width;
@@ -3725,7 +3707,11 @@ resize(Client *c, struct wlr_box geo, int interact)
 		
 	c->resize = client_set_size(c, c->geom.width - 2 * c->bw,
 			c->geom.height - 2 * c->bw);
-	client_set_pending_state(c, geo.x,geo.y,geo.width, geo.height);
+
+	if(!c->animation.tagouting) {
+		c->pending = c->geom;
+	}
+	client_set_pending_state(c);
 
 	setborder_color(c);
 }
