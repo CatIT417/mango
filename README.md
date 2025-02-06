@@ -26,6 +26,9 @@ https://github.com/user-attachments/assets/da80c6d1-b9a5-44c4-b738-6421365e6aa5
 - text-input-v2
 - window move/open animaition
 - workspace switch animaition
+- window close animaition
+- custom mov/open/close/tag animaition sppeed
+- fade in / fade out
 
 
 # install 

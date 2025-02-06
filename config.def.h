@@ -8,8 +8,12 @@
 /* animation */
 static const bool animations = true; // Enable animations
 static const char *animation_type = "slide"; //slide or zoom
+static const char animation_fade_in = 1; // Enable animation fade in
 static const float zoom_initial_ratio = 0.5; // Initial window ratio for animations
-static const uint32_t animation_duration = 300; // Animation speed
+static const uint32_t animation_duration_move = 300; // Animation move speed
+static const uint32_t animation_duration_open = 300; // Animation open speed
+static const uint32_t animation_duration_close = 200; // Animation close speed
+static const uint32_t animation_duration_tag = 300; // Animation tag speed
 // static const double animation_curve[4] = {0.05,0.9,0.1,1.05}; // Animation curve
 static const double animation_curve[4] = {0.46,1.0,0.29,0.99}; // Animation curve
 

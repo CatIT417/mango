@@ -129,8 +129,10 @@ struct dwl_animation {
   bool tagining;
   bool tagouted;
   bool tagouting;
+  bool begin_fade_in;
   uint32_t total_frames;
   uint32_t passed_frames;
+  uint32_t duration;
   struct wlr_box initial;
   struct wlr_box current;
 };
@@ -199,7 +201,7 @@ typedef struct {
 	int iskilling;
 	struct wlr_box bounds;
 	bool resizing;
-	bool is_first_resize;
+	bool is_open_animation;
 	bool is_restoring_from_ov;
 
   	struct dwl_animation animation;
@@ -509,6 +511,7 @@ static unsigned int get_tags_first_tag(unsigned int tags);
 
 void client_commit(Client *c);
 void apply_border(Client *c,struct wlr_box clip_box);
+void client_set_opacity(Client *c, double opacity);
 
 /* variables */
 static const char broken[] = "broken";
@@ -678,7 +681,6 @@ client_animation_next_tick(Client *c)
 				 (c->current.y - c->animation.initial.y) * factor;
 
 	wlr_scene_node_set_position(&c->scene->node, x, y);
-	c->is_first_resize = false;
 	c->animation.current = (struct wlr_box){
 		.x = x,
 		.y = y,
@@ -686,9 +688,28 @@ client_animation_next_tick(Client *c)
 		.height = height,
 	};
 
+	if(!c->iskilling && (c->is_open_animation||c->animation.begin_fade_in) && animation_fade_in) {
+		c->animation.begin_fade_in = true;
+		client_set_opacity(c,animation_passed);
+	}
+
+	if(c->iskilling) {
+		client_set_opacity(c,1 - animation_passed );	
+	}
+
+	c->is_open_animation = false;
+
 	if (animation_passed == 1.0)
-	{
+	{	
+		if(c->animation.begin_fade_in) {
+			c->animation.begin_fade_in = false;
+		}
+
 		c->animation.running = false;
+		if(c->iskilling) {
+			client_send_close(c);
+			return false;
+		}
 		if(c->animation.tagouting) {
 			c->animation.tagouting = false;
 			wlr_scene_node_set_enabled(&c->scene->node, false);
@@ -1086,6 +1107,8 @@ arrange(Monitor *m,bool want_animation)
 		return;
 
 	wl_list_for_each(c, &clients, link) {
+		if(c->iskilling)
+			continue;
 		if(c->mon == m && c->isglobal) {
 			c->tags =  m->tagset[m->seltags];
 			focusclient(c,1);
@@ -1647,7 +1670,7 @@ void client_set_pending_state(Client *c)
 		c->animation.tagining = false;
 		c->animation.should_animate = true;
 		c->animation.initial = c->animainit_geom;
-	} else if (!animations || c == grabc || (!c->is_first_resize && wlr_box_equal(&c->current, &c->pending)))
+	} else if (!animations || c == grabc || (!c->is_open_animation && wlr_box_equal(&c->current, &c->pending)))
 	{
 		c->animation.should_animate = false;
 	} else if (c->is_restoring_from_ov) {
@@ -1679,7 +1702,7 @@ void client_commit(Client *c)
 	{
 		// 设置动画速度
 		c->animation.passed_frames = 0;
-		c->animation.total_frames = animation_duration / output_frame_duration_ms(c);
+		c->animation.total_frames = c->animation.duration / output_frame_duration_ms(c);
 
 		// 标记动画开始
 		c->animation.running = true;
@@ -2337,51 +2360,51 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
     focused = focustop(monitor);
     zdwl_ipc_output_v2_send_active(ipc_output->resource, monitor == selmon);
 
-	if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
-		state = 0;
-		state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-    	zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);		
-	} else {
-    	for ( tag = 0 ; tag < LENGTH(tags); tag++) {
-    	    numclients = state = focused_client = 0;
-    	    tagmask = 1 << tag;
-    	    if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-    	        state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+	// if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
+	// 	state = 0;
+	// 	state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+    // 	zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);		
+	// } else {
+    // 	for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+    // 	    numclients = state = focused_client = 0;
+    // 	    tagmask = 1 << tag;
+    // 	    if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
+    // 	        state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
 
-    	    wl_list_for_each(c, &clients, link) {
-    	        if (c->mon != monitor)
-    	            continue;
-    	        if (!(c->tags & tagmask))
-    	            continue;
-    	        if (c == focused)
-    	            focused_client = 1;
-    	        if (c->isurgent)
-    	            state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+    // 	    wl_list_for_each(c, &clients, link) {
+    // 	        if (c->mon != monitor)
+    // 	            continue;
+    // 	        if (!(c->tags & tagmask))
+    // 	            continue;
+    // 	        if (c == focused)
+    // 	            focused_client = 1;
+    // 	        if (c->isurgent)
+    // 	            state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
 
-    	        numclients++;
-    	    }
-    	    zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients, focused_client);
-    	}
-	}
+    // 	        numclients++;
+    // 	    }
+    // 	    zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients, focused_client);
+    // 	}
+	// }
 
-    // for ( tag = 0 ; tag < LENGTH(tags); tag++) {
-    //     numclients = state = focused_client = 0;
-    //     tagmask = 1 << tag;
-    //     if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-    //         state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-    //     wl_list_for_each(c, &clients, link) {
-    //         if (c->mon != monitor)
-    //             continue;
-    //         if (!(c->tags & tagmask))
-    //             continue;
-    //         if (c == focused)
-    //             focused_client = 1;
-    //         if (c->isurgent)
-    //             state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
-    //         numclients++;
-    //     }
-    //     zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients, focused_client);
-    // }
+    for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+        numclients = state = focused_client = 0;
+        tagmask = 1 << tag;
+        if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
+            state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+        wl_list_for_each(c, &clients, link) {
+            if (c->mon != monitor)
+                continue;
+            if (!(c->tags & tagmask))
+                continue;
+            if (c == focused)
+                focused_client = 1;
+            if (c->isurgent)
+                state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+            numclients++;
+        }
+        zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients, focused_client);
+    }
 
     title = focused ? client_get_title(focused) : "";
     appid = focused ? client_get_appid(focused) : "";
@@ -2605,6 +2628,8 @@ focustop(Monitor *m)
 {
 	Client *c;
 	wl_list_for_each(c, &fstack, flink) {
+		if(c->iskilling)
+			continue;
 		if (VISIBLEON(c, m))
 			return c;
 	}
@@ -2872,6 +2897,40 @@ keypressmod(struct wl_listener *listener, void *data)
 		&kb->wlr_keyboard->modifiers);
 }
 
+void pending_kill_client(Client *c) {
+	c->iskilling = 1;
+	c->animainit_geom = c->geom;
+	c->pending = c->geom;
+	c->pending.y = c->geom.y + c->mon->m.height;
+
+	if (c == selmon->sel)
+		selmon->sel = NULL;
+
+	if (c == grabc) {
+		cursor_mode = CurNormal;
+		grabc = NULL;
+	}
+
+	if(c->foreign_toplevel){
+		wlr_foreign_toplevel_handle_v1_destroy(c->foreign_toplevel);
+		c->foreign_toplevel = NULL;
+	}
+
+	Client *nextfocus = focustop(selmon);
+
+	if(nextfocus) {
+		focusclient(nextfocus,0);
+	}
+
+	if(!nextfocus && selmon->isoverview){
+		Arg arg = {0};
+		toggleoverview(&arg);
+	}
+	resize(c,c->geom,0);
+	printstatus();
+	motionnotify(0, NULL, 0, 0, 0, 0);
+	arrange(selmon,false);
+}
 
 void
 killclient(const Arg *arg)
@@ -2879,9 +2938,7 @@ killclient(const Arg *arg)
 	Client *c;
 	c = selmon->sel;
 	if (c) {
-		c->iskilling = 1;
-		selmon->sel = NULL;
-		client_send_close(c);
+		pending_kill_client(c);
 	}
 		
 }
@@ -2965,7 +3022,7 @@ mapnotify(struct wl_listener *listener, void *data)
 	// c->animainit_geom.height = c->geom.height * zoom_initial_ratio;
 	// c->animainit_geom.x = c->geom.x + (c->geom.width - c->animainit_geom.width)/2;
 	// c->animainit_geom.y = c->geom.y + (c->geom.height - c->animainit_geom.height)/2;
-	c->is_first_resize = true;
+	c->is_open_animation = true;
 	//nop
 	if (new_is_master)
 		// tile at the top
@@ -3436,6 +3493,30 @@ quitsignal(int signo)
 	quit(NULL);
 }
 
+void
+scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer,
+                           int sx, int sy, void *data) {
+  wlr_scene_buffer_set_opacity(buffer, *(double *)data);
+}
+
+void client_set_opacity(Client *c, double opacity) {
+	wlr_scene_node_for_each_buffer(&c->scene_surface->node, scene_buffer_apply_opacity, &opacity);
+}
+
+void
+client_handle_opacity(Client *c) {
+	if (!c || !c->mon || !client_surface(c)->mapped)
+		return;
+
+  double opacity = c->isfullscreen || c->isfakefullscreen
+    ? 1.0
+    : c == selmon->sel
+      ? 0.8
+      : 0.5;
+
+  wlr_scene_node_for_each_buffer(&c->scene_surface->node, scene_buffer_apply_opacity, &opacity);
+}
+
 void // 0.5
 rendermon(struct wl_listener *listener, void *data)
 {
@@ -3459,12 +3540,16 @@ rendermon(struct wl_listener *listener, void *data)
 	{
 		// if (client_is_rendered_on_mon(c, m) && !client_is_stopped(c))
 		need_more_frames = client_draw_frame(c);
+		// the opacity is usabel, but don't enable temporarily
+		// client_handle_opacity(c);
 	}
 
 	if (need_more_frames)
 	{
 		wlr_output_schedule_frame(m->wlr_output);
 	}
+
+
 	/*
 	 * HACK: The "correct" way to set the gamma is to commit it together with
 	 * the rest of the state in one go, but to do that we would need to rewrite
@@ -3626,11 +3711,11 @@ int is_special_animaiton_rule(Client *c) {
 	int visible_client_number = 0;
 	Client *count_c;
 	wl_list_for_each(count_c, &clients, link)
-	if (count_c && VISIBLEON(count_c,selmon) && !count_c->isminied){
+	if (count_c && VISIBLEON(count_c,selmon) && !count_c->isminied && !c->iskilling){
 		visible_client_number++;
 	}
 
-	if (visible_client_number == 1 && !c->isfloating) {
+	if (visible_client_number < 2 && !c->isfloating) {
 		return DOWN;
 	} else if (visible_client_number == 2 && !c->isfloating && !new_is_master) {
 		return RIGHT;
@@ -3713,6 +3798,23 @@ resize(Client *c, struct wlr_box geo, int interact)
 	c->geom = geo;
 	applybounds(c, bbox);//去掉这个推荐的窗口大小,因为有时推荐的窗口特别大导致平铺异常
 
+	if(!c->is_open_animation) {
+		c->animation.begin_fade_in = false;
+		client_set_opacity(c,1);
+	}
+
+	if(c->iskilling) {
+		c->animation.duration = animation_duration_close;
+	} else if(c->animation.tagouting) {
+		c->animation.duration = animation_duration_tag;
+	} else if(c->animation.tagining) {
+		c->animation.duration = animation_duration_tag;
+	} else if(c->is_open_animation) {
+		c->animation.duration = animation_duration_open;
+	} else {
+		c->animation.duration = animation_duration_move;
+	}
+
 	// 动画起始位置大小设置
 	if(c->animation.tagouting) {
 		c->animainit_geom = c->geom;
@@ -3720,7 +3822,7 @@ resize(Client *c, struct wlr_box geo, int interact)
 		c->animainit_geom.height = oldgeom.height;
 		c->animainit_geom.width = oldgeom.width;
 		c->animainit_geom.y = oldgeom.y;
-	}else if(c->is_first_resize) {
+	}else if(c->is_open_animation) {
 		set_open_animaiton(c,c->geom);
 	} else {
 		c->animainit_geom = oldgeom;
@@ -3737,7 +3839,7 @@ resize(Client *c, struct wlr_box geo, int interact)
 
 	// 如果不是工作区切换时划出去的窗口，就让动画的结束位置，就是上面的真实位置和大小
 	// c->pending 决定动画的终点，一般在其他调用resize的函数的附近设置了
-	if(!c->animation.tagouting) {
+	if(!c->animation.tagouting && !c->iskilling) {
 		c->pending = c->geom;
 	}
 	// 开始应用动画设置
@@ -4113,8 +4215,7 @@ void
 handle_foreign_close_request(struct wl_listener *listener, void *data) {
 	Client *c = wl_container_of(listener, c, foreign_close_request);
 	if(c) {
-		c->iskilling = 1;
-		client_send_close(c);
+		pending_kill_client(c);
 	}
 }
 
@@ -4474,7 +4575,7 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
   Client *tempClients[100];
   n = 0;
   wl_list_for_each(c, &clients, link)
-  	if (VISIBLEON(c, c->mon) && !c->animation.tagouting && c->mon == selmon){
+  	if (VISIBLEON(c, c->mon) && !c->iskilling && !c->animation.tagouting && c->mon == selmon){
 			tempClients[n] = c;
     		n++;
   	}
@@ -4644,7 +4745,7 @@ tile(Monitor *m,unsigned int gappo, unsigned int uappi)
 	Client *c;
 
 	wl_list_for_each(c, &clients, link)
-		if (VISIBLEON(c, m) && !c->isfloating && !c->isfullscreen && !c->isfakefullscreen)
+		if (VISIBLEON(c, m) && !c->animation.tagouting && !c->iskilling && !c->isfloating && !c->isfullscreen && !c->isfakefullscreen)
 			n++;
 	if (n == 0)
 		return;
@@ -4660,7 +4761,7 @@ tile(Monitor *m,unsigned int gappo, unsigned int uappi)
 	i = 0;
 	my = ty = m->gappoh*oe;
 	wl_list_for_each(c, &clients, link) {
-		if (!VISIBLEON(c, m) || c->animation.tagouting || c->isfloating || c->isfullscreen || c->isfakefullscreen )
+		if (!VISIBLEON(c, m) || c->iskilling || c->animation.tagouting || c->isfloating || c->isfullscreen || c->isfakefullscreen )
 			continue;
 		if (i < selmon->pertag->nmasters[selmon->pertag->curtag]) {
 			r = MIN(n, selmon->pertag->nmasters[selmon->pertag->curtag]) - i;
@@ -4801,14 +4902,6 @@ unmapnotify(struct wl_listener *listener, void *data)
 	/* Called when the surface is unmapped, and should no longer be shown. */
 	Client *c = wl_container_of(listener, c, unmap);
 
-	if (c == selmon->sel)
-		selmon->sel = NULL;
-
-	if (c == grabc) {
-		cursor_mode = CurNormal;
-		grabc = NULL;
-	}
-
 	if (client_is_unmanaged(c)) {
 		if (c == exclusive_focus)
 			exclusive_focus = NULL;
@@ -4821,24 +4914,6 @@ unmapnotify(struct wl_listener *listener, void *data)
 	}
 
 	wlr_scene_node_destroy(&c->scene->node);
-	if(c->foreign_toplevel){
-		wlr_foreign_toplevel_handle_v1_destroy(c->foreign_toplevel);
-		c->foreign_toplevel = NULL;
-	}
-
-	Client *nextfocus = focustop(selmon);
-
-	if(nextfocus) {
-		focusclient(nextfocus,0);
-	}
-
-	if(!nextfocus && selmon->isoverview){
-		Arg arg = {0};
-		toggleoverview(&arg);
-	}
-
-	printstatus();
-	motionnotify(0, NULL, 0, 0, 0, 0);
 }
 
 void //0.5
