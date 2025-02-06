@@ -2389,53 +2389,53 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
   focused = focustop(monitor);
   zdwl_ipc_output_v2_send_active(ipc_output->resource, monitor == selmon);
 
-  if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
-    state = 0;
-    state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-    zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);
-  } else {
-    for (tag = 0; tag < LENGTH(tags); tag++) {
-      numclients = state = focused_client = 0;
-      tagmask = 1 << tag;
-      if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-        state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-
-      wl_list_for_each(c, &clients, link) {
-        if (c->mon != monitor)
-          continue;
-        if (!(c->tags & tagmask))
-          continue;
-        if (c == focused)
-          focused_client = 1;
-        if (c->isurgent)
-          state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
-
-        numclients++;
-      }
-      zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients,
-                                  focused_client);
-    }
-  }
-
-  // for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+  // if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
+  //   state = 0;
+  //   state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+  //   zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);
+  // } else {
+  //   for (tag = 0; tag < LENGTH(tags); tag++) {
   //     numclients = state = focused_client = 0;
   //     tagmask = 1 << tag;
   //     if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-  //         state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+  //       state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+
   //     wl_list_for_each(c, &clients, link) {
-  //         if (c->mon != monitor)
-  //             continue;
-  //         if (!(c->tags & tagmask))
-  //             continue;
-  //         if (c == focused)
-  //             focused_client = 1;
-  //         if (c->isurgent)
-  //             state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
-  //         numclients++;
+  //       if (c->mon != monitor)
+  //         continue;
+  //       if (!(c->tags & tagmask))
+  //         continue;
+  //       if (c == focused)
+  //         focused_client = 1;
+  //       if (c->isurgent)
+  //         state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+
+  //       numclients++;
   //     }
-  //     zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state,
-  //     numclients, focused_client);
+  //     zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients,
+  //                                 focused_client);
+  //   }
   // }
+
+  for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+      numclients = state = focused_client = 0;
+      tagmask = 1 << tag;
+      if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
+          state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+      wl_list_for_each(c, &clients, link) {
+          if (c->mon != monitor)
+              continue;
+          if (!(c->tags & tagmask))
+              continue;
+          if (c == focused)
+              focused_client = 1;
+          if (c->isurgent)
+              state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+          numclients++;
+      }
+      zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state,
+      numclients, focused_client);
+  }
 
   title = focused ? client_get_title(focused) : "";
   appid = focused ? client_get_appid(focused) : "";
@@ -3078,6 +3078,10 @@ maximizenotify(struct wl_listener *listener, void *data) {
   // 	wlr_xdg_surface_schedule_configure(c->surface.xdg);
   // togglefakefullscreen(&(Arg){0});
   Client *c = wl_container_of(listener, c, maximize);
+
+  if(!c || !c->mon || c->iskilling)
+    return;
+
   if (c->isfakefullscreen || c->isfullscreen)
     setfakefullscreen(c, 0);
   else
@@ -3119,7 +3123,8 @@ minimizenotify(struct wl_listener *listener, void *data) {
   // 	wlr_xdg_surface_schedule_configure(c->surface.xdg);
   // togglefakefullscreen(&(Arg){0});
   Client *c = wl_container_of(listener, c, minimize);
-  set_minized(c);
+  if(c && c->mon && !c->iskilling)
+    set_minized(c);
 }
 
 void // 17
