@@ -756,10 +756,10 @@ bool client_animation_next_tick(Client *c) {
     }
 
     c->animation.running = false;
-    if (c->iskilling) {
-      client_send_close(c);
-      return false;
-    }
+    // if (c->iskilling) {
+    //   client_send_close(c);
+    //   return false;
+    // }
     if (c->animation.tagouting) {
       c->animation.tagouting = false;
       wlr_scene_node_set_enabled(&c->scene->node, false);
@@ -822,7 +822,7 @@ void client_apply_clip(Client *c) {
 }
 
 bool client_draw_frame(Client *c) {
-  if (!c || !c->mon || !client_surface(c)->mapped)
+  if (!c || !client_surface(c)->mapped)
     return false;
   // if (!VISIBLEON(c, c->mon))
   // 	return false;
@@ -2403,6 +2403,8 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
   //       state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
 
   //     wl_list_for_each(c, &clients, link) {
+  //       if (c->iskilling)
+  //         continue;
   //       if (c->mon != monitor)
   //         continue;
   //       if (!(c->tags & tagmask))
@@ -2886,39 +2888,40 @@ keypressmod(struct wl_listener *listener, void *data) {
 }
 
 void pending_kill_client(Client *c) {
-  c->iskilling = 1;
-  c->animainit_geom = c->geom;
-  c->pending = c->geom;
-  c->pending.y = c->geom.y + c->mon->m.height - (c->geom.y - c->mon->m.y);
+  // c->iskilling = 1;
+  // c->animainit_geom = c->geom;
+  // c->pending = c->geom;
+  // c->pending.y = c->geom.y + c->mon->m.height - (c->geom.y - c->mon->m.y);
 
-  if (c == grabc) {
-    cursor_mode = CurNormal;
-    grabc = NULL;
-  }
+  // if (c == grabc) {
+  //   cursor_mode = CurNormal;
+  //   grabc = NULL;
+  // }
 
-  if (c == selmon->sel) {
-    selmon->sel = NULL;
-    Client *nextfocus = focustop(selmon);
+  // if (c == selmon->sel) {
+  //   selmon->sel = NULL;
+  //   Client *nextfocus = focustop(selmon);
 
-    if (nextfocus) {
-      focusclient(nextfocus, 0);
-    }
+  //   if (nextfocus) {
+  //     focusclient(nextfocus, 0);
+  //   }
 
-    if (!nextfocus && selmon->isoverview) {
-      Arg arg = {0};
-      toggleoverview(&arg);
-    }
-  }
+  //   if (!nextfocus && selmon->isoverview) {
+  //     Arg arg = {0};
+  //     toggleoverview(&arg);
+  //   }
+  // }
 
-  if (c->foreign_toplevel) {
-    wlr_foreign_toplevel_handle_v1_destroy(c->foreign_toplevel);
-    c->foreign_toplevel = NULL;
-  }
+  // if (c->foreign_toplevel) {
+  //   wlr_foreign_toplevel_handle_v1_destroy(c->foreign_toplevel);
+  //   c->foreign_toplevel = NULL;
+  // }
 
-  resize(c, c->geom, 0);
-  printstatus();
-  motionnotify(0, NULL, 0, 0, 0, 0);
-  arrange(selmon, false);
+  // resize(c, c->geom, 0);
+  // printstatus();
+  // motionnotify(0, NULL, 0, 0, 0, 0);
+  // arrange(selmon, false);
+  client_send_close(c);
 }
 
 void killclient(const Arg *arg) {
@@ -3912,7 +3915,7 @@ setfloating(Client *c, int floating) {
   struct wlr_box target_box, backup_box;
   c->isfloating = floating;
 
-  if (!c || !c->mon || !client_surface(c)->mapped)
+  if (!c || !c->mon || !client_surface(c)->mapped || c->iskilling)
     return;
 
   wlr_scene_node_reparent(&c->scene->node,
@@ -3954,7 +3957,7 @@ setfloating(Client *c, int floating) {
 
 void setfakefullscreen(Client *c, int fakefullscreen) {
   struct wlr_box fakefullscreen_box;
-  if (!c || !c->mon || !client_surface(c)->mapped)
+  if (!c || !c->mon || !client_surface(c)->mapped || c->iskilling)
     return;
 
   c->isfakefullscreen = fakefullscreen;
@@ -4000,7 +4003,7 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
 {
   c->isfullscreen = fullscreen;
 
-  if (!c || !c->mon || !client_surface(c)->mapped)
+  if (!c || !c->mon || !client_surface(c)->mapped || c->iskilling)
     return;
 
   client_set_fullscreen(c, fullscreen);
@@ -4866,6 +4869,8 @@ unmaplayersurfacenotify(struct wl_listener *listener, void *data) {
 void unmapnotify(struct wl_listener *listener, void *data) {
   /* Called when the surface is unmapped, and should no longer be shown. */
   Client *c = wl_container_of(listener, c, unmap);
+
+  c->iskilling = 1;
 
   if (c == grabc) {
     cursor_mode = CurNormal;
