@@ -1763,8 +1763,10 @@ void client_commit(Client *c) {
 void // 0.5
 commitnotify(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, commit);
-  // don't know need to do what...
-  return;
+
+  if(!c || !c->mon || c->iskilling)
+    return;
+
 }
 
 void // 0.5
@@ -2674,6 +2676,10 @@ focustop(Monitor *m) {
 void // 0.6
 fullscreennotify(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, fullscreen);
+
+  if(!c || !c->mon || c->iskilling)
+    return;
+
   setfullscreen(c, client_wants_fullscreen(c));
 }
 
@@ -3123,8 +3129,11 @@ minimizenotify(struct wl_listener *listener, void *data) {
   // 	wlr_xdg_surface_schedule_configure(c->surface.xdg);
   // togglefakefullscreen(&(Arg){0});
   Client *c = wl_container_of(listener, c, minimize);
-  if(c && c->mon && !c->iskilling)
-    set_minized(c);
+  
+  if(!c || !c->mon || c->iskilling)
+    return;
+
+  set_minized(c);
 }
 
 void // 17
@@ -5006,6 +5015,10 @@ updatemons(struct wl_listener *listener, void *data) {
 
 void updatetitle(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, set_title);
+
+  if(!c || !c->mon || c->iskilling)
+    return;
+
   const char *title;
   title = client_get_title(c);
   if (title && c->foreign_toplevel)
@@ -5384,6 +5397,9 @@ void zoom(const Arg *arg) {
 void activatex11(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, activate);
 
+  if(!c || !c->mon || c->iskilling)
+    return;
+
   /* Only "managed" windows can be activated */
   if (!client_is_unmanaged(c))
     wlr_xwayland_surface_activate(c->surface.xwayland, 1);
@@ -5407,6 +5423,10 @@ void activatex11(struct wl_listener *listener, void *data) {
 void // 0.7
 configurex11(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, configure);
+  
+  if(!c || !c->mon || c->iskilling)
+    return;
+
   struct wlr_xwayland_surface_configure_event *event = data;
   if (!client_surface(c) || !client_surface(c)->mapped) {
     wlr_xwayland_surface_configure(c->surface.xwayland, event->x, event->y,
