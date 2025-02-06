@@ -690,11 +690,11 @@ client_animation_next_tick(Client *c)
 
 	if(!c->iskilling && (c->is_open_animation||c->animation.begin_fade_in) && animation_fade_in) {
 		c->animation.begin_fade_in = true;
-		client_set_opacity(c,animation_passed);
+		client_set_opacity(c,MIN(animation_passed + fadein_begin_opacity,1.0));
 	}
 
 	if(c->iskilling) {
-		client_set_opacity(c,1 - animation_passed );	
+		client_set_opacity(c,MAX(fadeout_begin_opacity - animation_passed ,0.1) );	
 	}
 
 	c->is_open_animation = false;
@@ -2901,7 +2901,7 @@ void pending_kill_client(Client *c) {
 	c->iskilling = 1;
 	c->animainit_geom = c->geom;
 	c->pending = c->geom;
-	c->pending.y = c->geom.y + c->mon->m.height;
+	c->pending.y = c->geom.y +  c->mon->m.height -(c->geom.y -c->mon->m.y);
 
 	if (c == grabc) {
 		cursor_mode = CurNormal;
@@ -3831,7 +3831,7 @@ resize(Client *c, struct wlr_box geo, int interact)
 	}
 
 
-	if(c->isnoborder) {
+	if(c->isnoborder || c->iskilling) {
 		c->bw = 0;
 	}
 	
