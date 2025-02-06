@@ -3759,18 +3759,18 @@ void set_open_animaiton(Client *c, struct wlr_box geo) {
 		{
 			case UP:
 				c->animainit_geom.x = c->geom.x;
-				c->animainit_geom.y = 0 - c->geom.height;
+				c->animainit_geom.y = c->mon->m.y - c->geom.height;
 				break;
 			case DOWN:
 				c->animainit_geom.x = c->geom.x;
-				c->animainit_geom.y = c->mon->w.y + c->mon->w.height + c->geom.height;
+				c->animainit_geom.y = c->geom.y +  c->mon->m.height -(c->geom.y -c->mon->m.y);
 				break;
 			case LEFT:
-				c->animainit_geom.x = 0 - c->geom.width;
+				c->animainit_geom.x = c->mon->m.x - c->geom.width;
 				c->animainit_geom.y = c->geom.y;
 				break;
 			case RIGHT:
-				c->animainit_geom.x = c->mon->w.x + c->mon->w.width + c->geom.width;
+				c->animainit_geom.x = c->geom.x +  c->mon->m.width -(c->geom.x -c->mon->m.x);
 				c->animainit_geom.y = c->geom.y;	
 				break;
 			default:
