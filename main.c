@@ -130,6 +130,7 @@ struct dwl_animation {
   bool tagouted;
   bool tagouting;
   bool begin_fade_in;
+  bool from_rule;
   uint32_t total_frames;
   uint32_t passed_frames;
   uint32_t duration;
@@ -1094,6 +1095,7 @@ applyrules(Client *c)
 		}
 
 	if(!(c->tags & ( 1 << (selmon->pertag->curtag - 1) ))){
+		c->animation.from_rule = true;
 		view(&(Arg){.ui = c->tags},true);
 	}
 }
@@ -1117,7 +1119,7 @@ arrange(Monitor *m,bool want_animation)
 			if (VISIBLEON(c, m)) {
 				wlr_scene_node_set_enabled(&c->scene->node, true);
 				client_set_suspended(c, false);
-				if (want_animation && m->pertag->prevtag !=0  && m->pertag->curtag !=0) {
+				if (!c->animation.from_rule && want_animation && m->pertag->prevtag !=0  && m->pertag->curtag !=0) {
 					c->animation.tagining = true;
 					if (m->pertag->curtag > m->pertag->prevtag) {
 						c->animainit_geom.x = c->geom.x + m->m.width;
@@ -1125,6 +1127,8 @@ arrange(Monitor *m,bool want_animation)
 						c->animainit_geom.x = c->geom.x - m->m.width;
 					}
 				}
+
+				c->animation.from_rule = false;
 				if((c->isfloating || c->isfullscreen || c->isfakefullscreen) && (c->animation.tagouting || c->animation.tagouted)) {
 					c->animation.tagouting = false;
 					c->animation.tagouted = false;
