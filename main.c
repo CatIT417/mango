@@ -1868,8 +1868,8 @@ createmon(struct wl_listener *listener, void *data)
 	m->is_in_hotarea = 0;
 	m->tagset[0] = m->tagset[1] = 1;
 	float scale = 1;
-	m->mfact = 0.5;
-	m->nmaster = 1;
+	m->mfact = default_mfact;
+	m->nmaster = default_nmaster;
 	enum wl_output_transform rr = WL_OUTPUT_TRANSFORM_NORMAL;
 
 	if(LENGTH(layouts) > 1){
@@ -2337,50 +2337,51 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
     focused = focustop(monitor);
     zdwl_ipc_output_v2_send_active(ipc_output->resource, monitor == selmon);
 
-	// if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
-	// 	state = 0;
-	// 	state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-    // 	zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);		
-	// } else {
-    // 	for ( tag = 0 ; tag < LENGTH(tags); tag++) {
-    // 	    numclients = state = focused_client = 0;
-    // 	    tagmask = 1 << tag;
-    // 	    if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-    // 	        state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+	if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
+		state = 0;
+		state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+    	zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);		
+	} else {
+    	for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+    	    numclients = state = focused_client = 0;
+    	    tagmask = 1 << tag;
+    	    if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
+    	        state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
 
-    // 	    wl_list_for_each(c, &clients, link) {
-    // 	        if (c->mon != monitor)
-    // 	            continue;
-    // 	        if (!(c->tags & tagmask))
-    // 	            continue;
-    // 	        if (c == focused)
-    // 	            focused_client = 1;
-    // 	        if (c->isurgent)
-    // 	            state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+    	    wl_list_for_each(c, &clients, link) {
+    	        if (c->mon != monitor)
+    	            continue;
+    	        if (!(c->tags & tagmask))
+    	            continue;
+    	        if (c == focused)
+    	            focused_client = 1;
+    	        if (c->isurgent)
+    	            state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
 
-    // 	        numclients++;
-    // 	    }
-    // 	    zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients, focused_client);
-    // 	}
-	// }
-    for ( tag = 0 ; tag < LENGTH(tags); tag++) {
-        numclients = state = focused_client = 0;
-        tagmask = 1 << tag;
-        if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-            state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-        wl_list_for_each(c, &clients, link) {
-            if (c->mon != monitor)
-                continue;
-            if (!(c->tags & tagmask))
-                continue;
-            if (c == focused)
-                focused_client = 1;
-            if (c->isurgent)
-                state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
-            numclients++;
-        }
-        zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients, focused_client);
-    }
+    	        numclients++;
+    	    }
+    	    zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients, focused_client);
+    	}
+	}
+
+    // for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+    //     numclients = state = focused_client = 0;
+    //     tagmask = 1 << tag;
+    //     if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
+    //         state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+    //     wl_list_for_each(c, &clients, link) {
+    //         if (c->mon != monitor)
+    //             continue;
+    //         if (!(c->tags & tagmask))
+    //             continue;
+    //         if (c == focused)
+    //             focused_client = 1;
+    //         if (c->isurgent)
+    //             state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+    //         numclients++;
+    //     }
+    //     zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients, focused_client);
+    // }
 
     title = focused ? client_get_title(focused) : "";
     appid = focused ? client_get_appid(focused) : "";
@@ -2622,7 +2623,7 @@ incnmaster(const Arg *arg)
 {
 	if (!arg || !selmon)
 		return;
-	selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag] = MAX(selmon->nmaster + arg->i, 0);
+	selmon->pertag->nmasters[selmon->pertag->curtag] = MAX(selmon->pertag->nmasters[selmon->pertag->curtag] + arg->i, 0);
 	arrange(selmon,false);
 }
 
@@ -4003,10 +4004,11 @@ setmfact(const Arg *arg)
 
 	if (!arg || !selmon || !selmon->lt[selmon->sellt]->arrange)
 		return;
-	f = arg->f < 1.0 ? arg->f + selmon->mfact : arg->f - 1.0;
+	f = arg->f < 1.0 ? arg->f + selmon->pertag->mfacts[selmon->pertag->curtag] : arg->f - 1.0;
 	if (f < 0.1 || f > 0.9)
 		return;
-	selmon->mfact = f;
+	// selmon->mfact = f;
+	selmon->pertag->mfacts[selmon->pertag->curtag] = f;
 	arrange(selmon,false);
 }
 
@@ -4651,8 +4653,8 @@ tile(Monitor *m,unsigned int gappo, unsigned int uappi)
 		oe = 0; // outer gaps disabled
 	}
 
-	if (n > m->nmaster)
-		mw = m->nmaster ? (m->w.width + m->gappiv*ie) * m->mfact : 0;
+	if (n > selmon->pertag->nmasters[selmon->pertag->curtag])
+		mw = selmon->pertag->nmasters[selmon->pertag->curtag] ? (m->w.width + m->gappiv*ie) * selmon->pertag->mfacts[selmon->pertag->curtag] : 0;
 	else
 		mw = m->w.width - 2*m->gappov*oe + m->gappiv*ie;
 	i = 0;
@@ -4660,8 +4662,8 @@ tile(Monitor *m,unsigned int gappo, unsigned int uappi)
 	wl_list_for_each(c, &clients, link) {
 		if (!VISIBLEON(c, m) || c->animation.tagouting || c->isfloating || c->isfullscreen || c->isfakefullscreen )
 			continue;
-		if (i < m->nmaster) {
-			r = MIN(n, m->nmaster) - i;
+		if (i < selmon->pertag->nmasters[selmon->pertag->curtag]) {
+			r = MIN(n, selmon->pertag->nmasters[selmon->pertag->curtag]) - i;
 			h = (m->w.height - my - m->gappoh*oe - m->gappih*ie * (r - 1)) / r;
 			resize(c, (struct wlr_box){.x = m->w.x + m->gappov*oe, .y = m->w.y + my,
 				.width = mw - m->gappiv*ie, .height = h}, 0);
@@ -5011,8 +5013,6 @@ view(const Arg *arg,bool want_animation)
 		selmon->pertag->curtag = tmptag;
 	}
 
-	selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag];
-	selmon->mfact = selmon->pertag->mfacts[selmon->pertag->curtag];
 	selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
 	selmon->lt[selmon->sellt] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
 	selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];
@@ -5052,8 +5052,6 @@ viewtoleft(const Arg *arg)
 		selmon->pertag->curtag = tmptag;
 	}
 
-	selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag];
-	selmon->mfact = selmon->pertag->mfacts[selmon->pertag->curtag];
 	selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
 	selmon->lt[selmon->sellt] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
 	selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];
@@ -5105,8 +5103,6 @@ viewtoright_have_client(const Arg *arg)
 		selmon->pertag->curtag = tmptag;
 	}
 
-	selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag];
-	selmon->mfact = selmon->pertag->mfacts[selmon->pertag->curtag];
 	selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
 	selmon->lt[selmon->sellt] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
 	selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];
@@ -5142,8 +5138,6 @@ viewtoright(const Arg *arg)
 		selmon->pertag->curtag = tmptag;
 	}
 
-	selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag];
-	selmon->mfact = selmon->pertag->mfacts[selmon->pertag->curtag];
 	selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
 	selmon->lt[selmon->sellt] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
 	selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];
@@ -5195,8 +5189,6 @@ viewtoleft_have_client(const Arg *arg)
 		selmon->pertag->curtag = tmptag;
 	}
 
-	selmon->nmaster = selmon->pertag->nmasters[selmon->pertag->curtag];
-	selmon->mfact = selmon->pertag->mfacts[selmon->pertag->curtag];
 	selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
 	selmon->lt[selmon->sellt] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
 	selmon->lt[selmon->sellt^1] = selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt^1];

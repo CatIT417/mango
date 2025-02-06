@@ -17,6 +17,8 @@ static const double animation_curve[4] = {0.46,1.0,0.29,0.99}; // Animation curv
 static const unsigned int axis_bind_apply_timeout = 100; // Timeout for wheel binding actions
 static const unsigned int focus_on_activate = 1; // Automatically focus on window activation request
 static const unsigned int new_is_master = 1; // New windows are inserted at the head
+static const unsigned int default_mfact = 0.55f; // Master mfact
+static const unsigned int default_nmaster = 1; // Master number
 /* logging */
 static int log_level = WLR_ERROR;
 static const unsigned int numlockon = 1; // Enable numlock
