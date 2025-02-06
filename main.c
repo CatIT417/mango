@@ -1122,9 +1122,9 @@ arrange(Monitor *m,bool want_animation)
 				if (!c->animation.from_rule && want_animation && m->pertag->prevtag !=0  && m->pertag->curtag !=0) {
 					c->animation.tagining = true;
 					if (m->pertag->curtag > m->pertag->prevtag) {
-						c->animainit_geom.x = c->geom.x + m->m.width;
+						c->animainit_geom.x = c->geom.x +  c->mon->m.width -(c->geom.x -c->mon->m.x);
 					} else {
-						c->animainit_geom.x = c->geom.x - m->m.width;
+						c->animainit_geom.x = m->m.x - c->geom.width;
 					}
 				}
 
@@ -2364,51 +2364,51 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
     focused = focustop(monitor);
     zdwl_ipc_output_v2_send_active(ipc_output->resource, monitor == selmon);
 
-	// if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
-	// 	state = 0;
-	// 	state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-    // 	zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);		
-	// } else {
-    // 	for ( tag = 0 ; tag < LENGTH(tags); tag++) {
-    // 	    numclients = state = focused_client = 0;
-    // 	    tagmask = 1 << tag;
-    // 	    if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-    // 	        state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+	if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
+		state = 0;
+		state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+    	zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);		
+	} else {
+    	for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+    	    numclients = state = focused_client = 0;
+    	    tagmask = 1 << tag;
+    	    if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
+    	        state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
 
-    // 	    wl_list_for_each(c, &clients, link) {
-    // 	        if (c->mon != monitor)
-    // 	            continue;
-    // 	        if (!(c->tags & tagmask))
-    // 	            continue;
-    // 	        if (c == focused)
-    // 	            focused_client = 1;
-    // 	        if (c->isurgent)
-    // 	            state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+    	    wl_list_for_each(c, &clients, link) {
+    	        if (c->mon != monitor)
+    	            continue;
+    	        if (!(c->tags & tagmask))
+    	            continue;
+    	        if (c == focused)
+    	            focused_client = 1;
+    	        if (c->isurgent)
+    	            state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
 
-    // 	        numclients++;
-    // 	    }
-    // 	    zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients, focused_client);
-    // 	}
-	// }
+    	        numclients++;
+    	    }
+    	    zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients, focused_client);
+    	}
+	}
 
-    for ( tag = 0 ; tag < LENGTH(tags); tag++) {
-        numclients = state = focused_client = 0;
-        tagmask = 1 << tag;
-        if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-            state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-        wl_list_for_each(c, &clients, link) {
-            if (c->mon != monitor)
-                continue;
-            if (!(c->tags & tagmask))
-                continue;
-            if (c == focused)
-                focused_client = 1;
-            if (c->isurgent)
-                state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
-            numclients++;
-        }
-        zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients, focused_client);
-    }
+    // for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+    //     numclients = state = focused_client = 0;
+    //     tagmask = 1 << tag;
+    //     if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
+    //         state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+    //     wl_list_for_each(c, &clients, link) {
+    //         if (c->mon != monitor)
+    //             continue;
+    //         if (!(c->tags & tagmask))
+    //             continue;
+    //         if (c == focused)
+    //             focused_client = 1;
+    //         if (c->isurgent)
+    //             state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+    //         numclients++;
+    //     }
+    //     zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients, focused_client);
+    // }
 
     title = focused ? client_get_title(focused) : "";
     appid = focused ? client_get_appid(focused) : "";
