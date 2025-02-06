@@ -1764,7 +1764,7 @@ void // 0.5
 commitnotify(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, commit);
 
-  if(!c || !c->mon || c->iskilling)
+  if(!c || c->iskilling)
     return;
 
 }
@@ -2677,7 +2677,7 @@ void // 0.6
 fullscreennotify(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, fullscreen);
 
-  if(!c || !c->mon || c->iskilling)
+  if(!c || c->iskilling)
     return;
 
   setfullscreen(c, client_wants_fullscreen(c));
@@ -3085,7 +3085,7 @@ maximizenotify(struct wl_listener *listener, void *data) {
   // togglefakefullscreen(&(Arg){0});
   Client *c = wl_container_of(listener, c, maximize);
 
-  if(!c || !c->mon || c->iskilling)
+  if(!c || c->iskilling)
     return;
 
   if (c->isfakefullscreen || c->isfullscreen)
@@ -3130,7 +3130,7 @@ minimizenotify(struct wl_listener *listener, void *data) {
   // togglefakefullscreen(&(Arg){0});
   Client *c = wl_container_of(listener, c, minimize);
   
-  if(!c || !c->mon || c->iskilling)
+  if(!c || c->iskilling)
     return;
 
   set_minized(c);
@@ -5016,7 +5016,7 @@ updatemons(struct wl_listener *listener, void *data) {
 void updatetitle(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, set_title);
 
-  if(!c || !c->mon || c->iskilling)
+  if(!c || c->iskilling)
     return;
 
   const char *title;
@@ -5397,7 +5397,7 @@ void zoom(const Arg *arg) {
 void activatex11(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, activate);
 
-  if(!c || !c->mon || c->iskilling)
+  if(!c || c->iskilling)
     return;
 
   /* Only "managed" windows can be activated */
@@ -5424,7 +5424,7 @@ void // 0.7
 configurex11(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, configure);
   
-  if(!c || !c->mon || c->iskilling)
+  if(!c || c->iskilling)
     return;
 
   struct wlr_xwayland_surface_configure_event *event = data;
