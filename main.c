@@ -2903,12 +2903,23 @@ void pending_kill_client(Client *c) {
 	c->pending = c->geom;
 	c->pending.y = c->geom.y + c->mon->m.height;
 
-	if (c == selmon->sel)
-		selmon->sel = NULL;
-
 	if (c == grabc) {
 		cursor_mode = CurNormal;
 		grabc = NULL;
+	}
+
+	if (c == selmon->sel) {
+		selmon->sel = NULL;
+		Client *nextfocus = focustop(selmon);
+
+		if(nextfocus) {
+			focusclient(nextfocus,0);
+		}
+
+		if(!nextfocus && selmon->isoverview){
+			Arg arg = {0};
+			toggleoverview(&arg);
+		}
 	}
 
 	if(c->foreign_toplevel){
@@ -2916,16 +2927,6 @@ void pending_kill_client(Client *c) {
 		c->foreign_toplevel = NULL;
 	}
 
-	Client *nextfocus = focustop(selmon);
-
-	if(nextfocus) {
-		focusclient(nextfocus,0);
-	}
-
-	if(!nextfocus && selmon->isoverview){
-		Arg arg = {0};
-		toggleoverview(&arg);
-	}
 	resize(c,c->geom,0);
 	printstatus();
 	motionnotify(0, NULL, 0, 0, 0, 0);
@@ -4903,6 +4904,25 @@ unmapnotify(struct wl_listener *listener, void *data)
 	/* Called when the surface is unmapped, and should no longer be shown. */
 	Client *c = wl_container_of(listener, c, unmap);
 
+	if (c == grabc) {
+		cursor_mode = CurNormal;
+		grabc = NULL;
+	}
+
+	if (c == selmon->sel) {
+		selmon->sel = NULL;
+		Client *nextfocus = focustop(selmon);
+
+		if(nextfocus) {
+			focusclient(nextfocus,0);
+		}
+
+		if(!nextfocus && selmon->isoverview){
+			Arg arg = {0};
+			toggleoverview(&arg);
+		}
+	}
+
 	if (client_is_unmanaged(c)) {
 		if (c == exclusive_focus)
 			exclusive_focus = NULL;
@@ -4914,8 +4934,14 @@ unmapnotify(struct wl_listener *listener, void *data)
 		wl_list_remove(&c->flink);
 	}
 
+	if(c->foreign_toplevel){
+		wlr_foreign_toplevel_handle_v1_destroy(c->foreign_toplevel);
+		c->foreign_toplevel = NULL;
+	}
+
 	wlr_scene_node_destroy(&c->scene->node);
 	printstatus();
+	motionnotify(0, NULL, 0, 0, 0, 0);
 }
 
 void //0.5
