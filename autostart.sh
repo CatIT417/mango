@@ -4,8 +4,6 @@ set +e
 
 dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP=sway
 
-/usr/lib/xdg-desktop-portal-hyprland &
-
 wl-clip-persist --clipboard regular &
 wl-paste --type text --watch cliphist store & 
 wlsunset -T 3501 -t 3500 &
