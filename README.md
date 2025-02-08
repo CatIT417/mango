@@ -31,6 +31,12 @@ https://github.com/user-attachments/assets/da80c6d1-b9a5-44c4-b738-6421365e6aa5
 - fade in animation
 
 
+## suggest tools
+```
+yay -S wofi foot xdg-desktop-portal-hyprland swaybg waybar wl-clip-persist cliphist wl-clipboard wlsunset
+
+```
+
 # install 
 # wlroots(0.17)
 ```
@@ -44,18 +50,16 @@ cd maomaowm
 meson build -Dprefix=/usr
 sudo ninja -C build install
 
-// set your autostart cmd ih this
-touch ~/.config/maomao/autostart.sh
+# set your autostart app ih this
+mkdir -p ~/.config/maomao/autostart.sh
+
+# some suggest config
+cp autostart.sh ~/.config/maomao/
+cp waybar ~/.config/maomao/ -r 
+cp wallpaper ~/.config/maomao/ -r
+
 
 ```
-# dependcy
-
-## tools
-```
-yay -S wofi foot
-
-```
-
 # thanks for some refer repo 
 https://github.com/dqrk0jeste/owl - for window animation implementation code
 https://github.com/djpohly/dwl - for base dwl code
