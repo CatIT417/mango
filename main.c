@@ -1727,8 +1727,7 @@ void client_set_pending_state(Client *c) {
   }
 
   // 开始动画
-  if(client_is_x11(c))
-    client_commit(c);
+  client_commit(c);
   c->dirty = true;
 }
 
@@ -1760,17 +1759,8 @@ commitnotify(struct wl_listener *listener, void *data) {
 
   if(!c || c->iskilling)
     return;
-
- if(!c->surface.xdg->toplevel->base->initialized) return;
-
-  if(c->surface.xdg->toplevel->base->initial_commit) {
-    return;
-  }
-
-  if(!client_surface(c)->mapped) return;
-
   // if don't do this, some client may resize uncompleted
-  client_commit(c);
+  resize(c, c->geom, (c->isfloating && !c->isfullscreen));
 
 }
 
