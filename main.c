@@ -744,9 +744,9 @@ bool client_animation_next_tick(Client *c) {
     client_set_opacity(c, MIN(animation_passed + fadein_begin_opacity, 1.0));
   }
 
-  if (c->iskilling) {
-    client_set_opacity(c, MAX(fadeout_begin_opacity - animation_passed, 0.1));
-  }
+  // if (c->iskilling) {
+  //   client_set_opacity(c, MAX(fadeout_begin_opacity - animation_passed, 0.1));
+  // }
 
   c->is_open_animation = false;
 
@@ -1725,10 +1725,7 @@ void client_set_pending_state(Client *c) {
              (!c->is_open_animation &&
               wlr_box_equal(&c->current, &c->pending))) {
     c->animation.should_animate = false;
-  } else if (c->is_restoring_from_ov) {
-    c->is_restoring_from_ov = false;
-    c->animation.should_animate = false;
-  } else {
+  }  else {
     c->animation.should_animate = true;
     c->animation.initial = c->animainit_geom;
   }
@@ -1760,12 +1757,14 @@ void client_commit(Client *c) {
   wlr_output_schedule_frame(c->mon->wlr_output);
 }
 
-void // 0.5
+void 
 commitnotify(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, commit);
 
   if(!c || c->iskilling)
     return;
+  // if don't do this, some client may resize uncompleted
+  resize(c, c->geom, (c->isfloating && !c->isfullscreen));
 
 }
 
@@ -2888,39 +2887,7 @@ keypressmod(struct wl_listener *listener, void *data) {
 }
 
 void pending_kill_client(Client *c) {
-  // c->iskilling = 1;
-  // c->animainit_geom = c->geom;
-  // c->pending = c->geom;
-  // c->pending.y = c->geom.y + c->mon->m.height - (c->geom.y - c->mon->m.y);
-
-  // if (c == grabc) {
-  //   cursor_mode = CurNormal;
-  //   grabc = NULL;
-  // }
-
-  // if (c == selmon->sel) {
-  //   selmon->sel = NULL;
-  //   Client *nextfocus = focustop(selmon);
-
-  //   if (nextfocus) {
-  //     focusclient(nextfocus, 0);
-  //   }
-
-  //   if (!nextfocus && selmon->isoverview) {
-  //     Arg arg = {0};
-  //     toggleoverview(&arg);
-  //   }
-  // }
-
-  // if (c->foreign_toplevel) {
-  //   wlr_foreign_toplevel_handle_v1_destroy(c->foreign_toplevel);
-  //   c->foreign_toplevel = NULL;
-  // }
-
-  // resize(c, c->geom, 0);
-  // printstatus();
-  // motionnotify(0, NULL, 0, 0, 0, 0);
-  // arrange(selmon, false);
+  c->iskilling = 1;
   client_send_close(c);
 }
 
@@ -3791,9 +3758,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
     client_set_opacity(c, 1);
   }
 
-  if (c->iskilling) {
-    c->animation.duration = animation_duration_close;
-  } else if (c->animation.tagouting) {
+  if (c->animation.tagouting) {
     c->animation.duration = animation_duration_tag;
   } else if (c->animation.tagining) {
     c->animation.duration = animation_duration_tag;
@@ -4638,7 +4603,7 @@ void overview_restore(Client *c, const Arg *arg) {
   c->overview_isfullscreenbak = 0;
   c->overview_isfakefullscreenbak = 0;
   c->bw = c->overview_backup_bw;
-  c->is_restoring_from_ov = (arg->ui & c->tags) == 0 ? true : false;
+  c->is_restoring_from_ov = (arg->ui & c->tags & TAGMASK) == 0 ? true : false;
   if (c->isfloating) {
     // XRaiseWindow(dpy, c->win); // 提升悬浮窗口到顶层
     resizeclient(c, c->overview_backup_x, c->overview_backup_y,
@@ -4654,8 +4619,11 @@ void overview_restore(Client *c, const Arg *arg) {
       client_set_fullscreen(c, false);
     }
   } else {
-    resizeclient(c, c->overview_backup_x, c->overview_backup_y,
-                 c->overview_backup_w, c->overview_backup_h, 0);
+    if(c->is_restoring_from_ov ) {
+      c->is_restoring_from_ov = false;
+      resizeclient(c, c->overview_backup_x, c->overview_backup_y,
+                   c->overview_backup_w, c->overview_backup_h, 0);
+    }
   }
 
   if (c->bw == 0 && !c->isnoborder &&
@@ -4869,8 +4837,6 @@ unmaplayersurfacenotify(struct wl_listener *listener, void *data) {
 void unmapnotify(struct wl_listener *listener, void *data) {
   /* Called when the surface is unmapped, and should no longer be shown. */
   Client *c = wl_container_of(listener, c, unmap);
-
-  c->iskilling = 1;
 
   if (c == grabc) {
     cursor_mode = CurNormal;
