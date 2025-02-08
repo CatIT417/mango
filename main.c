@@ -744,10 +744,6 @@ bool client_animation_next_tick(Client *c) {
     client_set_opacity(c, MIN(animation_passed + fadein_begin_opacity, 1.0));
   }
 
-  // if (c->iskilling) {
-  //   client_set_opacity(c, MAX(fadeout_begin_opacity - animation_passed, 0.1));
-  // }
-
   c->is_open_animation = false;
 
   if (animation_passed == 1.0) {
@@ -1731,7 +1727,8 @@ void client_set_pending_state(Client *c) {
   }
 
   // 开始动画
-  client_commit(c);
+  if(client_is_x11(c))
+    client_commit(c);
   c->dirty = true;
 }
 
@@ -1763,8 +1760,17 @@ commitnotify(struct wl_listener *listener, void *data) {
 
   if(!c || c->iskilling)
     return;
+
+ if(!c->surface.xdg->toplevel->base->initialized) return;
+
+  if(c->surface.xdg->toplevel->base->initial_commit) {
+    return;
+  }
+
+  if(!client_surface(c)->mapped) return;
+
   // if don't do this, some client may resize uncompleted
-  resize(c, c->geom, (c->isfloating && !c->isfullscreen));
+  client_commit(c);
 
 }
 
