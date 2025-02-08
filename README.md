@@ -33,7 +33,7 @@ https://github.com/user-attachments/assets/da80c6d1-b9a5-44c4-b738-6421365e6aa5
 
 ## suggest tools
 ```
-yay -S wofi foot xdg-desktop-portal-hyprland swaybg waybar wl-clip-persist cliphist wl-clipboard wlsunset
+yay -S wofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist wl-clipboard wlsunset
 
 ```
 
