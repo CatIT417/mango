@@ -28,6 +28,7 @@ static int log_level = WLR_ERROR;
 static const unsigned int numlockon = 1; // Enable numlock
 static const unsigned int hotarea_size = 10; // Hot area size, 10x10
 static const unsigned int enable_hotarea = 1; // Enable mouse hot area
+static const unsigned int ov_tab_mode = 1; // Enable switch window like gnome alt+tab
 static int smartgaps = 0;  /* 1 means no outer gap when there is only one window */
 static int sloppyfocus = 1;  /* Focus follows mouse */
 static unsigned int gappih = 5; /* Horizontal inner gap between windows */
@@ -252,7 +253,7 @@ static const Button buttons[] = {
 	{ 0, 					BTN_MIDDLE, 	togglefakefullscreen, 		{0} }, // Middle button triggers fake fullscreen
 	{ WLR_MODIFIER_LOGO, 	BTN_RIGHT,  	moveresize,     			{.ui = CurResize } },
 	{ WLR_MODIFIER_ALT|WLR_MODIFIER_CTRL, 	BTN_LEFT,  		spawn,						SHCMD("bash ~/tool/shotTranslate.sh shot")},
-	{ 0, 					BTN_LEFT,  		toggleoverview,     		{0} },
+	{ 0, 					BTN_LEFT,  		toggleoverview,     		{.i = -1 } },
 	{ 0, 					BTN_RIGHT,  	killclient,     			{0} },
 };
 

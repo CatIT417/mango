@@ -1722,7 +1722,7 @@ void client_set_pending_state(Client *c) {
              (!c->is_open_animation &&
               wlr_box_equal(&c->current, &c->pending))) {
     c->animation.should_animate = false;
-  }  else {
+  } else {
     c->animation.should_animate = true;
     c->animation.initial = c->animainit_geom;
   }
@@ -2810,6 +2810,17 @@ keypress(struct wl_listener *listener, void *data) {
   uint32_t mods = wlr_keyboard_get_modifiers(kb->wlr_keyboard);
 
   wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
+
+  // ov tab mode detect moe key release
+  if (ov_tab_mode && !locked && event->state == WL_KEYBOARD_KEY_STATE_RELEASED &&
+      (keycode == 133 || keycode == 37 || keycode == 64 || keycode == 50 ||
+       keycode == 134 || keycode == 105 || keycode == 108 || keycode == 62) &&
+      selmon->sel) {
+        if(selmon->isoverview && selmon->sel) {
+            toggleoverview(&(Arg){.i=-1});
+        }
+  }
+
 #ifdef IM
   if (!locked && event->state == WL_KEYBOARD_KEY_STATE_RELEASED &&
       (keycode == 133 || keycode == 37 || keycode == 64 || keycode == 50 ||
@@ -4633,6 +4644,12 @@ void overview_restore(Client *c, const Arg *arg) {
 void toggleoverview(const Arg *arg) {
 
   Client *c;
+
+  if(selmon->isoverview && ov_tab_mode && arg->i != -1 && selmon->sel) {
+    focusstack(&(Arg){.i=1});
+    return;
+  }
+
   selmon->isoverview ^= 1;
   unsigned int target;
   unsigned int visible_client_number = 0;
@@ -4674,6 +4691,11 @@ void toggleoverview(const Arg *arg) {
   }
 
   view(&(Arg){.ui = target}, false);
+
+  if (ov_tab_mode && selmon->isoverview && selmon->sel) {
+    focusstack(&(Arg){.i=1});
+  }
+
 }
 
 void tile(Monitor *m, unsigned int gappo, unsigned int uappi) {
