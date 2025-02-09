@@ -1148,9 +1148,14 @@ arrange(Monitor *m, bool want_animation) {
   if (!m->wlr_output->enabled)
     return;
 
+ 
   wl_list_for_each(c, &clients, link) {
     if (c->iskilling)
       continue;
+
+    if (c->mon == m && c->isglobal) {
+      c->tags = m->tagset[m->seltags];
+    }    
 
     if (c->mon == m) {
       if (VISIBLEON(c, m)) {
@@ -1716,7 +1721,9 @@ commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 void client_set_pending_state(Client *c) {
 
   // 判断是否需要动画
-  if (animations && c->animation.tagining) {
+  if(c->isglobal){
+    c->animation.should_animate = false;
+  } else if (animations && c->animation.tagining) {
     c->animation.tagining = false;
     c->animation.should_animate = true;
     c->animation.initial = c->animainit_geom;
