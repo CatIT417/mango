@@ -59,7 +59,7 @@ meson build -Dprefix=/usr
 sudo ninja -C build install
 
 # set your autostart app ih this
-mkdir -p ~/.config/maomao/autostart.sh
+mkdir -p ~/.config/maomao/
 
 # some suggest config
 cp autostart.sh ~/.config/maomao/
