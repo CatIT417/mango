@@ -336,6 +336,7 @@ typedef struct {
   unsigned int tags;
   int isfloating;
   int isfullscreen;
+  float scroller_proportion;
   const char *animation_type;
   int isnoborder;
   int monitor;
@@ -1100,6 +1101,7 @@ applyrules(Client *c) {
         (!r->id || strstr(appid, r->id))) {
       c->isfloating = r->isfloating;
       c->animation_type = r->animation_type;
+      c->scroller_proportion = r->scroller_proportion > 0 ? r->scroller_proportion : scroller_default_proportion;
       c->isnoborder = r->isnoborder;
       newtags |= r->tags;
       i = 0;

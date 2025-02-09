@@ -90,13 +90,13 @@ static const char *tags[] = {
 };
 
 static const Rule rules[] = {
-	/* app_id     title       tags mask     isfloating  isfullscreen animation_type isnoborder monitor  width height */
+	/* app_id title	tags mask isfloating isfullscreen scroller_proportion animation_type isnoborder monitor  width height */
 	/* examples:
 	{ "Gimp",     NULL,       0,            1,           -1,800,600 },
 	*/
-	{ "Google-chrome",  						NULL,       		1 << 3,       	0,   0, 	NULL,		0,-1, 0,0},
-	{ "wofi",  									NULL,        		0,       		1,   0, 	"zoom",		1,-1, 0,0},
-	{ "pot",  									NULL,        		0,       		1,   0, 	"zoom",		1,-1, 0,0},
+	{ "Google-chrome",  	NULL,     1 << 3, 0,  0, 0, NULL,	0,-1, 0,0},
+	{ "wofi",  				NULL,     0,      1,  0, 0, "zoom",	1,-1, 0,0},
+	{ "pot",  				NULL,     0,      1,  0, 0, "zoom",	1,-1, 0,0},
 
 };
 
