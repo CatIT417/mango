@@ -1,6 +1,12 @@
 
+Master-Stack Layout
 
 https://github.com/user-attachments/assets/da80c6d1-b9a5-44c4-b738-6421365e6aa5
+
+
+Scroller Layout
+
+https://github.com/user-attachments/assets/2ff96868-b276-4fa1-b4d7-87bdc36beb3c
 
 
 
@@ -29,6 +35,8 @@ https://github.com/user-attachments/assets/da80c6d1-b9a5-44c4-b738-6421365e6aa5
 - window close animaition
 - custom mov/open/tag animaition sppeed
 - fade in animation
+- alt-tab switch window like gnome
+- niri like scroller layout
 
 
 ## suggest tools
