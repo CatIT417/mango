@@ -1157,6 +1157,8 @@ arrange(Monitor *m, bool want_animation) {
 
     if (c->mon == m && c->isglobal) {
       c->tags = m->tagset[m->seltags];
+      if(selmon->sel == NULL)
+        focusclient(c,0);
     }    
 
     if (c->mon == m) {
@@ -1723,7 +1725,7 @@ commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 void client_set_pending_state(Client *c) {
 
   // 判断是否需要动画
-  if(c->isglobal){
+  if(c->isglobal && c->isfloating){
     c->animation.should_animate = false;
   } else if (animations && c->animation.tagining) {
     c->animation.tagining = false;
