@@ -3683,7 +3683,7 @@ int is_special_animaiton_rule(Client *c) {
     }
   }
 
-  if (strcmp(selmon->lt[selmon->sellt]->name , "scroller") == 0) {
+  if (strcmp(selmon->lt[selmon->sellt]->name , "scroller") == 0 && !c->isfloating) {
       return DOWN;
   } else if (visible_client_number < 2 && !c->isfloating) {
     return DOWN;
