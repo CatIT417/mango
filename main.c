@@ -4630,7 +4630,13 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
   } else if(selmon->prevsel && selmon->prevsel->istiled && !c->ismaxmizescreen && !c->isfullscreen) {
     root_client = selmon->prevsel;
   } else {
-    return;
+    wl_list_for_each(c, &clients, link) {
+      if (c->iskilling)
+        continue;
+      if (c->tags == m->tagset[m->seltags] && !c->isfloating) {
+        root_client = c;
+      }
+    }
   }
 
   for (i = 0;tempClients[i]; i++) {
