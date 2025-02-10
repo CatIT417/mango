@@ -4590,7 +4590,7 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
   }
 }
 
-// // 网格布局窗口大小和位置计算
+// 滚动布局
 void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
   unsigned int i, n;
 
@@ -4604,7 +4604,7 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
   unsigned int max_client_width = m->w.width - 2 * scroller_structs - gappih;
 
   wl_list_for_each(c, &clients,
-                   link) if (VISIBLEON(c, c->mon) && !c->isfloating && !c->iskilling &&
+                   link) if (VISIBLEON(c, c->mon) && !c->isfloating && !c->isfullscreen && !c->ismaxmizescreen && !c->iskilling &&
                              !c->animation.tagouting && c->mon == selmon) {
     tempClients[n] = c;
     n++;
@@ -4623,9 +4623,9 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
     return;
   }
 
-  if(selmon->sel && selmon->sel->istiled ) {
+  if(selmon->sel && selmon->sel->istiled && !c->ismaxmizescreen && !c->isfullscreen) {
     root_client = selmon->sel;
-  } else if(selmon->prevsel && selmon->prevsel->istiled ) {
+  } else if(selmon->prevsel && selmon->prevsel->istiled && !c->ismaxmizescreen && !c->isfullscreen) {
     root_client = selmon->prevsel;
   } else {
     return;
