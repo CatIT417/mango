@@ -1250,29 +1250,49 @@ arrangelayer(Monitor *m, struct wl_list *list, struct wlr_box *usable_area,
 }
 
 Client *direction_select(const Arg *arg) {
-  Client *c, *tempClients[100];
+  Client *c;
+  Client **tempClients = NULL; // 初始化为 NULL
   Client *tc = selmon->sel;
   int last = -1;
 
   if (!tc)
     return NULL;
 
-  if (tc &&
-      (tc->isfullscreen || tc->ismaxmizescreen)) /* no support for focusstack
-                                                     with fullscreen windows */
+  if (tc && (tc->isfullscreen || tc->ismaxmizescreen)) {
+    // 不支持全屏窗口的焦点切换
     return NULL;
-
-  wl_list_for_each(c, &clients,
-                   link) if (c && (c->tags & c->mon->tagset[c->mon->seltags])) {
-    last++;
-    tempClients[last] = c;
   }
-  if (last < 0)
+
+  // 第一次遍历，计算客户端数量
+  wl_list_for_each(c, &clients, link) {
+    if (c && (c->tags & c->mon->tagset[c->mon->seltags])) {
+      last++;
+    }
+  }
+
+  if (last < 0) {
+    return NULL; // 没有符合条件的客户端
+  }
+
+  // 动态分配内存
+  tempClients = malloc((last + 1) * sizeof(Client*));
+  if (!tempClients) {
+    // 处理内存分配失败的情况
     return NULL;
+  }
+
+  // 第二次遍历，填充 tempClients
+  last = -1;
+  wl_list_for_each(c, &clients, link) {
+    if (c && (c->tags & c->mon->tagset[c->mon->seltags])) {
+      last++;
+      tempClients[last] = c;
+    }
+  }
+
   int sel_x = tc->geom.x;
   int sel_y = tc->geom.y;
   long long int distance = LLONG_MAX;
-  // int temp_focus = 0;
   Client *tempFocusClients = NULL;
 
   switch (arg->i) {
@@ -1293,8 +1313,7 @@ Client *direction_select(const Arg *arg) {
         if (tempClients[_i]->geom.y < sel_y) {
           int dis_x = tempClients[_i]->geom.x - sel_x;
           int dis_y = tempClients[_i]->geom.y - sel_y;
-          long long int tmp_distance =
-              dis_x * dis_x + dis_y * dis_y; // 计算距离
+          long long int tmp_distance = dis_x * dis_x + dis_y * dis_y; // 计算距离
           if (tmp_distance < distance) {
             distance = tmp_distance;
             tempFocusClients = tempClients[_i];
@@ -1320,8 +1339,7 @@ Client *direction_select(const Arg *arg) {
         if (tempClients[_i]->geom.y > sel_y) {
           int dis_x = tempClients[_i]->geom.x - sel_x;
           int dis_y = tempClients[_i]->geom.y - sel_y;
-          long long int tmp_distance =
-              dis_x * dis_x + dis_y * dis_y; // 计算距离
+          long long int tmp_distance = dis_x * dis_x + dis_y * dis_y; // 计算距离
           if (tmp_distance < distance) {
             distance = tmp_distance;
             tempFocusClients = tempClients[_i];
@@ -1347,8 +1365,7 @@ Client *direction_select(const Arg *arg) {
         if (tempClients[_i]->geom.x < sel_x) {
           int dis_x = tempClients[_i]->geom.x - sel_x;
           int dis_y = tempClients[_i]->geom.y - sel_y;
-          long long int tmp_distance =
-              dis_x * dis_x + dis_y * dis_y; // 计算距离
+          long long int tmp_distance = dis_x * dis_x + dis_y * dis_y; // 计算距离
           if (tmp_distance < distance) {
             distance = tmp_distance;
             tempFocusClients = tempClients[_i];
@@ -1374,8 +1391,7 @@ Client *direction_select(const Arg *arg) {
         if (tempClients[_i]->geom.x > sel_x) {
           int dis_x = tempClients[_i]->geom.x - sel_x;
           int dis_y = tempClients[_i]->geom.y - sel_y;
-          long long int tmp_distance =
-              dis_x * dis_x + dis_y * dis_y; // 计算距离
+          long long int tmp_distance = dis_x * dis_x + dis_y * dis_y; // 计算距离
           if (tmp_distance < distance) {
             distance = tmp_distance;
             tempFocusClients = tempClients[_i];
@@ -1385,6 +1401,8 @@ Client *direction_select(const Arg *arg) {
     }
     break;
   }
+
+  free(tempClients); // 释放内存
   return tempFocusClients;
 }
 
@@ -4539,50 +4557,81 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
   unsigned int dx;
   unsigned int cols, rows, overcols;
   Client *c;
-  Client *tempClients[100];
+  Client **tempClients = NULL; // 初始化为 NULL
   n = 0;
-  wl_list_for_each(c, &clients,
-                   link) if (VISIBLEON(c, c->mon) && !c->iskilling &&
-                             !c->animation.tagouting && c->mon == selmon) {
-    tempClients[n] = c;
-    n++;
+
+  // 第一次遍历，计算 n 的值
+  wl_list_for_each(c, &clients, link) {
+    if (VISIBLEON(c, c->mon) && !c->iskilling && !c->animation.tagouting && c->mon == selmon) {
+      n++;
+    }
   }
-  tempClients[n] = NULL;
-  if (n == 0)
+
+  if (n == 0) {
+    return; // 没有需要处理的客户端，直接返回
+  }
+
+  // 动态分配内存
+  tempClients = malloc(n * sizeof(Client*));
+  if (!tempClients) {
+    // 处理内存分配失败的情况
     return;
+  }
+
+  // 第二次遍历，填充 tempClients
+  n = 0;
+  wl_list_for_each(c, &clients, link) {
+    if (VISIBLEON(c, c->mon) && !c->iskilling && !c->animation.tagouting && c->mon == selmon) {
+      tempClients[n] = c;
+      n++;
+    }
+  }
+
   if (n == 1) {
     c = tempClients[0];
     cw = (m->w.width - 2 * gappo) * 0.7;
     ch = (m->w.height - 2 * gappo) * 0.8;
-    resizeclient(c, m->w.x + (m->m.width - cw) / 2,
+    resizeclient(c, m->w.x + (m->w.width - cw) / 2,
                  m->w.y + (m->w.height - ch) / 2, cw - 2 * c->bw,
                  ch - 2 * c->bw, 0);
+    free(tempClients); // 释放内存
     return;
   }
+
   if (n == 2) {
     cw = (m->w.width - 2 * gappo - gappi) / 2;
     ch = (m->w.height - 2 * gappo) * 0.65;
-    resizeclient(tempClients[1], m->m.x + cw + gappo + gappi,
-                 m->m.y + (m->m.height - ch) / 2 + gappo,
+    resizeclient(tempClients[1], m->w.x + cw + gappo + gappi,
+                 m->w.y + (m->w.height - ch) / 2 + gappo,
                  cw - 2 * tempClients[1]->bw, ch - 2 * tempClients[1]->bw, 0);
-    resizeclient(tempClients[0], m->m.x + gappo,
-                 m->m.y + (m->m.height - ch) / 2 + gappo,
+    resizeclient(tempClients[0], m->w.x + gappo,
+                 m->w.y + (m->w.height - ch) / 2 + gappo,
                  cw - 2 * tempClients[0]->bw, ch - 2 * tempClients[0]->bw, 0);
-
+    free(tempClients); // 释放内存
     return;
   }
 
-  for (cols = 0; cols <= n / 2; cols++)
-    if (cols * cols >= n)
+  // 计算列数和行数
+  for (cols = 0; cols <= n / 2; cols++) {
+    if (cols * cols >= n) {
       break;
+    }
+  }
   rows = (cols && (cols - 1) * cols >= n) ? cols - 1 : cols;
+
+  // 计算每个客户端的高度和宽度
   ch = (m->w.height - 2 * gappo - (rows - 1) * gappi) / rows;
   cw = (m->w.width - 2 * gappo - (cols - 1) * gappi) / cols;
 
+  // 处理多余的列
   overcols = n % cols;
-  if (overcols)
+  if (overcols) {
     dx = (m->w.width - overcols * cw - (overcols - 1) * gappi) / 2 - gappo;
-  for (i = 0, c = tempClients[0]; c; c = tempClients[i + 1], i++) {
+  }
+
+  // 调整每个客户端的位置和大小
+  for (i = 0; i < n; i++) {
+    c = tempClients[i];
     cx = m->w.x + (i % cols) * (cw + gappi);
     cy = m->w.y + (i / cols) * (ch + gappi);
     if (overcols && i >= n - overcols) {
@@ -4590,14 +4639,16 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
     }
     resizeclient(c, cx + gappo, cy + gappo, cw - 2 * c->bw, ch - 2 * c->bw, 0);
   }
+
+  free(tempClients); // 最后释放内存
 }
 
 // 滚动布局
 void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
   unsigned int i, n;
 
-  Client *c,*root_client;
-  Client *tempClients[100];
+  Client *c, *root_client;
+  Client **tempClients = NULL; // 初始化为 NULL
   n = 0;
   struct wlr_box target_geom;
   int focus_client_index = 0;
@@ -4605,15 +4656,34 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
 
   unsigned int max_client_width = m->w.width - 2 * scroller_structs - gappih;
 
-  wl_list_for_each(c, &clients,
-                   link) if (VISIBLEON(c, c->mon) && !c->isfloating && !c->isfullscreen && !c->ismaxmizescreen && !c->iskilling &&
-                             !c->animation.tagouting && c->mon == selmon) {
-    tempClients[n] = c;
-    n++;
+  // 第一次遍历，计算 n 的值
+  wl_list_for_each(c, &clients, link) {
+    if (VISIBLEON(c, c->mon) && !c->isfloating && !c->isfullscreen && !c->ismaxmizescreen && !c->iskilling &&
+        !c->animation.tagouting && c->mon == selmon) {
+      n++;
+    }
   }
-  tempClients[n] = NULL;
-  if (n == 0)
+
+  if (n == 0) {
+    return; // 没有需要处理的客户端，直接返回
+  }
+
+  // 动态分配内存
+  tempClients = malloc(n * sizeof(Client*));
+  if (!tempClients) {
+    // 处理内存分配失败的情况
     return;
+  }
+
+  // 第二次遍历，填充 tempClients
+  n = 0;
+  wl_list_for_each(c, &clients, link) {
+    if (VISIBLEON(c, c->mon) && !c->isfloating && !c->isfullscreen && !c->ismaxmizescreen && !c->iskilling &&
+        !c->animation.tagouting && c->mon == selmon) {
+      tempClients[n] = c;
+      n++;
+    }
+  }
 
   if (n == 1) {
     c = tempClients[0];
@@ -4621,13 +4691,14 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
     target_geom.width = max_client_width * c->scroller_proportion;
     target_geom.x = m->w.x + (m->w.width - target_geom.width) / 2;
     target_geom.y = m->w.y + (m->w.height - target_geom.height) / 2;
-    resizeclient(c,target_geom.x,target_geom.y,target_geom.width,target_geom.height,0);
+    resizeclient(c, target_geom.x, target_geom.y, target_geom.width, target_geom.height, 0);
+    free(tempClients); // 释放内存
     return;
   }
 
-  if(selmon->sel && selmon->sel->istiled && !c->ismaxmizescreen && !c->isfullscreen) {
+  if (selmon->sel && selmon->sel->istiled && !c->ismaxmizescreen && !c->isfullscreen) {
     root_client = selmon->sel;
-  } else if(selmon->prevsel && selmon->prevsel->istiled && !c->ismaxmizescreen && !c->isfullscreen) {
+  } else if (selmon->prevsel && selmon->prevsel->istiled && !c->ismaxmizescreen && !c->isfullscreen) {
     root_client = selmon->prevsel;
   } else {
     wl_list_for_each(c, &clients, link) {
@@ -4639,13 +4710,13 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
     }
   }
 
-  for (i = 0;tempClients[i]; i++) {
+  for (i = 0; i < n; i++) {
     c = tempClients[i];
     if (root_client == c) {
-      if(selmon->prevsel != NULL && (c->geom.x - m->w.x - scroller_structs) > 0 && 
-         c->geom.x + c->geom.width < m->w.x + m->w.width - scroller_structs) {
-          need_scroller = false;
-      }else {
+      if (selmon->prevsel != NULL && (c->geom.x - m->w.x - scroller_structs) > 0 &&
+          c->geom.x + c->geom.width < m->w.x + m->w.width - scroller_structs) {
+        need_scroller = false;
+      } else {
         need_scroller = true;
       }
       focus_client_index = i;
@@ -4653,36 +4724,39 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
     }
   }
 
-    target_geom.height = m->w.height - 2 * gappov;
-    target_geom.width = max_client_width* c->scroller_proportion;
-    target_geom.y = m->w.y + (m->w.height - target_geom.height) / 2;
+  target_geom.height = m->w.height - 2 * gappov;
+  target_geom.width = max_client_width * c->scroller_proportion;
+  target_geom.y = m->w.y + (m->w.height - target_geom.height) / 2;
 
-  if(need_scroller) {
-    if (scoller_foucs_center || 
-    selmon->prevsel == NULL || 
-    (selmon->prevsel->scroller_proportion* max_client_width) + (root_client->scroller_proportion*max_client_width) > m->w.width - 2 * scroller_structs - gappih) {
+  if (need_scroller) {
+    if (scoller_foucs_center ||
+        selmon->prevsel == NULL ||
+        (selmon->prevsel->scroller_proportion * max_client_width) + (root_client->scroller_proportion * max_client_width) > m->w.width - 2 * scroller_structs - gappih) {
       target_geom.x = m->w.x + (m->w.width - target_geom.width) / 2;
-
     } else {
-      target_geom.x = root_client->geom.x > m->w.x + (m->w.width)/2 ?
-        m->w.x + (m->w.width - root_client->scroller_proportion*max_client_width -scroller_structs) : 
-        m->w.x + scroller_structs;
+      target_geom.x = root_client->geom.x > m->w.x + (m->w.width) / 2 ?
+                      m->w.x + (m->w.width - root_client->scroller_proportion * max_client_width - scroller_structs) :
+                      m->w.x + scroller_structs;
     }
     resize(tempClients[focus_client_index], target_geom, 0);
   } else {
     target_geom.x = c->geom.x;
-    resize(tempClients[focus_client_index], target_geom, 0);    
+    resize(tempClients[focus_client_index], target_geom, 0);
   }
+
   for (i = 1; i <= focus_client_index; i++) {
     c = tempClients[focus_client_index - i];
     target_geom.x = tempClients[focus_client_index - i + 1]->geom.x - gappih - target_geom.width;
     resize(c, target_geom, 0);
   }
-  for (i = 1; tempClients[focus_client_index + i]; i++) {
+
+  for (i = 1; i < n - focus_client_index; i++) {
     c = tempClients[focus_client_index + i];
     target_geom.x = tempClients[focus_client_index + i - 1]->geom.x + gappih + tempClients[focus_client_index + i - 1]->geom.width;
     resize(c, target_geom, 0);
   }
+
+  free(tempClients); // 最后释放内存
 }
 
 // 目标窗口有其他窗口和它同个tag就返回0
