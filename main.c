@@ -561,7 +561,7 @@ static struct wlr_box setclient_coordinate_center(struct wlr_box geom);
 static unsigned int get_tags_first_tag(unsigned int tags);
 
 void client_commit(Client *c);
-void apply_border(Client *c, struct wlr_box clip_box);
+void apply_border(Client *c, struct wlr_box clip_box,int offset);
 void client_set_opacity(Client *c, double opacity);
 
 /* variables */
@@ -762,6 +762,11 @@ bool client_animation_next_tick(Client *c) {
     //   client_send_close(c);
     //   return false;
     // }
+
+    if(c->animation.tagining) {
+          c->animation.tagining = false;
+    }
+
     if (c->animation.tagouting) {
       c->animation.tagouting = false;
       wlr_scene_node_set_enabled(&c->scene->node, false);
@@ -786,7 +791,7 @@ void client_actual_size(Client *c, uint32_t *width, uint32_t *height) {
                 : c->current.height;
 }
 
-void apply_border(Client *c, struct wlr_box clip_box) {
+void apply_border(Client *c, struct wlr_box clip_box,int offset) {
   wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
   wlr_scene_rect_set_size(c->border[0], clip_box.width, c->bw);
   wlr_scene_rect_set_size(c->border[1], clip_box.width, c->bw);
@@ -796,15 +801,12 @@ void apply_border(Client *c, struct wlr_box clip_box) {
   wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
   wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw,
                               c->bw);
-  wlr_scene_node_set_position(&c->border[1]->node, 0, clip_box.height - c->bw);
-  wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
-  wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw,
-                              c->bw);
 }
 
 void client_apply_clip(Client *c) {
   uint32_t width, height;
   client_actual_size(c, &width, &height);
+  int offset = 0;
 
   struct wlr_box geometry;
   client_get_geometry(c, &geometry);
@@ -820,8 +822,18 @@ void client_apply_clip(Client *c) {
     clip_box.y = 0;
   }
 
+  // make tagout tagin animations not visible in other monitors
+  if(c->animation.tagouting || c->animation.tagining) {
+   if (c->animation.current.x <= c->mon->m.x) {
+     offset =  c->mon->m.x - c->animation.current.x;
+     clip_box.x = clip_box.x + offset;
+   } else if(c->animation.current.x + c->animation.current.width >= c->mon->m.x + c->mon->m.width) {
+    clip_box.width = clip_box.width - (c->animation.current.x + c->animation.current.width - c->mon->m.x - c->mon->m.width);
+   }
+  }
+
   wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
-  apply_border(c, clip_box);
+  apply_border(c, clip_box,offset);
 }
 
 bool client_draw_frame(Client *c) {
@@ -836,7 +848,7 @@ bool client_draw_frame(Client *c) {
     }
   } else {
     wlr_scene_node_set_position(&c->scene->node, c->pending.x, c->pending.y);
-    apply_border(c, c->pending);
+    apply_border(c, c->pending,0);
   }
 
   client_apply_clip(c);
@@ -1194,11 +1206,11 @@ arrange(Monitor *m, bool want_animation) {
           c->animation.tagouting = true;
           if (m->pertag->curtag > m->pertag->prevtag) {
             c->pending = c->geom;
-            c->pending.x -= c->geom.x + m->m.width;
+            c->pending.x = c->mon->m.x - c->geom.width;
             resize(c, c->geom, 0);
           } else {
             c->pending = c->geom;
-            c->pending.x -= c->geom.x - m->m.width;
+            c->pending.x = c->geom.x + c->mon->m.width - (c->geom.x - c->mon->m.x);
             resize(c, c->geom, 0);
           }
         } else {
@@ -1746,7 +1758,6 @@ void client_set_pending_state(Client *c) {
   if(c->isglobal && c->isfloating){
     c->animation.should_animate = false;
   } else if (animations && c->animation.tagining) {
-    c->animation.tagining = false;
     c->animation.should_animate = true;
     c->animation.initial = c->animainit_geom;
   } else if (!animations || c == grabc ||
@@ -1789,7 +1800,7 @@ void
 commitnotify(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, commit);
 
-  if(!c || c->iskilling)
+  if(!c || c->iskilling || c->animation.tagining || c->animation.tagining || c->animation.tagouted)
     return;
   // if don't do this, some client may resize uncompleted
   resize(c, c->geom, (c->isfloating && !c->isfullscreen));
