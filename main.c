@@ -792,15 +792,45 @@ void client_actual_size(Client *c, uint32_t *width, uint32_t *height) {
 }
 
 void apply_border(Client *c, struct wlr_box clip_box,int offset) {
+
   wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
   wlr_scene_rect_set_size(c->border[0], clip_box.width, c->bw);
   wlr_scene_rect_set_size(c->border[1], clip_box.width, c->bw);
-  wlr_scene_rect_set_size(c->border[2], c->bw, clip_box.height - 2 * c->bw);
-  wlr_scene_rect_set_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
+
+if(c->animation.tagining||c->animation.tagouted) {
+  if(c->animation.current.x < c->mon->m.x) {
+    wlr_scene_rect_set_size(c->border[2], 0, clip_box.height - 2 * c->bw);
+    wlr_scene_rect_set_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
+  wlr_scene_node_set_position(&c->border[0]->node, offset, 0);
+  wlr_scene_node_set_position(&c->border[1]->node, offset, clip_box.height - c->bw); 
+  wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw + offset,
+                              c->bw);   
+  } else if (c->animation.current.x + c->animation.current.width > c->mon->m.x + c->mon->m.width) {
+    wlr_scene_rect_set_size(c->border[2], c->bw, clip_box.height - 2 * c->bw);
+    wlr_scene_rect_set_size(c->border[3], 0, clip_box.height - 2 * c->bw);
+  wlr_scene_node_set_position(&c->border[0]->node, 0, 0);
   wlr_scene_node_set_position(&c->border[1]->node, 0, clip_box.height - c->bw);
-  wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
   wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw,
                               c->bw);
+  } else {
+  wlr_scene_rect_set_size(c->border[2], c->bw, clip_box.height - 2 * c->bw);
+  wlr_scene_rect_set_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
+  wlr_scene_node_set_position(&c->border[0]->node, 0, 0);
+  wlr_scene_node_set_position(&c->border[1]->node, 0, clip_box.height - c->bw);
+  wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw,
+                              c->bw);
+  }
+ } else {
+  wlr_scene_rect_set_size(c->border[2], c->bw, clip_box.height - 2 * c->bw);
+  wlr_scene_rect_set_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
+  wlr_scene_node_set_position(&c->border[0]->node, 0, 0);
+  wlr_scene_node_set_position(&c->border[1]->node, 0, clip_box.height - c->bw);
+  wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw,
+                              c->bw);
+ }
+
+  wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
+
 }
 
 void client_apply_clip(Client *c) {
@@ -827,6 +857,7 @@ void client_apply_clip(Client *c) {
    if (c->animation.current.x <= c->mon->m.x) {
      offset =  c->mon->m.x - c->animation.current.x;
      clip_box.x = clip_box.x + offset;
+    clip_box.width = clip_box.width - offset;
    } else if(c->animation.current.x + c->animation.current.width >= c->mon->m.x + c->mon->m.width) {
     clip_box.width = clip_box.width - (c->animation.current.x + c->animation.current.width - c->mon->m.x - c->mon->m.width);
    }
