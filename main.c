@@ -4713,8 +4713,8 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
   for (i = 0; i < n; i++) {
     c = tempClients[i];
     if (root_client == c) {
-      if (selmon->prevsel != NULL && (c->geom.x - m->w.x - scroller_structs) > 0 &&
-          c->geom.x + c->geom.width < m->w.x + m->w.width - scroller_structs) {
+      if (c->geom.x >= m->w.x + scroller_structs &&
+          c->geom.x + c->geom.width <= m->w.x + m->w.width - scroller_structs) {
         need_scroller = false;
       } else {
         need_scroller = true;
@@ -4805,6 +4805,10 @@ void overview_restore(Client *c, const Arg *arg) {
   c->overview_isfloatingbak = 0;
   c->overview_isfullscreenbak = 0;
   c->overview_ismaxmizescreenbak = 0;
+  c->geom.x = c->overview_backup_x;
+  c->geom.y = c->overview_backup_y;
+  c->geom.width = c->overview_backup_w;
+  c->geom.height = c->overview_backup_h;
   c->bw = c->overview_backup_bw;
   c->is_restoring_from_ov = (arg->ui & c->tags & TAGMASK) == 0 ? true : false;
   if (c->isfloating) {
@@ -4921,8 +4925,6 @@ void toggleoverview(const Arg *arg) {
   } else {
     wl_list_for_each(c, &clients, link) {
       if (c &&
-          (c != selmon->sel || c->overview_isfloatingbak ||
-           c->overview_isfullscreenbak || c->overview_ismaxmizescreenbak) &&
           !c->iskilling && client_surface(c)->mapped)
         overview_restore(c, &(Arg){.ui = target});
     }
