@@ -9,7 +9,6 @@
     "modules-right": ["custom/notification","tray","network","cpu","temperature","memory","clock","pulseaudio","backlight","battery"],
     "dwl/tags": {
         "num-tags":9,
-        "hide-unused-tag":true
     },
     "custom/notification": {
         "tooltip": false,
