@@ -791,46 +791,56 @@ void client_actual_size(Client *c, uint32_t *width, uint32_t *height) {
                 : c->current.height;
 }
 
-void apply_border(Client *c, struct wlr_box clip_box,int offset) {
+void apply_border(Client *c, struct wlr_box clip_box, int offset)
+{
 
   wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
   wlr_scene_rect_set_size(c->border[0], clip_box.width, c->bw);
   wlr_scene_rect_set_size(c->border[1], clip_box.width, c->bw);
 
-if(c->animation.tagining||c->animation.tagouted) {
-  if(c->animation.current.x < c->mon->m.x) {
-    wlr_scene_rect_set_size(c->border[2], 0, clip_box.height - 2 * c->bw);
-    wlr_scene_rect_set_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
-  wlr_scene_node_set_position(&c->border[0]->node, offset, 0);
-  wlr_scene_node_set_position(&c->border[1]->node, offset, clip_box.height - c->bw); 
-  wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw + offset,
-                              c->bw);   
-  } else if (c->animation.current.x + c->animation.current.width > c->mon->m.x + c->mon->m.width) {
-    wlr_scene_rect_set_size(c->border[2], c->bw, clip_box.height - 2 * c->bw);
-    wlr_scene_rect_set_size(c->border[3], 0, clip_box.height - 2 * c->bw);
-  wlr_scene_node_set_position(&c->border[0]->node, 0, 0);
-  wlr_scene_node_set_position(&c->border[1]->node, 0, clip_box.height - c->bw);
-  wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw,
-                              c->bw);
-  } else {
-  wlr_scene_rect_set_size(c->border[2], c->bw, clip_box.height - 2 * c->bw);
-  wlr_scene_rect_set_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
-  wlr_scene_node_set_position(&c->border[0]->node, 0, 0);
-  wlr_scene_node_set_position(&c->border[1]->node, 0, clip_box.height - c->bw);
-  wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw,
-                              c->bw);
+  if (c->animation.tagining || c->animation.tagouted || c->animation.tagouting)
+  {
+    if (c->animation.current.x < c->mon->m.x)
+    {
+      wlr_scene_rect_set_size(c->border[2], 0, 0);
+      wlr_scene_rect_set_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
+      wlr_scene_node_set_position(&c->border[0]->node, offset, 0);
+      wlr_scene_node_set_position(&c->border[2]->node, 0 + offset, c->bw);
+      wlr_scene_node_set_position(&c->border[1]->node, offset, clip_box.height - c->bw);
+      wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw + offset,
+                                  c->bw);
+    }
+    else if (c->animation.current.x + c->geom.width > c->mon->m.x + c->mon->m.width)
+    {
+      wlr_scene_rect_set_size(c->border[2], c->bw, clip_box.height - 2 * c->bw);
+      wlr_scene_rect_set_size(c->border[3], 0, 0);
+      wlr_scene_node_set_position(&c->border[0]->node, 0, 0);
+      wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
+      wlr_scene_node_set_position(&c->border[1]->node, 0, clip_box.height - c->bw);
+      wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw,
+                                  c->bw);
+    }
+    else
+    {
+      wlr_scene_rect_set_size(c->border[2], c->bw, clip_box.height - 2 * c->bw);
+      wlr_scene_rect_set_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
+      wlr_scene_node_set_position(&c->border[0]->node, 0, 0);
+      wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
+      wlr_scene_node_set_position(&c->border[1]->node, 0, clip_box.height - c->bw);
+      wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw,
+                                  c->bw);
+    }
   }
- } else {
-  wlr_scene_rect_set_size(c->border[2], c->bw, clip_box.height - 2 * c->bw);
-  wlr_scene_rect_set_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
-  wlr_scene_node_set_position(&c->border[0]->node, 0, 0);
-  wlr_scene_node_set_position(&c->border[1]->node, 0, clip_box.height - c->bw);
-  wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw,
-                              c->bw);
- }
-
-  wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
-
+  else
+  {
+    wlr_scene_rect_set_size(c->border[2], c->bw, clip_box.height - 2 * c->bw);
+    wlr_scene_rect_set_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
+    wlr_scene_node_set_position(&c->border[0]->node, 0, 0);
+    wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
+    wlr_scene_node_set_position(&c->border[1]->node, 0, clip_box.height - c->bw);
+    wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw,
+                                c->bw);
+  }
 }
 
 void client_apply_clip(Client *c) {
@@ -853,12 +863,12 @@ void client_apply_clip(Client *c) {
   }
 
   // make tagout tagin animations not visible in other monitors
-  if(c->animation.tagouting || c->animation.tagining) {
+  if(c->animation.tagouting || c->animation.tagining || c->animation.tagouted) {
    if (c->animation.current.x <= c->mon->m.x) {
      offset =  c->mon->m.x - c->animation.current.x;
      clip_box.x = clip_box.x + offset;
     clip_box.width = clip_box.width - offset;
-   } else if(c->animation.current.x + c->animation.current.width >= c->mon->m.x + c->mon->m.width) {
+   } else if(c->animation.current.x + c->geom.width >= c->mon->m.x + c->mon->m.width) {
     clip_box.width = clip_box.width - (c->animation.current.x + c->animation.current.width - c->mon->m.x - c->mon->m.width);
    }
   }
@@ -1220,21 +1230,16 @@ arrange(Monitor *m, bool want_animation) {
         }
 
         c->animation.from_rule = false;
-        if ((c->isfloating || c->isfullscreen || c->ismaxmizescreen) &&
-            (c->animation.tagouting || c->animation.tagouted)) {
-          c->animation.tagouting = false;
-          c->animation.tagouted = false;
-          resize(c, c->geom, 0);
-        } else {
-          c->animation.tagouting = false;
-          c->animation.tagouted = false;
-          resize(c, c->geom, 0);
-        }
+        c->animation.tagouting = false;
+        c->animation.tagouted = false;
+        resize(c, c->geom, 0);
+
       } else {
         if ((c->tags & (1 << (selmon->pertag->prevtag - 1))) &&
             want_animation && m->pertag->prevtag != 0 &&
             m->pertag->curtag != 0) {
           c->animation.tagouting = true;
+          c->animation.tagining = false;
           if (m->pertag->curtag > m->pertag->prevtag) {
             c->pending = c->geom;
             c->pending.x = c->mon->m.x - c->geom.width;
