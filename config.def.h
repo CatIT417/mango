@@ -11,9 +11,9 @@ static const char *animation_type = "slide"; //slide or zoom
 static const char animation_fade_in = 0; // Enable animation fade in
 static const float zoom_initial_ratio = 0.5; // Initial window ratio for animations
 static const float fadein_begin_opacity = 0; // Begin opacity for animations fasdein
-static const uint32_t animation_duration_move = 400; // Animation move speed
+static const uint32_t animation_duration_move = 500; // Animation move speed
 static const uint32_t animation_duration_open = 400; // Animation open speed
-static const uint32_t animation_duration_tag = 300; // Animation tag speed
+static const uint32_t animation_duration_tag = 400; // Animation tag speed
 // static const double animation_curve[4] = {0.05,0.9,0.1,1.05}; // Animation curve
 static const double animation_curve[4] = {0.46,1.0,0.29,0.99}; // Animation curve
 
