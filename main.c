@@ -1579,6 +1579,10 @@ buttonpress(struct wl_listener *listener, void *data) {
   uint32_t mods;
   Client *c;
   const Button *b;
+
+  // without this when change focus from x11 app to wayland app
+  // it will still focus to the last x11 app after click 
+  motionnotify(0, NULL, 0, 0, 0, 0);
   // IDLE_NOTIFY_ACTIVITY;
   wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
