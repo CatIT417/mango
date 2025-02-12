@@ -1222,10 +1222,10 @@ arrange(Monitor *m, bool want_animation) {
             m->pertag->prevtag != 0 && m->pertag->curtag != 0) {
           c->animation.tagining = true;
           if (m->pertag->curtag > m->pertag->prevtag) {
-            c->animainit_geom.x =
+            c->animainit_geom.x = c->animation.running? c->animation.current.x:
                 c->geom.x + c->mon->m.width - (c->geom.x - c->mon->m.x);
           } else {
-            c->animainit_geom.x = m->m.x - c->geom.width;
+            c->animainit_geom.x = c->animation.running? c->animation.current.x : m->m.x - c->geom.width;
           }
         }
 
@@ -3871,7 +3871,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
 
   // 动画起始位置大小设置
   if (c->animation.tagouting) {
-    c->animainit_geom = c->geom;
+    c->animainit_geom = c->animation.current;
   } else if (c->animation.tagining) {
     c->animainit_geom.height = c->animation.current.height;
     c->animainit_geom.width = c->animation.current.width;
@@ -4825,6 +4825,9 @@ void overview_backup(Client *c) {
   c->overview_isfullscreenbak = c->isfullscreen;
   c->overview_ismaxmizescreenbak = c->ismaxmizescreen;
   c->overview_isfullscreenbak = c->isfullscreen;
+  c->animation.tagining = false;
+  c->animation.tagouted = false;
+  c->animation.tagouting = false;
   c->overview_backup_x = c->geom.x;
   c->overview_backup_y = c->geom.y;
   c->overview_backup_w = c->geom.width;
@@ -4857,6 +4860,7 @@ void overview_restore(Client *c, const Arg *arg) {
   c->geom.width = c->overview_backup_w;
   c->geom.height = c->overview_backup_h;
   c->bw = c->overview_backup_bw;
+  c->animation.tagining = false;
   c->is_restoring_from_ov = (arg->ui & c->tags & TAGMASK) == 0 ? true : false;
   if (c->isfloating) {
     // XRaiseWindow(dpy, c->win); // 提升悬浮窗口到顶层
