@@ -64,6 +64,7 @@ mkdir -p ~/.config/maomao/
 # some suggest config
 cp autostart.sh ~/.config/maomao/
 cp waybar ~/.config/maomao/ -r 
+cp wofi ~/.config/maomao/ -r 
 cp wallpaper ~/.config/maomao/ -r
 
 
