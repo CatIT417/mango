@@ -198,6 +198,8 @@ static const Key keys[] = {
 	{ MODKEY,					 			XKB_KEY_space,      	spawn,          			   {.v = menucmd} },
 	{ MODKEY, 					 			XKB_KEY_Return,     	spawn,          			   {.v = termcmd} },
 
+  // add your custom cmd key bind  like this
+  /* { WLR_MODIFIER_LOGO,         			XKB_KEY_Return, 		spawn, 						SHCMD("google-chrome") }, */
 
 	{ WLR_MODIFIER_LOGO,                    XKB_KEY_Tab,          	focusstack,     			{.i = +1} },
 
