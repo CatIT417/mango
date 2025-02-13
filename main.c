@@ -1579,11 +1579,11 @@ buttonpress(struct wl_listener *listener, void *data) {
   uint32_t mods;
   Client *c;
   const Button *b;
+  double sx, sy;
+  struct wlr_surface *surface = NULL;
 
-  // without this when change focus from x11 app to wayland app
-  // it will still focus to the last x11 app after click 
-  motionnotify(0, NULL, 0, 0, 0, 0);
   // IDLE_NOTIFY_ACTIVITY;
+
   wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
   switch (event->state) {
@@ -1594,7 +1594,7 @@ buttonpress(struct wl_listener *listener, void *data) {
       break;
 
     /* Change focus if the button was _pressed_ over a client */
-    xytonode(cursor->x, cursor->y, NULL, &c, NULL, NULL, NULL);
+    xytonode(cursor->x, cursor->y, NULL, &c, NULL, &sx, &sy);
     if (c && (!client_is_unmanaged(c) || client_wants_focus(c)))
       focusclient(c, 1);
 
@@ -1635,6 +1635,10 @@ buttonpress(struct wl_listener *listener, void *data) {
   }
   /* If the event wasn't handled by the compositor, notify the client with
    * pointer focus that a button press has occurred */
+  surface =  c ? client_surface(c) : NULL;
+  if(surface && c == selmon->sel) {
+      wlr_seat_pointer_notify_enter(seat, surface, sx, sy);
+  }
   wlr_seat_pointer_notify_button(seat, event->time_msec, event->button,
                                  event->state);
 }
@@ -2625,6 +2629,8 @@ void focusclient(Client *c, int lift) {
   if (c && c->mon && c->mon != selmon) {
     selmon = c->mon;
   }
+
+  wlr_seat_pointer_notify_clear_focus(seat);
 
   if (selmon && selmon->sel && selmon->sel->foreign_toplevel) {
     wlr_foreign_toplevel_handle_v1_set_activated(selmon->sel->foreign_toplevel,
