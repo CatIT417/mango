@@ -1,4 +1,6 @@
 
+# 
+
 Master-Stack Layout
 
 https://github.com/user-attachments/assets/da80c6d1-b9a5-44c4-b738-6421365e6aa5
@@ -8,36 +10,23 @@ Scroller Layout
 
 https://github.com/user-attachments/assets/2ff96868-b276-4fa1-b4d7-87bdc36beb3c
 
+# Maomaowm
+
+This project is developed based on `dwl(0.5)` , adding many window functions supported in hyprland, such as window switching by direction, non-empty workspace switching ,etc... It also integrates niri's scroll layout and sway'scratchpad . See below for more features
 
 
-# feature
-- dwl ipc support
-- maxmize fullscreen
-- swap window by direction
-- swith to next not empty-workspace/workspace
-- move window to next not empty-workspace/workspace
-- swith focus by direction
-- wheel/button + mod key bind
+# some special feature
 - hycov like overview
-- numlock state pre-set in config
-- portal fix for obs(use hyprland-portal)
-- master layout support new_on_top
 - foreign-toplevel support(dunst,waybar wlr taskbar)
-- acitve on focus/urgent support
-- hide empty button in waybar
-- support minimize window by click waybar
-- support minimize window by keyboard
+- minimize window to waybar(like hych)
 - sway scratchpad support 
 - window pin mode support
-- text-input-v2
+- text-input-v2/v3 for fcitx5
 - window move/open animaition
 - workspace switch animaition
-- window close animaition
-- custom mov/open/tag animaition sppeed
 - fade in animation
 - alt-tab switch window like gnome
 - niri like scroller layout
-
 
 ## suggest tools
 ```
@@ -75,6 +64,7 @@ cp wallpaper ~/.config/maomao/ -r
 > The configuration file is located in `config.h`. This file is generated every time the `meson build` command is executed. If the file already exists, it will not be regenerated. If you encounter compilation issues after updating, please try to remove this file and the `build folder`, then rerun the `meson build` command.
 
 # thanks for some refer repo 
-https://github.com/dqrk0jeste/owl - for window animation implementation code
-https://github.com/djpohly/dwl - for base dwl code
-
+https://github.com/dqrk0jeste/owl - for basal window animaition
+https://github.com/djpohly/dwl - for basal dwl feature
+https://github.com/guyuming76/dwl - for text-input
+https://github.com/swaywm/sway - for foreign-toplevel
