@@ -1586,6 +1586,7 @@ buttonpress(struct wl_listener *listener, void *data) {
   uint32_t mods;
   Client *c;
   const Button *b;
+  struct wlr_surface *surface;
 
   wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
@@ -1597,9 +1598,12 @@ buttonpress(struct wl_listener *listener, void *data) {
       break;
 
     /* Change focus if the button was _pressed_ over a client */
-    xytonode(cursor->x, cursor->y, NULL, &c, NULL, NULL, NULL);
+    xytonode(cursor->x, cursor->y, &surface, &c, NULL, NULL, NULL);
     if (c && (!client_is_unmanaged(c) || client_wants_focus(c)))
       focusclient(c, 1);
+
+    if (!surface)
+      wlr_seat_pointer_notify_clear_focus(seat); 
 
     keyboard = wlr_seat_get_keyboard(seat);
     mods = keyboard ? wlr_keyboard_get_modifiers(keyboard) : 0;
