@@ -15,6 +15,9 @@
  * in the focused state, wl_keyboard sent an enter as well. However, having
  * wl_keyboard focused doesn't mean that text-input will be focused.
  */
+// 这个relay这一层结构嵌套其实在dwl这里没啥用,暴露出结构成员定义作全局变量代码会更清晰,更符合dwl的风格
+// 但这个代码最初是日本人从sway那边抄过来的,sway的架构比较大,我猜会不会是考虑到会有两个input_method实例才这么定义
+// 为了考虑万一以后哪个版本要扩充,就保留外层的结构
 struct dwl_input_method_relay {
 	struct wl_list text_inputs; // dwl_text_input::link
 	struct wlr_input_method_v2 *input_method; // doesn't have to be present
@@ -46,7 +49,7 @@ struct dwl_text_input {
 
 	struct wl_listener text_input_enable;
   //struct wl_listener text_input_commit;
-	struct wl_listener text_input_disable;
+  //struct wl_listener text_input_disable;
 	struct wl_listener text_input_destroy;
 };
 
@@ -67,7 +70,7 @@ struct dwl_input_popup {
 	struct wl_listener popup_map;
 	struct wl_listener popup_unmap;
 	struct wl_listener popup_destroy;
-	struct wl_listener popup_surface_commit;
+  //struct wl_listener popup_surface_commit;
   //struct wl_listener focused_surface_unmap;
 };
 
@@ -77,9 +80,7 @@ void dwl_input_method_relay_init(struct dwl_input_method_relay *relay);
 // seat.
 void dwl_input_method_relay_set_focus(struct dwl_input_method_relay *relay,
 	struct wlr_surface *surface);
-struct dwl_text_input *dwl_text_input_create(
-	struct dwl_input_method_relay *relay,
-	struct wlr_text_input_v3 *text_input);
+
 static void handle_im_grab_keyboard(struct wl_listener *listener, void *data);
 static void handle_im_keyboard_grab_destroy(struct wl_listener *listener,
                                             void *data);
@@ -122,6 +123,7 @@ static struct wlr_input_method_keyboard_grab_v2 *keyboard_get_im_grab(Keyboard* 
 static void handle_im_grab_keyboard(struct wl_listener *listener, void *data) {
 	struct dwl_input_method_relay *relay = wl_container_of(listener, relay,
 		input_method_grab_keyboard);
+	//wl_container_of 宏的第二个参数sample, 这里是relay,无须是已经初始化的变量,只要是返回值类型的变量就可以了,这里就是dwl_input_method_relay类型的变量
 	struct wlr_input_method_keyboard_grab_v2 *keyboard_grab = data;
 
 	// send modifier state to grab
@@ -347,41 +349,8 @@ static void handle_pending_focused_surface_destroy(struct wl_listener *listener,
 	wl_list_init(&text_input->pending_focused_surface_destroy.link);
 }
 
-struct dwl_text_input *dwl_text_input_create(
-		struct dwl_input_method_relay *relay,
-		struct wlr_text_input_v3 *text_input) {
-	struct dwl_text_input *input;
-	input = calloc(1, sizeof(*input));
-	if (!input) {
-        	wlr_log(WLR_ERROR, "dwl_text_input_create calloc failed");
-		return NULL;
-	}
-	wlr_log(WLR_INFO, "dwl_text_input_create");
-	input->input = text_input;
-	input->relay = relay;
 
-	wl_list_insert(&relay->text_inputs, &input->link);
-
-	input->text_input_enable.notify = handle_text_input_enable;
-	wl_signal_add(&text_input->events.enable, &input->text_input_enable);
-
-	//input->text_input_commit.notify = handle_text_input_commit;
-	//wl_signal_add(&text_input->events.commit, &input->text_input_commit);
-
-	/* input->text_input_disable.notify = handle_text_input_disable; */
-	/* wl_signal_add(&text_input->events.disable, &input->text_input_disable); */
-
-	input->text_input_destroy.notify = handle_text_input_destroy;
-	wl_signal_add(&text_input->events.destroy, &input->text_input_destroy);
-
-	input->pending_focused_surface_destroy.notify =
-		handle_pending_focused_surface_destroy;
-	wl_list_init(&input->pending_focused_surface_destroy.link);
-
-	return input;
-}
-
-static void relay_handle_text_input(struct wl_listener *listener,
+static void relay_handle_text_input_new(struct wl_listener *listener,
 		void *data) {
 	struct dwl_input_method_relay *relay = wl_container_of(listener, relay,
 		text_input_new);
@@ -390,7 +359,33 @@ static void relay_handle_text_input(struct wl_listener *listener,
 		return;
 	}
 
-	dwl_text_input_create(relay, wlr_text_input);
+        struct dwl_text_input *input;
+	input = calloc(1, sizeof(*input));
+	if (!input) {
+        	wlr_log(WLR_ERROR, "dwl_text_input calloc failed");
+		return;
+	}
+	wlr_log(WLR_INFO, "dwl_text_input calloc");
+	input->input = wlr_text_input;
+	input->relay = relay;
+
+	wl_list_insert(&relay->text_inputs, &input->link);
+
+	input->text_input_enable.notify = handle_text_input_enable;
+	wl_signal_add(&wlr_text_input->events.enable, &input->text_input_enable);
+
+	//input->text_input_commit.notify = handle_text_input_commit;
+	//wl_signal_add(&text_input->events.commit, &input->text_input_commit);
+
+	/* input->text_input_disable.notify = handle_text_input_disable; */
+	/* wl_signal_add(&text_input->events.disable, &input->text_input_disable); */
+
+	input->text_input_destroy.notify = handle_text_input_destroy;
+	wl_signal_add(&wlr_text_input->events.destroy, &input->text_input_destroy);
+
+	input->pending_focused_surface_destroy.notify =
+		handle_pending_focused_surface_destroy;
+	wl_list_init(&input->pending_focused_surface_destroy.link);
 }
 
 
@@ -405,6 +400,8 @@ static void get_parent_and_output_box(struct wlr_surface *focused_surface,
 	struct wlr_output *output;
 	struct wlr_box output_box_tmp;
 	struct wlr_layer_surface_v1 *layer_surface;
+	Client *client = NULL;
+	LayerSurface *l = NULL;
 
 	if ((layer_surface=wlr_layer_surface_v1_try_from_wlr_surface(focused_surface))) {
 		LayerSurface* layer =
@@ -417,10 +414,7 @@ static void get_parent_and_output_box(struct wlr_surface *focused_surface,
 		wlr_log(WLR_INFO,"get_parent_and_output_box layersurface  output_box_tmp->x %d y %d",output_box_tmp.x, output_box_tmp.y);
 		wlr_log(WLR_INFO,"get_parent_and_output_box layersurface  parent->x %d y %d",parent->x,parent->y);
 	} else {
-	       //Client *client = client_from_wlr_surface(focused_surface);
-                Client *client = NULL;
-                LayerSurface *l = NULL;
-                int type = toplevel_from_wlr_surface(focused_surface, &client, &l);
+        toplevel_from_wlr_surface(focused_surface, &client, &l);
 		
 		output = wlr_output_layout_output_at(output_layout,
 			client->geom.x, client->geom.y);
@@ -441,9 +435,12 @@ static void get_parent_and_output_box(struct wlr_surface *focused_surface,
 	wlr_log(WLR_INFO,"get_parent_and_output_box output_box  x %d y %d width %d height %d",output_box->x,output_box->y,output_box->width,output_box->height);
 }
 
+// 如果当前focused wlr_text_input_v3.features 满足 WLR_TEXT_INPUT_V3_FEATURE_CURSOR_RECTANGLE, 不含这个feature就弹出在父窗口左上角
+// 根据 wlr_text_input_v3.current.cursor_rectangle 计算出一个wlr_box
+// 再调用 wlr_input_popup_surface_v2_send_text_input_rectangle 和 wlr_scene_node_set_position
 static void input_popup_update(struct dwl_input_popup *popup) {
 	struct wlr_surface* focused_surface;
-	struct wlr_box output_box, parent, cursor;
+	struct wlr_box output_box, parent, input_cursor;
 	int x1, x2, y1, y2, x, y, available_right, available_left, available_down,
 			available_up, popup_width, popup_height;
 	bool cursor_rect, x1_in_bounds, y1_in_bounds, x2_in_bounds, y2_in_bounds;
@@ -464,7 +461,7 @@ static void input_popup_update(struct dwl_input_popup *popup) {
 		& WLR_TEXT_INPUT_V3_FEATURE_CURSOR_RECTANGLE;
 
 	focused_surface = text_input->input->focused_surface;
-	cursor = text_input->input->current.cursor_rectangle;
+	input_cursor = text_input->input->current.cursor_rectangle;
 
 	get_parent_and_output_box(focused_surface, &parent, &output_box);
 
@@ -472,10 +469,10 @@ static void input_popup_update(struct dwl_input_popup *popup) {
 	popup_height = popup->popup_surface->surface->current.height;
 
 	if (!cursor_rect) {
-		cursor.x = 0;
-		cursor.y = 0;
-		cursor.width = parent.width;
-		cursor.height = parent.height;
+		input_cursor.x = 0;
+		input_cursor.y = 0;
+		input_cursor.width = parent.width;
+		input_cursor.height = parent.height;
 		wlr_log(WLR_INFO,"input_popup_update !cursor_rect");
 
 		popup->x=parent.x;
@@ -483,12 +480,12 @@ static void input_popup_update(struct dwl_input_popup *popup) {
 		popup->visible=true;
 	}
 	else {
-	        wlr_log(WLR_INFO,"input_popup_update cursor x %d y %d width %d height %d",cursor.x,cursor.y,cursor.width,cursor.height);
+	        wlr_log(WLR_INFO,"input_popup_update input_cursor x %d y %d width %d height %d",input_cursor.x,input_cursor.y,input_cursor.width,input_cursor.height);
 
-	        x1 = parent.x + cursor.x;
-	        x2 = parent.x + cursor.x + cursor.width;
-	        y1 = parent.y + cursor.y;
-	        y2 = parent.y + cursor.y + cursor.height;
+	        x1 = parent.x + input_cursor.x;
+	        x2 = parent.x + input_cursor.x + input_cursor.width;
+	        y1 = parent.y + input_cursor.y;
+	        y2 = parent.y + input_cursor.y + input_cursor.height;
 	        x = x1;
 	        y = y2;
 
@@ -510,21 +507,21 @@ static void input_popup_update(struct dwl_input_popup *popup) {
 	        popup->x = x;
 	        popup->y = y;
 
-         	// Hide popup if cursor position is completely out of bounds
-	        x1_in_bounds = (cursor.x >= 0 && cursor.x < parent.width);
-	        y1_in_bounds = (cursor.y >= 0 && cursor.y < parent.height);
-	        x2_in_bounds = (cursor.x + cursor.width >= 0
-		                         && cursor.x + cursor.width < parent.width);
-	        y2_in_bounds = (cursor.y + cursor.height >= 0
-		                         && cursor.y + cursor.height < parent.height);
+         	// Hide popup if input_cursor position is completely out of bounds
+	        x1_in_bounds = (input_cursor.x >= 0 && input_cursor.x < parent.width);
+	        y1_in_bounds = (input_cursor.y >= 0 && input_cursor.y < parent.height);
+	        x2_in_bounds = (input_cursor.x + input_cursor.width >= 0
+		                         && input_cursor.x + input_cursor.width < parent.width);
+	        y2_in_bounds = (input_cursor.y + input_cursor.height >= 0
+		                         && input_cursor.y + input_cursor.height < parent.height);
 	        popup->visible =
 		                      (x1_in_bounds && y1_in_bounds) || (x2_in_bounds && y2_in_bounds);
 
                 struct wlr_box box = {
 			.x = x1 - x,
 			.y = y1 - y,
-			.width = cursor.width,
-			.height = cursor.height,
+			.width = input_cursor.width,
+			.height = input_cursor.height,
 		};
 		wlr_input_popup_surface_v2_send_text_input_rectangle(
 			popup->popup_surface, &box);
@@ -581,7 +578,7 @@ static void handle_im_popup_destroy(struct wl_listener *listener, void *data) {
 
 
 static void handle_im_new_popup_surface(struct wl_listener *listener, void *data) {
-	struct dwl_text_input* text_input;
+	// struct dwl_text_input* text_input;
 
 	struct dwl_input_method_relay *relay = wl_container_of(listener, relay,
 		input_method_new_popup_surface);
@@ -607,7 +604,7 @@ static void handle_im_new_popup_surface(struct wl_listener *listener, void *data
 }
 
 
-static void relay_handle_input_method(struct wl_listener *listener,
+static void relay_handle_input_method_new(struct wl_listener *listener,
 		void *data) {
 	struct dwl_text_input *text_input;
 
@@ -657,11 +654,11 @@ void dwl_input_method_relay_init(struct dwl_input_method_relay *relay) {
 
 	relay->popup=NULL;
 
-	relay->text_input_new.notify = relay_handle_text_input;
+	relay->text_input_new.notify = relay_handle_text_input_new;
 	wl_signal_add(&text_input_manager->events.text_input,
 		&relay->text_input_new);
 
-	relay->input_method_new.notify = relay_handle_input_method;
+	relay->input_method_new.notify = relay_handle_input_method_new;
 	wl_signal_add(&input_method_manager->events.input_method,
 		&relay->input_method_new);
 }

@@ -1,7 +1,6 @@
 /*
  * See LICENSE file for copyright and license details.
  */
-#define XWAYLNAD 1
 #include <getopt.h>
 #include <libinput.h>
 #include <signal.h>
@@ -73,7 +72,7 @@
 
 #include "dwl-ipc-unstable-v2-protocol.h"
 #include "util.h"
-#include "wlr_foreign_toplevel_management_v1.h"
+#include <wlr/types/wlr_foreign_toplevel_management_v1.h>
 
 /* macros */
 #define MAX(A, B) ((A) > (B) ? (A) : (B))
@@ -565,6 +564,7 @@ static unsigned int get_tags_first_tag(unsigned int tags);
 void client_commit(Client *c);
 void apply_border(Client *c, struct wlr_box clip_box,int offset);
 void client_set_opacity(Client *c, double opacity);
+void init_baked_points(void);
 
 /* variables */
 static const char broken[] = "broken";
@@ -697,7 +697,7 @@ struct vec2 calculate_animation_curve_at(double t) {
   return point;
 }
 
-void init_baked_points() {
+void init_baked_points(void) {
   baked_points = calloc(BAKED_POINTS_COUNT, sizeof(*baked_points));
 
   for (size_t i = 0; i < BAKED_POINTS_COUNT; i++) {
@@ -4226,11 +4226,11 @@ setsel(struct wl_listener *listener, void *data) {
 }
 
 // 获取tags中最坐标的tag的tagmask
-unsigned int get_tags_first_tag(unsigned int tags) {
+unsigned int get_tags_first_tag(unsigned int source_tags) {
   unsigned int i, target, tag;
   tag = 0;
   for (i = 0; !(tag & 1); i++) {
-    tag = tags >> i;
+    tag = source_tags >> i;
   }
   target = 1 << (i - 1);
   return target;
@@ -4765,7 +4765,7 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
 void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
   unsigned int i, n;
 
-  Client *c, *root_client;
+  Client *c, *root_client = NULL;
   Client **tempClients = NULL; // 初始化为 NULL
   n = 0;
   struct wlr_box target_geom;

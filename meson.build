@@ -34,10 +34,8 @@ if xcb.found() and xlibs.found()
  endif
 
 executable('maomao',
-  'main.c',
+  'maomao.c',
   'util.c',
-  'wlr_foreign_toplevel_management_v1.c',
-  'wlr_foreign_toplevel_management_v1.h',
   wayland_sources,
   dependencies : [
     libm,
