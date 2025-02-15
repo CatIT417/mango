@@ -101,7 +101,7 @@ static const Rule rules[] = {
 };
 
 /* layout(s) */
-static const Layout overviewlayout = { "󰃇",  overview };
+static const Layout overviewlayout = { "󰃇",  overview, "ovgrid" };
 
 static const Layout layouts[] = { // At least two layouts, cannot delete less than two
 	/* symbol     arrange function */

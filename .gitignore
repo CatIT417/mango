@@ -1,3 +1,9 @@
 /.cache
 /.vscode
 config.h
+maomao
+maomao.o
+util.o
+*-protocol.h
+*-protocol.c
+*-protocol.o
