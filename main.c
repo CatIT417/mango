@@ -761,10 +761,6 @@ bool client_animation_next_tick(Client *c) {
     }
 
     c->animation.running = false;
-    // if (c->iskilling) {
-    //   client_send_close(c);
-    //   return false;
-    // }
 
     if(c->animation.tagining) {
           c->animation.tagining = false;
@@ -2615,19 +2611,28 @@ void dwl_ipc_output_release(struct wl_client *client,
 }
 
 void focusclient(Client *c, int lift) {
-  struct wlr_surface *old = seat->keyboard_state.focused_surface;
+  struct wlr_surface *old_keyboard_focus_surface = seat->keyboard_state.focused_surface;
+  struct wlr_surface *old_pointer_focus_surface = seat->pointer_state.focused_surface;
+
   if (locked)
     return;
 
   if (c && c->iskilling)
     return;
 
+  if(c && c->animation.tagouting && !c->animation.tagouting) 
+    return;
+
   /* Raise client in stacking order if requested */
   if (c && lift)
     wlr_scene_node_raise_to_top(&c->scene->node); // 将视图提升到顶层
 
-  if (c && client_surface(c) == old)
+  if (c && client_surface(c) == old_keyboard_focus_surface && client_surface(c) == old_pointer_focus_surface)
     return;
+  else {
+    wlr_seat_pointer_notify_clear_focus(seat); 
+    wlr_seat_keyboard_notify_clear_focus(seat);   
+  }
 
   if (c && c->mon && c->mon != selmon) {
     selmon = c->mon;
@@ -2662,24 +2667,24 @@ void focusclient(Client *c, int lift) {
   }
 
   /* Deactivate old client if focus is changing */
-  if (old && (!c || client_surface(c) != old)) {
+  if (old_keyboard_focus_surface && (!c || client_surface(c) != old_keyboard_focus_surface)) {
     /* If an overlay is focused, don't focus or activate the client,
      * but only update its position in fstack to render its border with
      * focuscolor and focus it after the overlay is closed. */
     Client *w = NULL;
     LayerSurface *l = NULL;
-    int type = toplevel_from_wlr_surface(old, &w, &l);
+    int type = toplevel_from_wlr_surface(old_keyboard_focus_surface, &w, &l);
     if (type == LayerShell && l->scene->node.enabled &&
         l->layer_surface->current.layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP) {
       return;
     } else if (w && w == exclusive_focus && client_wants_focus(w)) {
       return;
-      /* Don't deactivate old client if the new one wants focus, as this causes
+      /* Don't deactivate old_keyboard_focus_surface client if the new one wants focus, as this causes
        * issues with winecfg and probably other clients */
     } else if (w && !client_is_unmanaged(w) && (!c || !client_wants_focus(c))) {
       setborder_color(w);
 
-      client_activate_surface(old, 0);
+      client_activate_surface(old_keyboard_focus_surface, 0);
     }
   }
   printstatus();
