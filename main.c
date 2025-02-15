@@ -4,6 +4,8 @@
 #define XWAYLNAD 1
 #include <getopt.h>
 #include <libinput.h>
+#include <signal.h>
+#include <execinfo.h>
 #include <limits.h>
 #include <linux/input-event-codes.h>
 #include <signal.h>
@@ -4288,7 +4290,56 @@ void handle_foreign_destroy(struct wl_listener *listener, void *data) {
   }
 }
 
+
+void signalhandler(int signalnumber) 
+{
+    void *array[64];
+    size_t size;
+    char **strings;
+    size_t i;
+    char filename[1024];
+
+    // 获取当前用户家目录
+    const char *homedir = getenv("HOME");
+    if (!homedir) {
+        // 如果获取失败，则无法继续
+        return;
+    }
+
+    // 构建日志文件路径
+    snprintf(filename, sizeof(filename), "%s/.config/maomao/crash.log", homedir);
+
+    // 打开日志文件
+    FILE *fp = fopen(filename, "a");
+    if (!fp) {
+        // 如果无法打开日志文件，则不处理
+        return;
+    }
+
+    // 获取堆栈跟踪
+    size = backtrace(array, 64);
+    strings = backtrace_symbols(array, size);
+
+    // 写入错误信息和堆栈跟踪到文件
+    fprintf(fp, "Received signal %d:\n", signalnumber);
+    for (i = 0; i < size; ++i) {
+        fprintf(fp, "%zu %s\n", i, strings[i]);
+    }
+
+    // 关闭文件
+    fclose(fp);
+
+    // 释放分配的内存
+    free(strings);
+
+    // 不调用 exit 以允许生成核心转储文件
+}
+
+
 void setup(void) {
+
+  signal(SIGSEGV, signalhandler);
+
   init_baked_points();
 
   int i, sig[] = {SIGCHLD, SIGINT, SIGTERM, SIGPIPE};
