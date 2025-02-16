@@ -6,8 +6,25 @@ subdir('protocols')
 
 fs = import('fs')
 
-if not fs.exists('config.h')
-  run_command('cp', 'config.def.h', 'config.h', check: true)
+# 获取用户的主目录
+home_dir = run_command('sh', '-c', 'echo $HOME', check: true).stdout().strip()
+config_dir = join_paths(home_dir, '.config', 'maomao')
+
+# 如果目标目录不存在，则创建它
+if not fs.is_dir(config_dir)
+    run_command('mkdir', '-p', config_dir, check: true)
+endif
+
+# 拷贝 config.conf
+config_file = join_paths(config_dir, 'config.conf')
+if not fs.exists(config_file)
+    run_command('cp', 'config.conf', config_file, check: true)
+endif
+
+# 拷贝 autostart.sh
+autostart_file = join_paths(config_dir, 'autostart.sh')
+if not fs.exists(autostart_file)
+    run_command('cp', 'autostart.sh', autostart_file, check: true)
 endif
 
 cc = meson.get_compiler('c')

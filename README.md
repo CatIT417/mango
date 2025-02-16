@@ -60,8 +60,9 @@ cp wallpaper ~/.config/maomao/ -r
 ```
 
 # config
-> [!NOTE]
-> The configuration file is located in `config.h`. This file is generated every time the `meson build` command is executed. If the file already exists, it will not be regenerated. If you encounter compilation issues after updating, please try to remove this file and the `build folder`, then rerun the `meson build` command.
+the config file is `~/.config/maomao/config.conf`
+the autostart file is `~/.config/maomao/autostart.sh`
+
 
 # thanks for some refer repo 
 - https://github.com/dqrk0jeste/owl - for basal window animaition
