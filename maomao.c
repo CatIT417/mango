@@ -1058,6 +1058,12 @@ handlesig(int signo) {
 void toggle_hotarea(int x_root, int y_root) {
   // 左下角热区坐标计算,兼容多显示屏
   Arg arg = {0};
+
+  // 在刚启动的时候,selmon为NULL,但鼠标可能已经处于热区,
+  // 必须判断避免奔溃
+  if (!selmon)
+    return;
+
   unsigned hx = selmon->m.x + hotarea_size;
   unsigned hy = selmon->m.y + selmon->m.height - hotarea_size;
 
