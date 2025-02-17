@@ -86,6 +86,7 @@ cp wallpaper ~/.config/maomao/ -r
 the config file is `~/.config/maomao/config.conf`
 the autostart file is `~/.config/maomao/autostart.sh`
 
+# Due to the project is in preliminary development stage, there may be some crash bug, if you have encountered collapse is unusual, please open the issue, and provide the `~/.config/maomao/crash.log`.
 
 # thanks for some refer repo 
 - https://github.com/dqrk0jeste/owl - for basal window animaition
