@@ -4840,18 +4840,22 @@ void fibonacci(Monitor *mon, int s) {
 	Client *c;
 
 	wl_list_for_each(c, &clients, link)
-		if (VISIBLEON(c, mon) && !c->isfloating)
+		if (VISIBLEON(c, mon) && !c->isfloating && !c->iskilling
+      && !c->isfullscreen && !c->ismaxmizescreen
+      && !c->animation.tagouting)
 			n++;
 	if(n == 0)
 		return;
 
-	nx = mon->w.x;
-	ny = 0;
-	nw = mon->w.width;
-	nh = mon->w.height;
+	nx = mon->w.x + gappoh;
+	ny = mon->w.y + gappov;
+	nw = mon->w.width - gappoh;
+	nh = mon->w.height - gappov;
 
 	wl_list_for_each(c, &clients, link)
-		if (VISIBLEON(c, mon) && !c->isfloating){
+		if (VISIBLEON(c, mon) && !c->isfloating && !c->iskilling
+      && !c->isfullscreen && !c->ismaxmizescreen
+      && !c->animation.tagouting) {
 		if((i % 2 && nh / 2 > 2 * c->bw)
 		   || (!(i % 2) && nw / 2 > 2 * c->bw)) {
 			if(i < n - 1) {
@@ -4883,15 +4887,16 @@ void fibonacci(Monitor *mon, int s) {
 			if(i == 0)
 			{
 				if(n != 1)
-					nw = mon->w.width * mon->mfact;
-				ny = mon->w.y;
+					nw = (mon->w.width - gappoh) * mon->pertag->mfacts[mon->pertag->curtag];
+				ny = mon->w.y + gappov;
 			}
 			else if(i == 1)
-				nw = mon->w.width - nw;
+				nw = mon->w.width - gappoh - nw;
 			i++;
 		}
+    
 		resize(c, (struct wlr_box){.x = nx, .y = ny,
-			.width = nw - 2 * c->bw, .height = nh - 2 * c->bw}, 0);
+			.width = nw - gappih, .height = nh - gappiv}, 0);
 	}
 }
 
