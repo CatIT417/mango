@@ -20,7 +20,7 @@ double animation_curve[4] = {0.46,1.0,0.29,0.99}; //动画曲线
 unsigned int axis_bind_apply_timeout = 100; //滚轮绑定动作的触发的时间间隔
 unsigned int focus_on_activate = 1; //收到窗口激活请求是否自动跳转聚焦
 unsigned int new_is_master = 1; //新窗口是否插在头部
-unsigned int default_mfact = 0.55f; // master 窗口比例
+double default_mfact = 0.55f; // master 窗口比例
 unsigned int default_nmaster = 1; //默认master数量
 /* logging */
 int log_level = WLR_ERROR;
@@ -69,6 +69,8 @@ Layout layouts[] = { //最少两个,不能删除少于两个
 	/* symbol     arrange function   name */
 	{ "⬌",      scroller, "scroller" },	//滚动布局
 	{ "󱞬",      tile, "tile" },	//堆栈布局
+	{"󰃇", grid, "grid"},
+	{"M",monocle,"monocle"},
 };
 
 

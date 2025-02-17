@@ -297,13 +297,11 @@ struct Monitor {
   struct wlr_box m;         /* monitor area, layout-relative */
   struct wlr_box w;         /* window area, layout-relative */
   struct wl_list layers[4]; /* LayerSurface::link */
-  const Layout *lt[2];
+  const Layout *lt;
   unsigned int seltags;
-  unsigned int sellt;
   uint32_t tagset[2];
   double mfact;
   int nmaster;
-  char ltsymbol[16];
 
   struct wl_list dwl_ipc_outputs;
   int gappih; /* horizontal gap between windows */
@@ -446,7 +444,7 @@ static void maplayersurfacenotify(struct wl_listener *listener, void *data);
 static void mapnotify(struct wl_listener *listener, void *data);
 static void maximizenotify(struct wl_listener *listener, void *data);
 static void minimizenotify(struct wl_listener *listener, void *data);
-static void monocle(Monitor *m);
+static void monocle(Monitor *m,unsigned int gappo, unsigned int gappi);
 static void motionabsolute(struct wl_listener *listener, void *data);
 static void motionnotify(uint32_t time, struct wlr_input_device *device,
                          double sx, double sy, double sx_unaccel,
@@ -656,9 +654,8 @@ struct Pertag {
   unsigned int curtag, prevtag;          /* current and previous tag */
   int nmasters[LENGTH(tags) + 1];        /* number of windows in master area */
   float mfacts[LENGTH(tags) + 1];        /* mfacts per tag */
-  unsigned int sellts[LENGTH(tags) + 1]; /* selected layouts */
   const Layout
-      *ltidxs[LENGTH(tags) + 1][2]; /* matrix of tags and layouts indexes  */
+      *ltidxs[LENGTH(tags) + 1]; /* matrix of tags and layouts indexes  */
 };
 
 static pid_t *autostart_pids;
@@ -1124,6 +1121,8 @@ applyrulesgeom(Client *c) {
     title = broken;
 
   for (ji = 0; ji < config.window_rules_count; ji++) {
+    if(config.window_rules_count < 1)
+      break;
     r = &config.window_rules[ji];
     if ( (r->title && strstr(title, r->title)) || (r->id && strstr(appid, r->id))) {
       c->geom.width = r->width > 0 ? r->width : c->geom.width;
@@ -1152,6 +1151,8 @@ applyrules(Client *c) {
     title = broken;
 
   for (ji = 0; ji < config.window_rules_count; ji++) {
+    if(config.window_rules_count < 1)
+      break;
     r = &config.window_rules[ji];
 
     if ( (r->title && strstr(title, r->title)) || (r->id && strstr(appid, r->id))) {
@@ -1204,7 +1205,6 @@ arrange(Monitor *m, bool want_animation) {
 
   if (!m->wlr_output->enabled)
     return;
-
  
   wl_list_for_each(c, &clients, link) {
     if (c->iskilling)
@@ -1266,8 +1266,8 @@ arrange(Monitor *m, bool want_animation) {
 
   if (m->isoverview) {
     overviewlayout.arrange(m, 0, 0);
-  } else if (m && m->lt[m->sellt]->arrange) {
-    m->lt[m->sellt]->arrange(m, gappoh, 0);
+  } else if (m && m->pertag->ltidxs[m->pertag->curtag]->arrange) {
+    m->pertag->ltidxs[m->pertag->curtag]->arrange(m, gappoh, 0);
   }
 
 #ifdef IM
@@ -1553,6 +1553,8 @@ axisnotify(struct wl_listener *listener, void *data) {
     adir = event->delta > 0 ? AxisRight : AxisLeft;
 
   for (ji = 0; ji < config.axis_bindings_count; ji++) {
+    if(config.axis_bindings_count < 1)
+      break;
     a = &config.axis_bindings[ji];
     if (CLEANMASK(mods) == CLEANMASK(a->mod) && // 按键一致
         adir == a->dir && a->func) { // 滚轮方向判断一致且处理函数存在
@@ -1606,6 +1608,8 @@ buttonpress(struct wl_listener *listener, void *data) {
     keyboard = wlr_seat_get_keyboard(seat);
     mods = keyboard ? wlr_keyboard_get_modifiers(keyboard) : 0;
     for (ji = 0; ji < config.mouse_bindings_count; ji++) {
+      if(config.mouse_bindings_count < 1)
+        break;
       b = &config.mouse_bindings[ji];
       if (CLEANMASK(mods) == CLEANMASK(b->mod) && event->button == b->button &&
           b->func && (selmon->isoverview == 1 || b->button == BTN_MIDDLE) &&
@@ -2026,13 +2030,12 @@ createmon(struct wl_listener *listener, void *data) {
   m->nmaster = default_nmaster;
   enum wl_output_transform rr = WL_OUTPUT_TRANSFORM_NORMAL;
 
-  if (LENGTH(layouts) > 1) {
-    m->lt[0] = &layouts[0]; // 默认就有两个布局
-    m->lt[1] = &layouts[1];
-  } else {
-    m->lt[0] = m->lt[1] = &layouts[0];
-  }
+  m->lt = &layouts[0];
+  
   for (ji = 0; ji < config.monitor_rules_count; ji++) {
+    if (config.monitor_rules_count < 1)
+      break;
+
     r = &config.monitor_rules[ji];
     if (!r->name || strstr(wlr_output->name, r->name)) {
       m->mfact = r->mfact;
@@ -2042,7 +2045,7 @@ createmon(struct wl_listener *listener, void *data) {
       if (r->layout) {
         for (jk = 0; jk < LENGTH(layouts); jk++) {
           if(strcmp(layouts[jk].name , r->layout) == 0) {
-            m->lt[0] = m->lt[1] = &layouts[jk];
+            m->lt = &layouts[jk];
           }
         }
       }
@@ -2076,7 +2079,6 @@ createmon(struct wl_listener *listener, void *data) {
   wlr_output_commit(wlr_output);
 
   wl_list_insert(&mons, &m->link);
-  printstatus();
 
   m->pertag = calloc(1, sizeof(Pertag));
   m->pertag->curtag = m->pertag->prevtag = 1;
@@ -2085,10 +2087,20 @@ createmon(struct wl_listener *listener, void *data) {
     m->pertag->nmasters[i] = m->nmaster;
     m->pertag->mfacts[i] = m->mfact;
 
-    m->pertag->ltidxs[i][0] = m->lt[0];
-    m->pertag->ltidxs[i][1] = m->lt[1];
-    m->pertag->sellts[i] = m->sellt;
+    m->pertag->ltidxs[i] = m->lt;
+
+    if(i > 0 && strlen(config.tags[i-1].layout_name) > 0) {
+      for (jk = 0; jk < LENGTH(layouts); jk++) {
+        if(strcmp(layouts[jk].name , config.tags[i-1].layout_name) == 0) {
+          m->pertag->ltidxs[i] = &layouts[jk];
+        }
+      }      
+    }
+
   }
+
+  printstatus();
+
 
   /* The xdg-protocol specifies:
    *
@@ -2113,7 +2125,6 @@ createmon(struct wl_listener *listener, void *data) {
     wlr_output_layout_add_auto(output_layout, wlr_output);
   else
     wlr_output_layout_add(output_layout, wlr_output, m->m.x, m->m.y);
-  strncpy(m->ltsymbol, m->lt[m->sellt]->symbol, LENGTH(m->ltsymbol));
 }
 
 void // fix for 0.5
@@ -2482,63 +2493,63 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
   focused = focustop(monitor);
   zdwl_ipc_output_v2_send_active(ipc_output->resource, monitor == selmon);
 
-  // if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
-  //   state = 0;
-  //   state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-  //   zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);
-  // } else {
-  //   for (tag = 0; tag < LENGTH(tags); tag++) {
-  //     numclients = state = focused_client = 0;
-  //     tagmask = 1 << tag;
-  //     if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-  //       state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-
-  //     wl_list_for_each(c, &clients, link) {
-  //       if (c->iskilling)
-  //         continue;
-  //       if (c->mon != monitor)
-  //         continue;
-  //       if (!(c->tags & tagmask))
-  //         continue;
-  //       if (c == focused)
-  //         focused_client = 1;
-  //       if (c->isurgent)
-  //         state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
-
-  //       numclients++;
-  //     }
-  //     zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients,
-  //                                 focused_client);
-  //   }
-  // }
-
-  for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+  if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
+    state = 0;
+    state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+    zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);
+  } else {
+    for (tag = 0; tag < LENGTH(tags); tag++) {
       numclients = state = focused_client = 0;
       tagmask = 1 << tag;
       if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-          state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+        state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+
       wl_list_for_each(c, &clients, link) {
-          if (c->mon != monitor)
-              continue;
-          if (!(c->tags & tagmask))
-              continue;
-          if (c == focused)
-              focused_client = 1;
-          if (c->isurgent)
-              state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
-          numclients++;
+        if (c->iskilling)
+          continue;
+        if (c->mon != monitor)
+          continue;
+        if (!(c->tags & tagmask))
+          continue;
+        if (c == focused)
+          focused_client = 1;
+        if (c->isurgent)
+          state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+
+        numclients++;
       }
-      zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state,
-      numclients, focused_client);
+      zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients,
+                                  focused_client);
+    }
   }
+
+  // for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+  //     numclients = state = focused_client = 0;
+  //     tagmask = 1 << tag;
+  //     if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
+  //         state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+  //     wl_list_for_each(c, &clients, link) {
+  //         if (c->mon != monitor)
+  //             continue;
+  //         if (!(c->tags & tagmask))
+  //             continue;
+  //         if (c == focused)
+  //             focused_client = 1;
+  //         if (c->isurgent)
+  //             state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+  //         numclients++;
+  //     }
+  //     zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state,
+  //     numclients, focused_client);
+  // }
 
   title = focused ? client_get_title(focused) : "";
   appid = focused ? client_get_appid(focused) : "";
   symbol =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt]->symbol;
+      monitor->pertag->ltidxs[monitor->pertag->curtag]->symbol;
 
   zdwl_ipc_output_v2_send_layout(ipc_output->resource,
-                                 monitor->lt[monitor->sellt] - layouts);
+    monitor->pertag->ltidxs[monitor->pertag->curtag] - layouts);
   zdwl_ipc_output_v2_send_title(ipc_output->resource, title ? title : broken);
   zdwl_ipc_output_v2_send_appid(ipc_output->resource, appid ? appid : broken);
   zdwl_ipc_output_v2_send_layout_symbol(ipc_output->resource, symbol);
@@ -2583,11 +2594,9 @@ void dwl_ipc_output_set_layout(struct wl_client *client,
 
   monitor = ipc_output->monitor;
   if (index >= LENGTH(layouts))
-    return;
-  if (index != monitor->lt[monitor->sellt] - layouts)
-    monitor->sellt ^= 1;
-
-  monitor->lt[monitor->sellt] = &layouts[index];
+      index = 0;
+      
+  monitor->pertag->ltidxs[monitor->pertag->curtag] = &layouts[index];
   arrange(monitor, false);
   printstatus();
 }
@@ -2655,7 +2664,7 @@ void focusclient(Client *c, int lift) {
   if (selmon) {
     selmon->prevsel = selmon->sel;
     selmon->sel = c;
-    if (c && selmon->prevsel && selmon->prevsel->istiled  && selmon->prevsel->tags == c->tags && c->istiled && !c->isfloating && !c->isfullscreen && strcmp(selmon->lt[selmon->sellt]->name , "scroller") == 0) {
+    if (c && selmon->prevsel && selmon->prevsel->istiled  && selmon->prevsel->tags == c->tags && c->istiled && !c->isfloating && !c->isfullscreen && strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name , "scroller") == 0) {
       arrange(selmon,false);
     } else if (selmon->prevsel) {
       selmon->prevsel =NULL;
@@ -2894,9 +2903,11 @@ keybinding(uint32_t mods, xkb_keysym_t sym) {
    */
   int handled = 0;
   const KeyBinding *k;
-  int i;
-  for (i =0; i < config.key_bindings_count; i++) {
-    k = &config.key_bindings[i];
+  int ji;
+  for (ji =0; ji < config.key_bindings_count; ji++) {
+    if(config.key_bindings_count < 1)
+      break;
+    k = &config.key_bindings[ji];
     if (CLEANMASK(mods) == CLEANMASK(k->mod) && sym == k->keysym && k->func) {
       k->func(&k->arg);
       handled = 1;
@@ -3098,10 +3109,10 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->scroller_proportion = scroller_default_proportion;
   c->is_open_animation = true;
   // nop
-  if (new_is_master && strcmp(selmon->lt[selmon->sellt]->name , "scroller") != 0)
+  if (new_is_master && strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name , "scroller") != 0)
     // tile at the top
     wl_list_insert(&clients, &c->link); // 新窗口是master,头部入栈
-  else if (strcmp(selmon->lt[selmon->sellt]->name , "scroller") == 0 && selmon->sel && selmon->sel->istiled) {
+  else if (strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name , "scroller") == 0 && selmon->sel && selmon->sel->istiled) {
     selmon->sel->link.next->prev = &c->link;
     c->link.prev = &selmon->sel->link;
     c->link.next = selmon->sel->link.next;
@@ -3229,7 +3240,7 @@ minimizenotify(struct wl_listener *listener, void *data) {
 }
 
 void // 17
-monocle(Monitor *m) {
+monocle(Monitor *m,unsigned int gappo, unsigned int gappi) {
   Client *c;
   int n = 0;
 
@@ -3239,8 +3250,6 @@ monocle(Monitor *m) {
     resize(c, m->w, 0);
     n++;
   }
-  if (n)
-    snprintf(m->ltsymbol, LENGTH(m->ltsymbol), "[%d]", n);
   if ((c = focustop(m)))
     wlr_scene_node_raise_to_top(&c->scene->node);
 }
@@ -3553,7 +3562,7 @@ printstatus(void) {
     printf("%s selmon %u\n", m->wlr_output->name, m == selmon);
     printf("%s tags %u %u %u %u\n", m->wlr_output->name, occ,
            m->tagset[m->seltags], sel, urg);
-    printf("%s layout %s\n", m->wlr_output->name, m->ltsymbol);
+    printf("%s layout %s\n", m->wlr_output->name, m->pertag->ltidxs[m->pertag->curtag]->symbol);
     dwl_ipc_output_printstatus(m); // 更新waybar上tag的状态 这里很关键
   }
   fflush(stdout);
@@ -3779,7 +3788,7 @@ int is_special_animaiton_rule(Client *c) {
     }
   }
 
-  if (strcmp(selmon->lt[selmon->sellt]->name , "scroller") == 0 && !c->isfloating) {
+  if (strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name , "scroller") == 0 && !c->isfloating) {
       return DOWN;
   } else if (visible_client_number < 2 && !c->isfloating) {
     return DOWN;
@@ -3872,7 +3881,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   // oldgeom = c->geom;
   bbox = interact ? &sgeom : &c->mon->w;
 
-  if(strcmp(c->mon->lt[c->mon->sellt]->name , "scroller") == 0) {
+  if(strcmp(c->mon->pertag->ltidxs[c->mon->pertag->curtag]->name , "scroller") == 0) {
     c->geom = geo;
   } else { // 这里会限制不允许窗口划出屏幕
     client_set_bounds(
@@ -4146,13 +4155,8 @@ setlayout(const Arg *arg) {
   int jk;
    for (jk = 0; jk < LENGTH(layouts); jk++) {
       if(strcmp(layouts[jk].name , arg->v) == 0) {
-        selmon->lt[selmon->sellt] = &layouts[jk];
-        selmon->pertag->sellts[selmon->pertag->curtag] = selmon->sellt;
-        selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt] =
-            selmon->lt[selmon->sellt];
-    
-        strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol,
-                LENGTH(selmon->ltsymbol));
+        selmon->pertag->ltidxs[selmon->pertag->curtag] = &layouts[jk];
+
         arrange(selmon, false);
         printstatus();
         return;
@@ -4164,9 +4168,8 @@ void switch_layout(const Arg *arg) {
 
   int jk;
    for (jk = 0; jk < LENGTH(layouts); jk++) {
-      if(strcmp(layouts[jk].name , selmon->lt[selmon->sellt]->name)) {
-        selmon->lt[selmon->sellt] = &layouts[jk];
-        selmon->pertag->sellts[selmon->pertag->curtag] = selmon->sellt;
+      if(strcmp(layouts[jk].name , selmon->pertag->ltidxs[selmon->pertag->curtag]->name) == 0) {
+        selmon->pertag->ltidxs[selmon->pertag->curtag] = jk == LENGTH(layouts) - 1? &layouts[0] : &layouts[jk+1];
         arrange(selmon, false);
         printstatus();
         return;
@@ -4182,7 +4185,7 @@ void // 17
 setmfact(const Arg *arg) {
   float f;
 
-  if (!arg || !selmon || !selmon->lt[selmon->sellt]->arrange)
+  if (!arg || !selmon || !selmon->pertag->ltidxs[selmon->pertag->curtag]->arrange)
     return;
   f = arg->f < 1.0 ? arg->f + selmon->pertag->mfacts[selmon->pertag->curtag]
                    : arg->f - 1.0;
@@ -5574,7 +5577,6 @@ void view(const Arg *arg, bool want_animation) {
   if (!selmon || (arg->ui != ~0 && selmon->isoverview)) {
     return;
   }
-
   if ((selmon->tagset[selmon->seltags] & arg->ui & TAGMASK) != 0) {
     want_animation = false;
   }
@@ -5596,12 +5598,6 @@ void view(const Arg *arg, bool want_animation) {
     selmon->pertag->prevtag = selmon->pertag->curtag;
     selmon->pertag->curtag = tmptag;
   }
-
-  selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
-  selmon->lt[selmon->sellt] =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
-  selmon->lt[selmon->sellt ^ 1] =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt ^ 1];
 
   focusclient(focustop(selmon), 1);
   arrange(selmon, want_animation);
@@ -5634,12 +5630,6 @@ void viewtoleft(const Arg *arg) {
     selmon->pertag->prevtag = selmon->pertag->curtag;
     selmon->pertag->curtag = tmptag;
   }
-
-  selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
-  selmon->lt[selmon->sellt] =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
-  selmon->lt[selmon->sellt ^ 1] =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt ^ 1];
 
   focusclient(focustop(selmon), 1);
   arrange(selmon, true);
@@ -5686,12 +5676,6 @@ void viewtoright_have_client(const Arg *arg) {
     selmon->pertag->curtag = tmptag;
   }
 
-  selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
-  selmon->lt[selmon->sellt] =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
-  selmon->lt[selmon->sellt ^ 1] =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt ^ 1];
-
   focusclient(focustop(selmon), 1);
   arrange(selmon, true);
   printstatus();
@@ -5720,12 +5704,6 @@ void viewtoright(const Arg *arg) {
     selmon->pertag->prevtag = selmon->pertag->curtag;
     selmon->pertag->curtag = tmptag;
   }
-
-  selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
-  selmon->lt[selmon->sellt] =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
-  selmon->lt[selmon->sellt ^ 1] =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt ^ 1];
 
   focusclient(focustop(selmon), 1);
   arrange(selmon, true);
@@ -5771,12 +5749,6 @@ void viewtoleft_have_client(const Arg *arg) {
     selmon->pertag->prevtag = selmon->pertag->curtag;
     selmon->pertag->curtag = tmptag;
   }
-
-  selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag];
-  selmon->lt[selmon->sellt] =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt];
-  selmon->lt[selmon->sellt ^ 1] =
-      selmon->pertag->ltidxs[selmon->pertag->curtag][selmon->sellt ^ 1];
 
   focusclient(focustop(selmon), 1);
   arrange(selmon, true);
@@ -5885,7 +5857,7 @@ void toggleglobal(const Arg *arg) {
 void zoom(const Arg *arg) {
   Client *c, *sel = focustop(selmon);
 
-  if (!sel || !selmon || !selmon->lt[selmon->sellt]->arrange || sel->isfloating)
+  if (!sel || !selmon || !selmon->pertag->ltidxs[selmon->pertag->curtag]->arrange || sel->isfloating)
     return;
 
   /* Search for the first tiled window that is not sel, marking sel as
@@ -5958,7 +5930,7 @@ configurex11(struct wl_listener *listener, void *data) {
                                    event->width, event->height);
     return;
   }
-  if ((c->isfloating && c != grabc) || !c->mon->lt[c->mon->sellt]->arrange)
+  if ((c->isfloating && c != grabc) || !c->mon->pertag->ltidxs[c->mon->pertag->curtag]->arrange)
     resize(c,
            (struct wlr_box){.x = event->x - c->bw,
                             .y = event->y - c->bw,
