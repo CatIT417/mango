@@ -67,10 +67,12 @@ Layout overviewlayout = { "󰃇",  overview, "overview" };
 
 Layout layouts[] = { //最少两个,不能删除少于两个
 	/* symbol     arrange function   name */
-	{ "⬌",      scroller, "scroller" },	//滚动布局
-	{ "󱞬",      tile, "tile" },	//堆栈布局
-	{"󰃇", grid, "grid"},
+	{ "S",      scroller, "scroller" },	//滚动布局
+	{ "T",      tile, "tile" },	//堆栈布局
+	{"G", grid, "grid"},
 	{"M",monocle,"monocle"},
+	{"D",dwindle,"dwindle"},
+	{"P",spiral,"spiral"},
 };
 
 

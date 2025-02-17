@@ -485,7 +485,8 @@ static void tile(Monitor *m, unsigned int gappo, unsigned int uappi);
 static void overview(Monitor *m, unsigned int gappo, unsigned int gappi);
 static void grid(Monitor *m, unsigned int gappo, unsigned int uappi);
 static void scroller(Monitor *m, unsigned int gappo, unsigned int uappi);
-
+static void dwindle(Monitor *mon, unsigned int gappo, unsigned int gappi);
+static void spiral(Monitor *mon, unsigned int gappo, unsigned int gappi);
 static void unlocksession(struct wl_listener *listener, void *data);
 static void unmaplayersurfacenotify(struct wl_listener *listener, void *data);
 static void unmapnotify(struct wl_listener *listener, void *data);
@@ -2493,55 +2494,55 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
   focused = focustop(monitor);
   zdwl_ipc_output_v2_send_active(ipc_output->resource, monitor == selmon);
 
-  if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
-    state = 0;
-    state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-    zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);
-  } else {
-    for (tag = 0; tag < LENGTH(tags); tag++) {
-      numclients = state = focused_client = 0;
-      tagmask = 1 << tag;
-      if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-        state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-
-      wl_list_for_each(c, &clients, link) {
-        if (c->iskilling)
-          continue;
-        if (c->mon != monitor)
-          continue;
-        if (!(c->tags & tagmask))
-          continue;
-        if (c == focused)
-          focused_client = 1;
-        if (c->isurgent)
-          state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
-
-        numclients++;
-      }
-      zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients,
-                                  focused_client);
-    }
-  }
-
-  // for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+  // if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
+  //   state = 0;
+  //   state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+  //   zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);
+  // } else {
+  //   for (tag = 0; tag < LENGTH(tags); tag++) {
   //     numclients = state = focused_client = 0;
   //     tagmask = 1 << tag;
   //     if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-  //         state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+  //       state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+
   //     wl_list_for_each(c, &clients, link) {
-  //         if (c->mon != monitor)
-  //             continue;
-  //         if (!(c->tags & tagmask))
-  //             continue;
-  //         if (c == focused)
-  //             focused_client = 1;
-  //         if (c->isurgent)
-  //             state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
-  //         numclients++;
+  //       if (c->iskilling)
+  //         continue;
+  //       if (c->mon != monitor)
+  //         continue;
+  //       if (!(c->tags & tagmask))
+  //         continue;
+  //       if (c == focused)
+  //         focused_client = 1;
+  //       if (c->isurgent)
+  //         state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+
+  //       numclients++;
   //     }
-  //     zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state,
-  //     numclients, focused_client);
+  //     zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients,
+  //                                 focused_client);
+  //   }
   // }
+
+  for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+      numclients = state = focused_client = 0;
+      tagmask = 1 << tag;
+      if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
+          state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+      wl_list_for_each(c, &clients, link) {
+          if (c->mon != monitor)
+              continue;
+          if (!(c->tags & tagmask))
+              continue;
+          if (c == focused)
+              focused_client = 1;
+          if (c->isurgent)
+              state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+          numclients++;
+      }
+      zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state,
+      numclients, focused_client);
+  }
 
   title = focused ? client_get_title(focused) : "";
   appid = focused ? client_get_appid(focused) : "";
@@ -3245,7 +3246,7 @@ monocle(Monitor *m,unsigned int gappo, unsigned int gappi) {
   int n = 0;
 
   wl_list_for_each(c, &clients, link) {
-    if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
+    if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen || c->ismaxmizescreen || c->iskilling || c->animation.tagouting)
       continue;
     resize(c, m->w, 0);
     n++;
@@ -4831,6 +4832,77 @@ void tagmon(const Arg *arg) {
 
 void overview(Monitor *m, unsigned int gappo, unsigned int gappi) {
   grid(m, overviewgappo, overviewgappi);
+}
+
+
+void fibonacci(Monitor *mon, int s) {
+	unsigned int i=0, n=0, nx, ny, nw, nh;
+	Client *c;
+
+	wl_list_for_each(c, &clients, link)
+		if (VISIBLEON(c, mon) && !c->isfloating)
+			n++;
+	if(n == 0)
+		return;
+
+	nx = mon->w.x;
+	ny = 0;
+	nw = mon->w.width;
+	nh = mon->w.height;
+
+	wl_list_for_each(c, &clients, link)
+		if (VISIBLEON(c, mon) && !c->isfloating){
+		if((i % 2 && nh / 2 > 2 * c->bw)
+		   || (!(i % 2) && nw / 2 > 2 * c->bw)) {
+			if(i < n - 1) {
+				if(i % 2)
+					nh /= 2;
+				else
+					nw /= 2;
+				if((i % 4) == 2 && !s)
+					nx += nw;
+				else if((i % 4) == 3 && !s)
+					ny += nh;
+			}
+			if((i % 4) == 0) {
+				if(s)
+					ny += nh;
+				else
+					ny -= nh;
+			}
+			else if((i % 4) == 1)
+				nx += nw;
+			else if((i % 4) == 2)
+				ny += nh;
+			else if((i % 4) == 3) {
+				if(s)
+					nx += nw;
+				else
+					nx -= nw;
+			}
+			if(i == 0)
+			{
+				if(n != 1)
+					nw = mon->w.width * mon->mfact;
+				ny = mon->w.y;
+			}
+			else if(i == 1)
+				nw = mon->w.width - nw;
+			i++;
+		}
+		resize(c, (struct wlr_box){.x = nx, .y = ny,
+			.width = nw - 2 * c->bw, .height = nh - 2 * c->bw}, 0);
+	}
+}
+
+void
+dwindle(Monitor *mon,unsigned int gappo, unsigned int gappi) {
+	fibonacci(mon, 1);
+}
+
+void
+spiral(Monitor *mon, unsigned int gappo, unsigned int gappi) {
+	fibonacci(mon, 0);
 }
 
 // 网格布局窗口大小和位置计算
