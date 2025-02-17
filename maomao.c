@@ -1603,6 +1603,10 @@ buttonpress(struct wl_listener *listener, void *data) {
   const MouseBinding *b;
   struct wlr_surface *surface;
 
+  struct wlr_surface *old_pointer_focus_surface =
+  seat->pointer_state.focused_surface;
+
+
   wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
   switch (event->state) {
@@ -1617,7 +1621,7 @@ buttonpress(struct wl_listener *listener, void *data) {
     if (c && (!client_is_unmanaged(c) || client_wants_focus(c)))
       focusclient(c, 1);
 
-    if (!surface)
+    if (surface != old_pointer_focus_surface)
       wlr_seat_pointer_notify_clear_focus(seat);
 
     keyboard = wlr_seat_get_keyboard(seat);
@@ -2644,8 +2648,6 @@ void dwl_ipc_output_release(struct wl_client *client,
 void focusclient(Client *c, int lift) {
   struct wlr_surface *old_keyboard_focus_surface =
       seat->keyboard_state.focused_surface;
-  struct wlr_surface *old_pointer_focus_surface =
-      seat->pointer_state.focused_surface;
 
   if (locked)
     return;
@@ -2660,13 +2662,9 @@ void focusclient(Client *c, int lift) {
   if (c && lift)
     wlr_scene_node_raise_to_top(&c->scene->node); // 将视图提升到顶层
 
-  if (c && client_surface(c) == old_keyboard_focus_surface &&
-      client_surface(c) == old_pointer_focus_surface)
+  if (c && client_surface(c) == old_keyboard_focus_surface)
     return;
-  else {
-    wlr_seat_pointer_notify_clear_focus(seat);
-    wlr_seat_keyboard_notify_clear_focus(seat);
-  }
+
 
   if (c && c->mon && c->mon != selmon) {
     selmon = c->mon;
