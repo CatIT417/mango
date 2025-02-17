@@ -1873,6 +1873,10 @@ void commitnotify(struct wl_listener *listener, void *data) {
     return;
   // if don't do this, some client may resize uncompleted
   resize(c, c->geom, (c->isfloating && !c->isfullscreen));
+
+	if (c->configure_serial && c->configure_serial <= c->surface.xdg->current.configure_serial)
+		c->configure_serial = 0;
+
 }
 
 void // 0.5
@@ -3636,16 +3640,14 @@ rendermon(struct wl_listener *listener, void *data) {
 
   /* Render if no XDG clients have an outstanding resize and are visible on
    * this monitor. */
-  // wl_list_for_each(c, &clients, link) {
-  // 	if (c->resize && !c->isfloating && client_is_rendered_on_mon(c, m) &&
-  // !client_is_stopped(c)) 		goto skip;
-  // }
+  wl_list_for_each(c, &clients, link) {
+  	if (c->configure_serial && !c->isfloating && client_is_rendered_on_mon(c, m) &&
+  !client_is_stopped(c)) 		
+    goto skip;
+  }
 
   wl_list_for_each(c, &clients, link) {
-    // if (client_is_rendered_on_mon(c, m) && !client_is_stopped(c))
     need_more_frames = client_draw_frame(c);
-    // the opacity is usabel, but don't enable temporarily
-    // client_handle_opacity(c);
   }
 
   if (need_more_frames) {
@@ -3679,19 +3681,13 @@ rendermon(struct wl_listener *listener, void *data) {
     wlr_scene_output_commit(m->scene_output, NULL);
   }
 
-  // skip:
-  // 	/* Let clients know a frame has been rendered */
-  // 	clock_gettime(CLOCK_MONOTONIC, &now);
-  // 	wlr_scene_output_send_frame_done(m->scene_output, &now);
-  // wlr_output_state_finish(&pending);
   struct wlr_scene_output *scene_output =
-      wlr_scene_get_scene_output(scene, m->wlr_output);
-
+  wlr_scene_get_scene_output(scene, m->wlr_output);
   wlr_scene_output_commit(scene_output, NULL);
 
-  //   struct timespec now;
-  clock_gettime(CLOCK_MONOTONIC, &now);
+skip:
 
+  clock_gettime(CLOCK_MONOTONIC, &now);
   wlr_scene_output_send_frame_done(scene_output, &now);
   wlr_output_state_finish(&pending);
 }
@@ -3953,7 +3949,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   }
 
   // c->geom 是真实的窗口大小和位置，跟过度的动画无关，用于计算布局
-  c->resize =
+  c->configure_serial =
       client_set_size(c, c->geom.width - 2 * c->bw, c->geom.height - 2 * c->bw);
 
   // 如果不是工作区切换时划出去的窗口，就让动画的结束位置，就是上面的真实位置和大小
