@@ -12,14 +12,39 @@ https://github.com/user-attachments/assets/2ff96868-b276-4fa1-b4d7-87bdc36beb3c
 
 # Maomaowm
 
-This project is developed based on `dwl(0.5)` , adding many window functions supported in hyprland, such as window switching by direction, non-empty workspace switching ,etc... It also integrates niri's scroll layout and sway'scratchpad . See below for more features
+This project is developed based on `dwl(0.5)` , 
+adding many operation that supported in hyprland and a hyprland-like keybinds,
+niri-like scroll layout and sway-like scratchpad.
+See below for more features.
 
+# separate window layout for each workspace(tags), with separate workspace parameters
+## support layout
+- tile(master)
+- scroller
+- monocle
+- grid
+- dwindle
+- sprial
+
+# window open rules
+## options
+- appid: type-string if match it or title, the rule match   
+- title: type-string if match it or appid, the rule match  
+- tags: type-num(1-9) which tags to open the window
+- isfloating: type-num(0 or 1) 
+- isfullscreen: type-num(0 or 1)
+- scroller_proportion: type-float(0.1-1.0)
+- animation_type : type-string(zoom,slide)
+- isnoborder : type-num(0 or 1)
+- monitor  : type-num(0-99999)
+- width : type-num(0-9999)
+- height : type-num(0-9999)
 
 # some special feature
 - hycov like overview
 - foreign-toplevel support(dunst,waybar wlr taskbar)
 - minimize window to waybar(like hych)
-- sway scratchpad support 
+- sway scratchpad support (minimize window to scratchpad)
 - window pin mode support
 - text-input-v2/v3 for fcitx5
 - window move/open animaition
@@ -51,11 +76,9 @@ sudo ninja -C build install
 mkdir -p ~/.config/maomao/
 
 # some suggest config
-cp autostart.sh ~/.config/maomao/
 cp waybar ~/.config/maomao/ -r 
 cp wofi ~/.config/maomao/ -r 
 cp wallpaper ~/.config/maomao/ -r
-
 
 ```
 
