@@ -119,7 +119,10 @@ typedef struct {
 
 } Config;
 
-int parseDirection(const char *str) {
+typedef void (*FuncType)(const Arg *);
+Config config;
+
+int parse_direction(const char *str) {
   // 将输入字符串转换为小写
   char lowerStr[10];
   int i = 0;
@@ -224,9 +227,7 @@ xkb_keysym_t parse_keysym(const char *keysym_str) {
   return xkb_keysym_from_name(keysym_str, XKB_KEYSYM_NO_FLAGS);
 }
 
-typedef void (*FuncType)(const Arg *);
-
-int parseButton(const char *str) {
+int parse_button(const char *str) {
   // 将输入字符串转换为小写
   char lowerStr[20];
   int i = 0;
@@ -258,7 +259,7 @@ int parseButton(const char *str) {
   }
 }
 
-int parseMouseAction(const char *str) {
+int parse_mouse_action(const char *str) {
   // 将输入字符串转换为小写
   char lowerStr[20];
   int i = 0;
@@ -282,7 +283,7 @@ int parseMouseAction(const char *str) {
   }
 }
 
-void parseColoer(float *color, unsigned long int hex) {
+void convert_hex_to_rgba(float *color, unsigned long int hex) {
   color[0] = ((hex >> 24) & 0xFF) / 255.0f;
   color[1] = ((hex >> 16) & 0xFF) / 255.0f;
   color[2] = ((hex >> 8) & 0xFF) / 255.0f;
@@ -299,7 +300,7 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value) {
     (*arg).i = atoi(arg_value);
   } else if (strcmp(func_name, "focusdir") == 0) {
     func = focusdir;
-    (*arg).i = parseDirection(arg_value);
+    (*arg).i = parse_direction(arg_value);
   } else if (strcmp(func_name, "incnmaster") == 0) {
     func = incnmaster;
     (*arg).i = atoi(arg_value);
@@ -310,7 +311,7 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value) {
     func = zoom;
   } else if (strcmp(func_name, "exchange_client") == 0) {
     func = exchange_client;
-    (*arg).i = parseDirection(arg_value);
+    (*arg).i = parse_direction(arg_value);
   } else if (strcmp(func_name, "toggleglobal") == 0) {
     func = toggleglobal;
   } else if (strcmp(func_name, "toggleoverview") == 0) {
@@ -366,7 +367,7 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value) {
     func = quit;
   } else if (strcmp(func_name, "moveresize") == 0) {
     func = moveresize;
-    (*arg).ui = parseMouseAction(arg_value);
+    (*arg).ui = parse_mouse_action(arg_value);
   } else if (strcmp(func_name, "togglemaxmizescreen") == 0) {
     func = togglemaxmizescreen;
   } else if (strcmp(func_name, "viewtoleft_have_client") == 0) {
@@ -474,49 +475,49 @@ void parse_config_line(Config *config, const char *line) {
     if (color == -1) {
       fprintf(stderr, "Error: Invalid rootcolor format: %s\n", value);
     } else {
-      parseColoer(config->rootcolor, color);
+      convert_hex_to_rgba(config->rootcolor, color);
     }
   } else if (strcmp(key, "bordercolor") == 0) {
     long int color = parse_color(value);
     if (color == -1) {
       fprintf(stderr, "Error: Invalid bordercolor format: %s\n", value);
     } else {
-      parseColoer(config->bordercolor, color);
+      convert_hex_to_rgba(config->bordercolor, color);
     }
   } else if (strcmp(key, "focuscolor") == 0) {
     long int color = parse_color(value);
     if (color == -1) {
       fprintf(stderr, "Error: Invalid focuscolor format: %s\n", value);
     } else {
-      parseColoer(config->focuscolor, color);
+      convert_hex_to_rgba(config->focuscolor, color);
     }
   } else if (strcmp(key, "maxmizescreencolor") == 0) {
     long int color = parse_color(value);
     if (color == -1) {
       fprintf(stderr, "Error: Invalid maxmizescreencolor format: %s\n", value);
     } else {
-      parseColoer(config->maxmizescreencolor, color);
+      convert_hex_to_rgba(config->maxmizescreencolor, color);
     }
   } else if (strcmp(key, "urgentcolor") == 0) {
     long int color = parse_color(value);
     if (color == -1) {
       fprintf(stderr, "Error: Invalid urgentcolor format: %s\n", value);
     } else {
-      parseColoer(config->urgentcolor, color);
+      convert_hex_to_rgba(config->urgentcolor, color);
     }
   } else if (strcmp(key, "scratchpadcolor") == 0) {
     long int color = parse_color(value);
     if (color == -1) {
       fprintf(stderr, "Error: Invalid scratchpadcolor format: %s\n", value);
     } else {
-      parseColoer(config->scratchpadcolor, color);
+      convert_hex_to_rgba(config->scratchpadcolor, color);
     }
   } else if (strcmp(key, "globalcolor") == 0) {
     long int color = parse_color(value);
     if (color == -1) {
       fprintf(stderr, "Error: Invalid globalcolor format: %s\n", value);
     } else {
-      parseColoer(config->globalcolor, color);
+      convert_hex_to_rgba(config->globalcolor, color);
     }
   } else if (strcmp(key, "autostart") == 0) {
     if (sscanf(value, "%[^,],%[^,],%[^,]", config->autostart[0],
@@ -681,7 +682,7 @@ void parse_config_line(Config *config, const char *line) {
     }
 
     binding->mod = parse_mod(mod_str);
-    binding->button = parseButton(button_str);
+    binding->button = parse_button(button_str);
     binding->arg.v = NULL;
     binding->func = parse_func_name(func_name, &binding->arg, arg_value);
     if (!binding->func) {
@@ -709,7 +710,7 @@ void parse_config_line(Config *config, const char *line) {
     }
 
     binding->mod = parse_mod(mod_str);
-    binding->dir = parseDirection(dir_str);
+    binding->dir = parse_direction(dir_str);
     binding->arg.v = NULL;
     binding->func = parse_func_name(func_name, &binding->arg, arg_value);
 
@@ -739,4 +740,140 @@ void parse_config_file(Config *config, const char *file_path) {
   }
 
   fclose(file);
+}
+
+void free_config(void) {
+  // 释放内存
+  int i;
+  for (i = 0; i < config.window_rules_count; i++) {
+    ConfigWinRule *rule = &config.window_rules[i];
+    if (rule->id)
+      free((void *)rule->id);
+    if (rule->title)
+      free((void *)rule->title);
+    if (rule->animation_type)
+      free((void *)rule->animation_type);
+  }
+  free(config.window_rules);
+
+  for (i = 0; i < config.monitor_rules_count; i++) {
+    ConfigMonitorRule *rule = &config.monitor_rules[i];
+    if (rule->name)
+      free((void *)rule->name);
+    if (rule->layout)
+      free((void *)rule->layout);
+  }
+  free(config.monitor_rules);
+
+  for (i = 0; i < config.key_bindings_count; i++) {
+    if (config.key_bindings[i].arg.v) {
+      free((void *)config.key_bindings[i].arg.v);
+      config.key_bindings[i].arg.v = NULL; // 避免重复释放
+    }
+  }
+  free(config.key_bindings);
+
+  for (i = 0; i < config.mouse_bindings_count; i++) {
+    if (config.mouse_bindings[i].arg.v) {
+      free((void *)config.mouse_bindings[i].arg.v);
+      config.mouse_bindings[i].arg.v = NULL; // 避免重复释放
+    }
+  }
+  free(config.mouse_bindings);
+
+  for (i = 0; i < config.axis_bindings_count; i++) {
+    if (config.axis_bindings[i].arg.v) {
+      free((void *)config.axis_bindings[i].arg.v);
+      config.axis_bindings[i].arg.v = NULL; // 避免重复释放
+    }
+  }
+  free(config.axis_bindings);
+}
+
+void override_config(void) {
+  animations = config.animations;
+  animation_type = config.animation_type;
+  animation_fade_in = config.animation_fade_in;
+  zoom_initial_ratio = config.zoom_initial_ratio;
+  fadein_begin_opacity = config.fadein_begin_opacity;
+  animation_duration_move = config.animation_duration_move;
+  animation_duration_open = config.animation_duration_open;
+  animation_duration_tag = config.animation_duration_tag;
+
+  // 复制数组类型的变量
+  memcpy(animation_curve, config.animation_curve, sizeof(animation_curve));
+  memcpy(scroller_proportion_preset, config.scroller_proportion_preset,
+         sizeof(scroller_proportion_preset));
+
+  scroller_structs = config.scroller_structs;
+  scroller_default_proportion = config.scroller_default_proportion;
+  scoller_focus_center = config.scoller_focus_center;
+
+  new_is_master = config.new_is_master;
+  default_mfact = config.default_mfact;
+  default_nmaster = config.default_nmaster;
+  hotarea_size = config.hotarea_size;
+  enable_hotarea = config.enable_hotarea;
+  ov_tab_mode = config.ov_tab_mode;
+  overviewgappi = config.overviewgappi;
+  overviewgappo = config.overviewgappo;
+  axis_bind_apply_timeout = config.axis_bind_apply_timeout;
+  focus_on_activate = config.focus_on_activate;
+  numlockon = config.numlockon;
+  bypass_surface_visibility = config.bypass_surface_visibility;
+  sloppyfocus = config.sloppyfocus;
+  warpcursor = config.warpcursor;
+  smartgaps = config.smartgaps;
+  gappih = config.gappih;
+  gappiv = config.gappiv;
+  gappoh = config.gappoh;
+  gappov = config.gappov;
+  borderpx = config.borderpx;
+
+  // 复制颜色数组
+  memcpy(rootcolor, config.rootcolor, sizeof(rootcolor));
+  memcpy(bordercolor, config.bordercolor, sizeof(bordercolor));
+  memcpy(focuscolor, config.focuscolor, sizeof(focuscolor));
+  memcpy(maxmizescreencolor, config.maxmizescreencolor,
+         sizeof(maxmizescreencolor));
+  memcpy(urgentcolor, config.urgentcolor, sizeof(urgentcolor));
+  memcpy(scratchpadcolor, config.scratchpadcolor, sizeof(scratchpadcolor));
+  memcpy(globalcolor, config.globalcolor, sizeof(globalcolor));
+}
+
+void parse_config(void) {
+
+  char filename[1024];
+
+  memset(&config, 0, sizeof(config));
+  config.window_rules = NULL;
+  config.window_rules_count = 0;
+  config.monitor_rules = NULL;
+  config.monitor_rules_count = 0;
+  config.key_bindings = NULL;
+  config.key_bindings_count = 0;
+  config.mouse_bindings = NULL;
+  config.mouse_bindings_count = 0;
+  config.axis_bindings = NULL;
+  config.axis_bindings_count = 0;
+
+  // 获取当前用户家目录
+  const char *homedir = getenv("HOME");
+  if (!homedir) {
+    // 如果获取失败，则无法继续
+    return;
+  }
+
+  // 构建日志文件路径
+  snprintf(filename, sizeof(filename), "%s/.config/maomao/config.conf",
+           homedir);
+
+  parse_config_file(&config, filename);
+
+  override_config();
+}
+
+void reload_config(const Arg *arg) {
+  free_config();
+  parse_config();
 }

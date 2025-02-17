@@ -635,16 +635,14 @@ static Atom netatom[NetLast];
 #endif
 
 /* configuration, allows nested code to access above variables */
-#include "parse_config.h"
 #include "preset_config.h"
+#include "parse_config.h"
 
 /* attempt to encapsulate suck into one file */
 #include "client.h"
 #ifdef IM
 #include "IM.h"
 #endif
-
-Config config;
 
 /* compile-time check if all tags fit into an unsigned int bit array. */
 struct NumTags {
@@ -4377,142 +4375,6 @@ void signalhandler(int signalnumber) {
   free(strings);
 
   // 不调用 exit 以允许生成核心转储文件
-}
-
-void free_config(void) {
-  // 释放内存
-  int i;
-  for (i = 0; i < config.window_rules_count; i++) {
-    ConfigWinRule *rule = &config.window_rules[i];
-    if (rule->id)
-      free((void *)rule->id);
-    if (rule->title)
-      free((void *)rule->title);
-    if (rule->animation_type)
-      free((void *)rule->animation_type);
-  }
-  free(config.window_rules);
-
-  for (i = 0; i < config.monitor_rules_count; i++) {
-    ConfigMonitorRule *rule = &config.monitor_rules[i];
-    if (rule->name)
-      free((void *)rule->name);
-    if (rule->layout)
-      free((void *)rule->layout);
-  }
-  free(config.monitor_rules);
-
-  for (i = 0; i < config.key_bindings_count; i++) {
-    if (config.key_bindings[i].arg.v) {
-      free((void *)config.key_bindings[i].arg.v);
-      config.key_bindings[i].arg.v = NULL; // 避免重复释放
-    }
-  }
-  free(config.key_bindings);
-
-  for (i = 0; i < config.mouse_bindings_count; i++) {
-    if (config.mouse_bindings[i].arg.v) {
-      free((void *)config.mouse_bindings[i].arg.v);
-      config.mouse_bindings[i].arg.v = NULL; // 避免重复释放
-    }
-  }
-  free(config.mouse_bindings);
-
-  for (i = 0; i < config.axis_bindings_count; i++) {
-    if (config.axis_bindings[i].arg.v) {
-      free((void *)config.axis_bindings[i].arg.v);
-      config.axis_bindings[i].arg.v = NULL; // 避免重复释放
-    }
-  }
-  free(config.axis_bindings);
-}
-
-void override_config(void) {
-  animations = config.animations;
-  animation_type = config.animation_type;
-  animation_fade_in = config.animation_fade_in;
-  zoom_initial_ratio = config.zoom_initial_ratio;
-  fadein_begin_opacity = config.fadein_begin_opacity;
-  animation_duration_move = config.animation_duration_move;
-  animation_duration_open = config.animation_duration_open;
-  animation_duration_tag = config.animation_duration_tag;
-
-  // 复制数组类型的变量
-  memcpy(animation_curve, config.animation_curve, sizeof(animation_curve));
-  memcpy(scroller_proportion_preset, config.scroller_proportion_preset,
-         sizeof(scroller_proportion_preset));
-
-  scroller_structs = config.scroller_structs;
-  scroller_default_proportion = config.scroller_default_proportion;
-  scoller_focus_center = config.scoller_focus_center;
-
-  new_is_master = config.new_is_master;
-  default_mfact = config.default_mfact;
-  default_nmaster = config.default_nmaster;
-  hotarea_size = config.hotarea_size;
-  enable_hotarea = config.enable_hotarea;
-  ov_tab_mode = config.ov_tab_mode;
-  overviewgappi = config.overviewgappi;
-  overviewgappo = config.overviewgappo;
-  axis_bind_apply_timeout = config.axis_bind_apply_timeout;
-  focus_on_activate = config.focus_on_activate;
-  numlockon = config.numlockon;
-  bypass_surface_visibility = config.bypass_surface_visibility;
-  sloppyfocus = config.sloppyfocus;
-  warpcursor = config.warpcursor;
-  smartgaps = config.smartgaps;
-  gappih = config.gappih;
-  gappiv = config.gappiv;
-  gappoh = config.gappoh;
-  gappov = config.gappov;
-  borderpx = config.borderpx;
-
-  // 复制颜色数组
-  memcpy(rootcolor, config.rootcolor, sizeof(rootcolor));
-  memcpy(bordercolor, config.bordercolor, sizeof(bordercolor));
-  memcpy(focuscolor, config.focuscolor, sizeof(focuscolor));
-  memcpy(maxmizescreencolor, config.maxmizescreencolor,
-         sizeof(maxmizescreencolor));
-  memcpy(urgentcolor, config.urgentcolor, sizeof(urgentcolor));
-  memcpy(scratchpadcolor, config.scratchpadcolor, sizeof(scratchpadcolor));
-  memcpy(globalcolor, config.globalcolor, sizeof(globalcolor));
-}
-
-void parse_config(void) {
-
-  char filename[1024];
-
-  memset(&config, 0, sizeof(config));
-  config.window_rules = NULL;
-  config.window_rules_count = 0;
-  config.monitor_rules = NULL;
-  config.monitor_rules_count = 0;
-  config.key_bindings = NULL;
-  config.key_bindings_count = 0;
-  config.mouse_bindings = NULL;
-  config.mouse_bindings_count = 0;
-  config.axis_bindings = NULL;
-  config.axis_bindings_count = 0;
-
-  // 获取当前用户家目录
-  const char *homedir = getenv("HOME");
-  if (!homedir) {
-    // 如果获取失败，则无法继续
-    return;
-  }
-
-  // 构建日志文件路径
-  snprintf(filename, sizeof(filename), "%s/.config/maomao/config.conf",
-           homedir);
-
-  parse_config_file(&config, filename);
-
-  override_config();
-}
-
-void reload_config(const Arg *arg) {
-  free_config();
-  parse_config();
 }
 
 void setup(void) {
