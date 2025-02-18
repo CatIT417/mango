@@ -55,7 +55,7 @@ See below for more features.
 
 ## suggest tools
 ```
-yay -S wofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist wl-clipboard wlsunset
+yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist wl-clipboard wlsunset
 
 ```
 
@@ -77,7 +77,6 @@ mkdir -p ~/.config/maomao/
 
 # some suggest config
 cp waybar ~/.config/maomao/ -r 
-cp wofi ~/.config/maomao/ -r 
 cp wallpaper ~/.config/maomao/ -r
 
 ```
