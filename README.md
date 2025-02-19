@@ -3,12 +3,18 @@
 
 Master-Stack Layout
 
-https://github.com/user-attachments/assets/da80c6d1-b9a5-44c4-b738-6421365e6aa5
+
+
+https://github.com/user-attachments/assets/a9d4776e-b50b-48fb-94ce-651d8a749b8a
+
 
 
 Scroller Layout
 
-https://github.com/user-attachments/assets/2ff96868-b276-4fa1-b4d7-87bdc36beb3c
+
+https://github.com/user-attachments/assets/c9bf9415-fad1-4400-bcdc-3ad2d76de85a
+
+
 
 # Maomaowm
 
