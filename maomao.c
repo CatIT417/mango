@@ -3646,7 +3646,7 @@ void scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy, vo
 }
 
 void buffer_set_size(Client *c, animationScale data) {
-  if (c->animainit_geom.width < c->current.width && c->animainit_geom.height < c->geom.height) {
+  if (c->animainit_geom.width <= c->current.width && c->animainit_geom.height <= c->geom.height) {
     return;
   }
   if(c->iskilling|| c->animation.tagouting || c->animation.tagining || c->animation.tagouted) {
