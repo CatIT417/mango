@@ -131,7 +131,8 @@ typedef struct {
 } Arg;
 
 typedef struct {
-  float scale;
+  float width_scale;
+  float height_scale;
   int width;
   int height;
 } animationScale;
@@ -880,10 +881,12 @@ void client_apply_clip(Client *c) {
   scale_data.height = clip_box.height -2*c->bw;
 
   if(c->animation.running) {
-    scale_data.scale = (float)clip_box.width/c->geom.width;
+    scale_data.width_scale = (float)clip_box.width/c->geom.width;
+    scale_data.height_scale = (float)clip_box.height/c->geom.height;
     buffer_set_size(c, scale_data);
   } else {
-    scale_data.scale = 1.0;
+    scale_data.width_scale = 1.0;
+    scale_data.height_scale = 1.0;
     buffer_set_size(c, scale_data);
   }
   wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
@@ -3636,7 +3639,7 @@ void scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy, vo
   animationScale *scale_data = (animationScale *)data;
   struct wlr_scene_surface *surface = wlr_scene_surface_try_from_buffer(buffer);
   if(wlr_subsurface_try_from_wlr_surface(surface->surface) != NULL) {
-    wlr_scene_buffer_set_dest_size(buffer, buffer->dst_width * scale_data->scale, buffer->dst_height * scale_data->scale);
+    wlr_scene_buffer_set_dest_size(buffer, buffer->dst_width * scale_data->width_scale, buffer->dst_height * scale_data->height_scale);
   } else {
     wlr_scene_buffer_set_dest_size(buffer, scale_data->width, scale_data->height);
   }
