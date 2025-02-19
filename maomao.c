@@ -1896,6 +1896,10 @@ void commitnotify(struct wl_listener *listener, void *data) {
   if (!c || c->iskilling || c->animation.tagining || c->animation.tagining ||
       c->animation.tagouted)
     return;
+
+  if (c == grabc)
+    return;
+
   // if don't do this, some client may resize uncompleted
   resize(c, c->geom, (c->isfloating && !c->isfullscreen));
 
@@ -3969,6 +3973,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   if (c == grabc) {
     c->animation.running = false;
     c->need_set_position = false;
+    c->animainit_geom = c->current = c->pending = c->animation.current = c->geom;
     wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
     apply_border(c,c->geom, 0);
     wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
