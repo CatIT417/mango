@@ -881,8 +881,8 @@ void client_apply_clip(Client *c) {
   scale_data.height = clip_box.height -2*c->bw;
 
   if(c->animation.running) {
-    scale_data.width_scale = (float)clip_box.width/c->geom.width;
-    scale_data.height_scale = (float)clip_box.height/c->geom.height;
+    scale_data.width_scale = (float)clip_box.width/c->current.width;
+    scale_data.height_scale = (float)clip_box.height/c->current.height;
     buffer_set_size(c, scale_data);
   } else {
     scale_data.width_scale = 1.0;
@@ -3652,6 +3652,10 @@ void buffer_set_size(Client *c, animationScale data) {
   if(c->iskilling|| c->animation.tagouting || c->animation.tagining || c->animation.tagouted) {
     return;
   }
+
+  if(c == grabc)
+    return;
+
   wlr_scene_node_for_each_buffer(&c->scene_surface->node,
     scene_buffer_apply_size, &data);
 }
@@ -3905,7 +3909,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
     return;
 
   struct wlr_box *bbox;
-  // struct wlr_box clip;
+  struct wlr_box clip;
 
   if (!c->mon)
     return;
@@ -3961,6 +3965,18 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   // c->geom 是真实的窗口大小和位置，跟过度的动画无关，用于计算布局
   c->configure_serial =
       client_set_size(c, c->geom.width - 2 * c->bw, c->geom.height - 2 * c->bw);
+
+  if (c == grabc) {
+    c->animation.running = false;
+    c->need_set_position = false;
+    wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
+    apply_border(c,c->geom, 0);
+    wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
+    client_get_clip(c, &clip);
+    wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip);
+    return;
+  }
+    
 
   // 如果不是工作区切换时划出去的窗口，就让动画的结束位置，就是上面的真实位置和大小
   // c->pending 决定动画的终点，一般在其他调用resize的函数的附近设置了
