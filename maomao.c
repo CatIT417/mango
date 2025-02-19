@@ -131,6 +131,12 @@ typedef struct {
 } Arg;
 
 typedef struct {
+  float scale;
+  int width;
+  int height;
+} animationScale;
+
+typedef struct {
   unsigned int mod;
   unsigned int button;
   void (*func)(const Arg *);
@@ -354,7 +360,7 @@ typedef struct {
 
 /* function declarations */
 static void logtofile(const char *fmt, ...); // 日志函数
-static void lognumtofile(unsigned int num);  // 日志函数
+static void lognumtofile(float num);  // 日志函数
 static void applybounds(
     Client *c,
     struct wlr_box *bbox); // 设置边界规则,能让一些窗口拥有比较适合的大小
@@ -544,6 +550,7 @@ void incohgaps(const Arg *arg);
 void incovgaps(const Arg *arg);
 void incigaps(const Arg *arg);
 void defaultgaps(const Arg *arg);
+void buffer_set_size(Client *c, animationScale scale_data);
 
 #include "dispatch.h"
 
@@ -764,7 +771,7 @@ bool client_animation_next_tick(Client *c) {
     if (surface && pointer_c == selmon->sel) {
       wlr_seat_pointer_notify_enter(seat, surface, sx, sy);
     }
-
+    c->need_set_position = false;
     return false;
   } else {
     c->animation.passed_frames++;
@@ -773,16 +780,15 @@ bool client_animation_next_tick(Client *c) {
 }
 
 void client_actual_size(Client *c, uint32_t *width, uint32_t *height) {
-  *width = c->animation.running
-               ? MIN(c->animation.current.width, c->current.width)
-               : c->current.width;
+  *width = c->animation.current.width;
 
-  *height = c->animation.running
-                ? MIN(c->animation.current.height, c->current.height)
-                : c->current.height;
+  *height = c->animation.current.height;
 }
 
 void apply_border(Client *c, struct wlr_box clip_box, int offset) {
+
+  if(c->iskilling || !client_surface(c)->mapped)
+    return;
 
   wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
   wlr_scene_rect_set_size(c->border[0], clip_box.width, c->bw);
@@ -832,6 +838,10 @@ void apply_border(Client *c, struct wlr_box clip_box, int offset) {
 }
 
 void client_apply_clip(Client *c) {
+
+  if(c->iskilling || !client_surface(c)->mapped)
+    return;
+
   uint32_t width, height;
   client_actual_size(c, &width, &height);
   int offset = 0;
@@ -865,6 +875,17 @@ void client_apply_clip(Client *c) {
     }
   }
 
+  animationScale scale_data;
+  scale_data.width = clip_box.width - 2*c->bw;
+  scale_data.height = clip_box.height -2*c->bw;
+
+  if(c->animation.running) {
+    scale_data.scale = (float)clip_box.width/c->geom.width;
+    buffer_set_size(c, scale_data);
+  } else {
+    scale_data.scale = 1.0;
+    buffer_set_size(c, scale_data);
+  }
   wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
   apply_border(c, clip_box, offset);
 }
@@ -1104,9 +1125,9 @@ void logtofile(const char *fmt, ...) {
 }
 
 /* function implementations */
-void lognumtofile(unsigned int num) {
+void lognumtofile(float num) {
   char cmd[256];
-  sprintf(cmd, "echo '%d' >> ~/log", num);
+  sprintf(cmd, "echo '%f' >> ~/log", num);
   system(cmd);
 }
 
@@ -3611,6 +3632,27 @@ void scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer, int sx, int sy,
   wlr_scene_buffer_set_opacity(buffer, *(double *)data);
 }
 
+void scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy, void *data) {
+  animationScale *scale_data = (animationScale *)data;
+  struct wlr_scene_surface *surface = wlr_scene_surface_try_from_buffer(buffer);
+  if(wlr_subsurface_try_from_wlr_surface(surface->surface) != NULL) {
+    wlr_scene_buffer_set_dest_size(buffer, buffer->dst_width * scale_data->scale, buffer->dst_height * scale_data->scale);
+  } else {
+    wlr_scene_buffer_set_dest_size(buffer, scale_data->width, scale_data->height);
+  }
+}
+
+void buffer_set_size(Client *c, animationScale data) {
+  if (c->animainit_geom.width < c->current.width && c->animainit_geom.height < c->geom.height) {
+    return;
+  }
+  if(c->iskilling|| c->animation.tagouting || c->animation.tagining || c->animation.tagouted) {
+    return;
+  }
+  wlr_scene_node_for_each_buffer(&c->scene_surface->node,
+    scene_buffer_apply_size, &data);
+}
+
 void client_set_opacity(Client *c, double opacity) {
   wlr_scene_node_for_each_buffer(&c->scene_surface->node,
                                  scene_buffer_apply_opacity, &opacity);
@@ -3632,11 +3674,9 @@ void rendermon(struct wl_listener *listener, void *data) {
   Monitor *m = wl_container_of(listener, m, frame);
   Client *c;
   struct wlr_output_state pending = {0};
-  struct wlr_gamma_control_v1 *gamma_control = NULL;
+
   struct timespec now;
   bool need_more_frames = false;
-  bool has_commit = false;
-  bool is_commit_pending = false;
 
   // Draw frames for all clients
   wl_list_for_each(c, &clients, link) {
@@ -3647,50 +3687,13 @@ void rendermon(struct wl_listener *listener, void *data) {
     wlr_output_schedule_frame(m->wlr_output);
   }
 
-  // Check if we should skip rendering
-  wl_list_for_each(c, &clients, link) {
-    if (c->configure_serial && !c->isfloating && client_is_rendered_on_mon(c, m) &&
-        !client_is_stopped(c)) {
-      goto skip;
-    }
-  }
-
-  // Handle Gamma LUT changes
-  if (m->gamma_lut_changed) {
-    gamma_control = wlr_gamma_control_manager_v1_get_control(gamma_control_mgr, m->wlr_output);
-    m->gamma_lut_changed = 0;
-
-    if (!wlr_gamma_control_v1_apply(gamma_control, &pending)) {
-      goto commit;
-    }
-
-    if (!wlr_output_test_state(m->wlr_output, &pending)) {
-      wlr_gamma_control_v1_send_failed_and_destroy(gamma_control);
-      goto commit;
-    }
-
-    wlr_output_commit_state(m->wlr_output, &pending);
-    wlr_output_schedule_frame(m->wlr_output);
-    is_commit_pending = true;
-    has_commit = true; // Gamma commit succeeded
-  }
-
-commit:
-  if (!has_commit) {
-    wlr_scene_output_commit(m->scene_output, NULL);
-    has_commit = true;
-  }
-
-skip:
-  if (!has_commit && !is_commit_pending) {
-    wlr_scene_output_commit(m->scene_output, NULL);
-  }
+  wlr_scene_output_commit(m->scene_output, NULL);
 
   // Send frame done notification
   clock_gettime(CLOCK_MONOTONIC, &now);
   wlr_scene_output_send_frame_done(m->scene_output, &now);
 
-  // Clean up pending state
+  // // Clean up pending state
   wlr_output_state_finish(&pending);
 }
 
