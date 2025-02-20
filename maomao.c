@@ -876,7 +876,7 @@ void client_apply_clip(Client *c) {
 
   animationScale scale_data;
   scale_data.width = clip_box.width - 2 * c->bw;
-  scale_data.height = clip_box.height -2 * c->bw;
+  scale_data.height = clip_box.height - 2* c->bw;
   wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
   apply_border(c, clip_box, offset);
   if(c->animation.running) {
