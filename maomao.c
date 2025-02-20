@@ -3651,9 +3651,9 @@ void scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy, vo
 }
 
 void buffer_set_size(Client *c, animationScale data) {
-  // if (c->animainit_geom.width <= c->current.width && c->animainit_geom.height <= c->geom.height) {
-  //   return;
-  // }
+  if (c->animation.current.width <= c->current.width && c->animation.current.height <= c->geom.height) {
+    return;
+  }
   if(c->iskilling|| c->animation.tagouting || c->animation.tagining || c->animation.tagouted) {
     return;
   }
@@ -4392,7 +4392,6 @@ void signalhandler(int signalnumber) {
 
 int timer_tick_action(void *data) {
   Client *c = (Client *)data;
-  bool need_more_frames = false;
 
   if (c->animation.running) {
     wlr_output_schedule_frame(c->mon->wlr_output);
