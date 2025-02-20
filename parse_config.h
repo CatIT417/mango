@@ -873,6 +873,62 @@ void override_config(void) {
   memcpy(globalcolor, config.globalcolor, sizeof(globalcolor));
 }
 
+void set_value_default() {
+/* animaion */
+config.animations = 1;             // 是否启用动画
+config.animation_fade_in = 1;     // Enable animation fade in
+config.zoom_initial_ratio = 0.5; // 动画起始窗口比例
+config.fadein_begin_opacity = 0; // Begin opac window ratio for animations
+config.animation_duration_move = 500;              // Animation move speed
+config.animation_duration_open = 400;              // Animation open speed
+config.animation_duration_tag = 300;               // Animation tag speed
+
+/* appearance */
+config.axis_bind_apply_timeout = 100; // 滚轮绑定动作的触发的时间间隔
+config.focus_on_activate = 1; // 收到窗口激活请求是否自动跳转聚焦
+config.new_is_master = 1;   // 新窗口是否插在头部
+config.default_mfact = 0.55f;     // master 窗口比例
+config.default_nmaster = 1; // 默认master数量
+
+config.numlockon = 1; // 是否打开右边小键盘
+
+config.ov_tab_mode = 0;    // alt tab切换模式
+config.hotarea_size = 10;  // 热区大小,10x10
+config.enable_hotarea = 1; // 是否启用鼠标热区
+config.smartgaps = 0;   /* 1 means no outer gap when there is only one window */
+config.sloppyfocus = 1; /* focus follows mouse */
+config.gappih = 5;  /* horiz inner gap between windows */
+config.gappiv = 5;  /* vert inner gap between windows */
+config.gappoh = 10; /* horiz outer gap between windows and screen edge */
+config.gappov = 10; /* vert outer gap between windows and screen edge */
+
+config.scroller_structs = 20;
+config.scroller_default_proportion = 0.9;
+config.scoller_focus_center = 0;
+
+config.bypass_surface_visibility =
+    0; /* 1 means idle inhibitors will disable idle tracking even if it's
+          surface isn't visible  */
+
+
+config.overviewgappi = 5;  /* overview时 窗口与边缘 缝隙大小 */
+config.overviewgappo = 30; /* overview时 窗口与窗口 缝隙大小 */
+
+config.warpcursor = 1; /* Warp cursor to focused client */
+
+config.repeat_rate = 25;
+config.repeat_delay = 600;
+
+/* Trackpad */
+config.tap_to_click = 1;
+config.tap_and_drag = 1;
+config.drag_lock = 1;
+config.natural_scrolling = 0;
+config.disable_while_typing = 1;
+config.left_handed = 0;
+config.middle_button_emulation = 0;
+}
+
 void parse_config(void) {
 
   char filename[1024];
@@ -900,6 +956,7 @@ void parse_config(void) {
   snprintf(filename, sizeof(filename), "%s/.config/maomao/config.conf",
            homedir);
 
+  set_value_default();
   parse_config_file(&config, filename);
 
   override_config();
