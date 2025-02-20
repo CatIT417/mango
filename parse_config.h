@@ -136,6 +136,24 @@ typedef struct {
 typedef void (*FuncType)(const Arg *);
 Config config;
 
+int parse_circle_direction(const char *str) {
+  // 将输入字符串转换为小写
+  char lowerStr[10];
+  int i = 0;
+  while (str[i] && i < 9) {
+    lowerStr[i] = tolower(str[i]);
+    i++;
+  }
+  lowerStr[i] = '\0';
+
+  // 根据转换后的小写字符串返回对应的枚举值
+  if (strcmp(lowerStr, "next") == 0) {
+    return 1;
+  } else {
+    return -1;
+  } 
+}
+
 int parse_direction(const char *str) {
   // 将输入字符串转换为小写
   char lowerStr[10];
@@ -311,7 +329,7 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value) {
 
   if (strcmp(func_name, "focusstack") == 0) {
     func = focusstack;
-    (*arg).i = atoi(arg_value);
+    (*arg).i = parse_circle_direction(arg_value);
   } else if (strcmp(func_name, "focusdir") == 0) {
     func = focusdir;
     (*arg).i = parse_direction(arg_value);
