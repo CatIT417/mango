@@ -76,10 +76,24 @@ typedef struct {
 
   unsigned int axis_bind_apply_timeout;
   unsigned int focus_on_activate;
-  unsigned int numlockon;
   int bypass_surface_visibility;
   int sloppyfocus;
   int warpcursor;
+
+  /* keyboard */
+  int repeat_rate;
+  int repeat_delay;
+  unsigned int numlockon;
+  
+  /* Trackpad */
+  int tap_to_click;
+  int tap_and_drag;
+  int drag_lock;
+  int natural_scrolling;
+  int disable_while_typing;
+  int left_handed;
+  int middle_button_emulation; 
+
 
   int smartgaps;
   unsigned int gappih;
@@ -460,6 +474,24 @@ void parse_config_line(Config *config, const char *line) {
     config->warpcursor = atoi(value);
   } else if (strcmp(key, "smartgaps") == 0) {
     config->smartgaps = atoi(value);
+  } else if (strcmp(key, "repeat_rate") == 0) {
+    config->repeat_rate = atoi(value);
+  } else if (strcmp(key, "repeat_delay") == 0) {
+    config->repeat_delay = atoi(value);
+  } else if (strcmp(key, "tap_to_click") == 0) {
+    config->tap_to_click = atoi(value);
+  } else if (strcmp(key, "tap_and_drag") == 0) {
+    config->tap_and_drag = atoi(value);
+  } else if (strcmp(key, "drag_lock") == 0) {
+    config->drag_lock = atoi(value);
+  } else if (strcmp(key, "natural_scrolling") == 0) {
+    config->natural_scrolling = atoi(value);
+  } else if (strcmp(key, "disable_while_typing") == 0) {
+    config->disable_while_typing = atoi(value);
+  } else if (strcmp(key, "left_handed") == 0) {
+    config->left_handed = atoi(value);
+  } else if (strcmp(key, "middle_button_emulation") == 0) {
+    config->middle_button_emulation = atoi(value);
   } else if (strcmp(key, "gappih") == 0) {
     config->gappih = atoi(value);
   } else if (strcmp(key, "gappiv") == 0) {
@@ -874,6 +906,16 @@ void parse_config(void) {
 }
 
 void reload_config(const Arg *arg) {
+  Client *c;
   free_config();
   parse_config();
+  init_baked_points();
+  wl_list_for_each(c, &clients, link) {
+    if (c&& !c->iskilling) {
+      if (c->bw) {
+        c->bw = borderpx;
+      }
+    }
+  }  
+  arrange(selmon,false);
 }
