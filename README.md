@@ -81,16 +81,17 @@ sudo ninja -C build install
 # set your autostart app ih this
 mkdir -p ~/.config/maomao/
 
-# some suggest config
-cp waybar ~/.config/maomao/ -r 
-cp wallpaper ~/.config/maomao/ -r
 
 ```
+
 
 # config
 the config file is `~/.config/maomao/config.conf`
 the autostart file is `~/.config/maomao/autostart.sh`
 
+
+# my dotfile
+[maomao-config](https://github.com/DreamMaoMao/dotfile/tree/main/maomao)
 
 # thanks for some refer repo 
 - https://github.com/dqrk0jeste/owl - for basal window animaition
