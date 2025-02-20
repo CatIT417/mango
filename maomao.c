@@ -235,6 +235,7 @@ typedef struct {
   float scroller_proportion;
   bool need_set_position;
   struct dwl_animation animation;
+  struct wl_event_source *timer_tick;
 
 } Client;
 
@@ -550,6 +551,7 @@ void incovgaps(const Arg *arg);
 void incigaps(const Arg *arg);
 void defaultgaps(const Arg *arg);
 void buffer_set_size(Client *c, animationScale scale_data);
+int timer_tick_action(void *data);
 
 #include "dispatch.h"
 
@@ -879,15 +881,15 @@ void client_apply_clip(Client *c) {
   scale_data.height = clip_box.height - 2* c->bw;
   wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
   apply_border(c, clip_box, offset);
-  if(c->animation.running) {
-    scale_data.width_scale = (float)clip_box.width/c->current.width;
-    scale_data.height_scale = (float)clip_box.height/c->current.height;
-    buffer_set_size(c, scale_data);
-  } else {
-    scale_data.width_scale = 1.0;
-    scale_data.height_scale = 1.0;
-    buffer_set_size(c, scale_data);
-  }
+  // if(c->animation.running) {
+  scale_data.width_scale = (float)clip_box.width/c->current.width;
+  scale_data.height_scale = (float)clip_box.height/c->current.height;
+  buffer_set_size(c, scale_data);
+  // } else {
+  //   scale_data.width_scale = 1.0;
+  //   scale_data.height_scale = 1.0;
+  //   buffer_set_size(c, scale_data);
+  // }
 }
 
 bool client_draw_frame(Client *c) {
@@ -909,7 +911,7 @@ bool client_draw_frame(Client *c) {
     client_apply_clip(c);
     c->need_set_position = false;
   }
-
+  // c->resize = 1;
   return need_more_frames;
 }
 
@@ -1900,8 +1902,8 @@ void commitnotify(struct wl_listener *listener, void *data) {
   // if don't do this, some client may resize uncompleted
   resize(c, c->geom, (c->isfloating && !c->isfullscreen));
 
-	if (c->configure_serial && c->configure_serial <= c->surface.xdg->current.configure_serial)
-		c->configure_serial = 0;
+	// if (c->configure_serial && c->configure_serial <= c->surface.xdg->current.configure_serial)
+	// 	c->configure_serial = 0;
 
 }
 
@@ -3125,6 +3127,8 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->scene->node.data = c->scene_surface->node.data = c;
 
   client_get_geometry(c, &c->geom);
+  c->timer_tick = wl_event_loop_add_timer(wl_display_get_event_loop(dpy), timer_tick_action, c);
+  wl_event_source_timer_update(c->timer_tick, 0);
 
   /* Handle unmanaged clients first so we can return prior create borders */
   if (client_is_unmanaged(c)) {
@@ -3647,9 +3651,9 @@ void scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy, vo
 }
 
 void buffer_set_size(Client *c, animationScale data) {
-  if (c->animainit_geom.width <= c->current.width && c->animainit_geom.height <= c->geom.height) {
-    return;
-  }
+  // if (c->animainit_geom.width <= c->current.width && c->animainit_geom.height <= c->geom.height) {
+  //   return;
+  // }
   if(c->iskilling|| c->animation.tagouting || c->animation.tagining || c->animation.tagouted) {
     return;
   }
@@ -3684,15 +3688,10 @@ void rendermon(struct wl_listener *listener, void *data) {
   struct wlr_output_state pending = {0};
 
   struct timespec now;
-  bool need_more_frames = false;
 
   // Draw frames for all clients
   wl_list_for_each(c, &clients, link) {
-    need_more_frames = client_draw_frame(c);
-  }
-
-  if (need_more_frames) {
-    wlr_output_schedule_frame(m->wlr_output);
+    client_draw_frame(c);
   }
 
   wlr_scene_output_commit(m->scene_output, NULL);
@@ -3904,6 +3903,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   if (!c->mon)
     return;
 
+  wl_event_source_timer_update(c->timer_tick, 10);
   c->need_set_position = true;
   // oldgeom = c->geom;
   bbox = interact ? &sgeom : &c->mon->w;
@@ -4388,6 +4388,20 @@ void signalhandler(int signalnumber) {
   free(strings);
 
   // 不调用 exit 以允许生成核心转储文件
+}
+
+int timer_tick_action(void *data) {
+  Client *c = (Client *)data;
+  bool need_more_frames = false;
+
+  if (c->animation.running) {
+    wlr_output_schedule_frame(c->mon->wlr_output);
+    wl_event_source_timer_update(c->timer_tick, 10);
+  } else {
+    wl_event_source_timer_update(c->timer_tick, 0);
+  }
+
+  return 0;
 }
 
 void setup(void) {
@@ -5411,7 +5425,7 @@ void unmapnotify(struct wl_listener *listener, void *data) {
     wlr_foreign_toplevel_handle_v1_destroy(c->foreign_toplevel);
     c->foreign_toplevel = NULL;
   }
-
+  wl_event_source_remove(c->timer_tick);
   wlr_scene_node_destroy(&c->scene->node);
   printstatus();
   motionnotify(0, NULL, 0, 0, 0, 0);
