@@ -171,7 +171,7 @@ typedef struct Monitor Monitor;
 typedef struct {
   /* Must keep these three elements in this order */
   unsigned int type; /* XDGShell or X11* */
-  struct wlr_box geom, pending, oldgeom, animainit_geom,
+  struct wlr_box geom, pending, oldgeom, animainit_geom,overview_backup_geom,
       current; /* layout-relative, includes border */
   Monitor *mon;
   struct wlr_scene_tree *scene;
@@ -206,8 +206,7 @@ typedef struct {
   struct wlr_foreign_toplevel_handle_v1 *foreign_toplevel;
   int isfloating, isurgent, isfullscreen, istiled, isminied;
   int ismaxmizescreen;
-  int overview_backup_x, overview_backup_y, overview_backup_w,
-      overview_backup_h, overview_backup_bw;
+  int overview_backup_bw;
   int fullscreen_backup_x, fullscreen_backup_y, fullscreen_backup_w,
       fullscreen_backup_h;
   int overview_isfullscreenbak, overview_ismaxmizescreenbak,
@@ -472,7 +471,6 @@ static void rendermon(struct wl_listener *listener, void *data);
 static void requestdecorationmode(struct wl_listener *listener, void *data);
 static void requeststartdrag(struct wl_listener *listener, void *data);
 static void resize(Client *c, struct wlr_box geo, int interact);
-static void resizeclient(Client *c, int x, int y, int w, int h, int interact);
 static void run(char *startup_cmd);
 static void setcursor(struct wl_listener *listener, void *data);
 static void setfloating(Client *c, int floating);
@@ -877,9 +875,10 @@ void client_apply_clip(Client *c) {
   }
 
   animationScale scale_data;
-  scale_data.width = clip_box.width - 2*c->bw;
-  scale_data.height = clip_box.height -2*c->bw;
-
+  scale_data.width = clip_box.width - 2 * c->bw;
+  scale_data.height = clip_box.height -2 * c->bw;
+  wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
+  apply_border(c, clip_box, offset);
   if(c->animation.running) {
     scale_data.width_scale = (float)clip_box.width/c->current.width;
     scale_data.height_scale = (float)clip_box.height/c->current.height;
@@ -889,8 +888,6 @@ void client_apply_clip(Client *c) {
     scale_data.height_scale = 1.0;
     buffer_set_size(c, scale_data);
   }
-  wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
-  apply_border(c, clip_box, offset);
 }
 
 bool client_draw_frame(Client *c) {
@@ -3725,17 +3722,6 @@ requeststartdrag(struct wl_listener *listener, void *data) {
     wlr_data_source_destroy(event->drag->source);
 }
 
-void // 为了兼容dwm代码封装的
-resizeclient(Client *c, int x, int y, int w, int h, int interact) {
-  struct wlr_box tmp_box;
-  c->prev = c->geom;
-  tmp_box.x = x;
-  tmp_box.y = y;
-  tmp_box.width = w;
-  tmp_box.height = h;
-  resize(c, tmp_box, interact);
-}
-
 void setborder_color(Client *c) {
   unsigned int i;
   if (!c || !c->mon)
@@ -4833,7 +4819,6 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
   unsigned int dx;
   unsigned int cols, rows, overcols;
   Client *c;
-  Client **tempClients = NULL; // 初始化为 NULL
   n = 0;
 
   // 第一次遍历，计算 n 的值
@@ -4848,44 +4833,45 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
     return; // 没有需要处理的客户端，直接返回
   }
 
-  // 动态分配内存
-  tempClients = malloc(n * sizeof(Client *));
-  if (!tempClients) {
-    // 处理内存分配失败的情况
-    return;
-  }
-
-  // 第二次遍历，填充 tempClients
-  n = 0;
-  wl_list_for_each(c, &clients, link) {
-    if (VISIBLEON(c, c->mon) && !c->iskilling && !c->animation.tagouting &&
-        c->mon == selmon) {
-      tempClients[n] = c;
-      n++;
-    }
-  }
-
   if (n == 1) {
-    c = tempClients[0];
-    cw = (m->w.width - 2 * gappo) * 0.7;
-    ch = (m->w.height - 2 * gappo) * 0.8;
-    resizeclient(c, m->w.x + (m->w.width - cw) / 2,
-                 m->w.y + (m->w.height - ch) / 2, cw - 2 * c->bw,
-                 ch - 2 * c->bw, 0);
-    free(tempClients); // 释放内存
-    return;
+    wl_list_for_each(c, &clients, link) {
+      if (VISIBLEON(c, c->mon) && !c->iskilling && !c->animation.tagouting &&
+          c->mon == selmon) {
+          cw = (m->w.width - 2 * gappo) * 0.7;
+          ch = (m->w.height - 2 * gappo) * 0.8;
+          c->geom.x = m->w.x + (m->w.width - cw) / 2;
+          c->geom.y = m->w.y + (m->w.height - ch) / 2;
+          c->geom.width = cw - 2 * c->bw;
+          c->geom.height = ch - 2 * c->bw;
+          resize(c, c->geom, 0);
+          return;
+      }
+    }  
   }
 
   if (n == 2) {
     cw = (m->w.width - 2 * gappo - gappi) / 2;
     ch = (m->w.height - 2 * gappo) * 0.65;
-    resizeclient(tempClients[1], m->w.x + cw + gappo + gappi,
-                 m->w.y + (m->w.height - ch) / 2 + gappo,
-                 cw - 2 * tempClients[1]->bw, ch - 2 * tempClients[1]->bw, 0);
-    resizeclient(tempClients[0], m->w.x + gappo,
-                 m->w.y + (m->w.height - ch) / 2 + gappo,
-                 cw - 2 * tempClients[0]->bw, ch - 2 * tempClients[0]->bw, 0);
-    free(tempClients); // 释放内存
+    i = 0;
+    wl_list_for_each(c, &clients, link) {
+      if (VISIBLEON(c, c->mon) && !c->iskilling && !c->animation.tagouting &&
+          c->mon == selmon) {
+        if (i == 0) {
+          c->geom.x = m->w.x + gappo;
+          c->geom.y = m->w.y + (m->w.height - ch) / 2 + gappo;
+          c->geom.width = cw - 2 * c->bw;
+          c->geom.height = ch - 2 * c->bw;
+          resize(c, c->geom, 0);
+        } else if (i == 1) {
+          c->geom.x = m->w.x + cw + gappo + gappi;
+          c->geom.y = m->w.y + (m->w.height - ch) / 2 + gappo;
+          c->geom.width = cw - 2 * c->bw;
+          c->geom.height = ch - 2 * c->bw;
+          resize(c, c->geom, 0);
+        }
+        i++;
+      }
+    }
     return;
   }
 
@@ -4908,17 +4894,23 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
   }
 
   // 调整每个客户端的位置和大小
-  for (i = 0; i < n; i++) {
-    c = tempClients[i];
-    cx = m->w.x + (i % cols) * (cw + gappi);
-    cy = m->w.y + (i / cols) * (ch + gappi);
-    if (overcols && i >= n - overcols) {
-      cx += dx;
+  i = 0;
+  wl_list_for_each(c, &clients, link) {
+    if (VISIBLEON(c, c->mon) && !c->iskilling && !c->animation.tagouting &&
+        c->mon == selmon) {
+      cx = m->w.x + (i % cols) * (cw + gappi);
+      cy = m->w.y + (i / cols) * (ch + gappi);
+      if (overcols && i >= n - overcols) {
+        cx += dx;
+      }
+      c->geom.x = cx + gappo;
+      c->geom.y = cy + gappo;
+      c->geom.width = cw - 2 * c->bw;
+      c->geom.height = ch - 2 * c->bw;
+      resize(c, c->geom, 0);
+      i++;
     }
-    resizeclient(c, cx + gappo, cy + gappo, cw - 2 * c->bw, ch - 2 * c->bw, 0);
   }
-
-  free(tempClients); // 最后释放内存
 }
 
 // 滚动布局
@@ -4971,8 +4963,7 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
     target_geom.width = max_client_width * c->scroller_proportion;
     target_geom.x = m->w.x + (m->w.width - target_geom.width) / 2;
     target_geom.y = m->w.y + (m->w.height - target_geom.height) / 2;
-    resizeclient(c, target_geom.x, target_geom.y, target_geom.width,
-                 target_geom.height, 0);
+    resize(c, target_geom, 0);
     free(tempClients); // 释放内存
     return;
   }
@@ -5070,10 +5061,7 @@ void overview_backup(Client *c) {
   c->animation.tagining = false;
   c->animation.tagouted = false;
   c->animation.tagouting = false;
-  c->overview_backup_x = c->geom.x;
-  c->overview_backup_y = c->geom.y;
-  c->overview_backup_w = c->geom.width;
-  c->overview_backup_h = c->geom.height;
+  c->overview_backup_geom = c->geom;
   c->overview_backup_bw = c->bw;
   if (c->isfloating) {
     c->isfloating = 0;
@@ -5097,22 +5085,17 @@ void overview_restore(Client *c, const Arg *arg) {
   c->overview_isfloatingbak = 0;
   c->overview_isfullscreenbak = 0;
   c->overview_ismaxmizescreenbak = 0;
-  c->geom.x = c->overview_backup_x;
-  c->geom.y = c->overview_backup_y;
-  c->geom.width = c->overview_backup_w;
-  c->geom.height = c->overview_backup_h;
+  c->geom = c->overview_backup_geom;
   c->bw = c->overview_backup_bw;
   c->animation.tagining = false;
   c->is_restoring_from_ov = (arg->ui & c->tags & TAGMASK) == 0 ? true : false;
   if (c->isfloating) {
     // XRaiseWindow(dpy, c->win); // 提升悬浮窗口到顶层
-    resizeclient(c, c->overview_backup_x, c->overview_backup_y,
-                 c->overview_backup_w, c->overview_backup_h, 1);
+    resize(c, c->overview_backup_geom, 0);
   } else if (c->isfullscreen || c->ismaxmizescreen) {
     if (want_restore_fullscreen(
             c)) { // 如果同tag有其他窗口,且其他窗口是将要聚焦的,那么不恢复该窗口的全屏状态
-      resizeclient(c, c->overview_backup_x, c->overview_backup_y,
-                   c->overview_backup_w, c->overview_backup_h, 1);
+      resize(c, c->overview_backup_geom, 0);
     } else {
       c->isfullscreen = 0;
       c->ismaxmizescreen = 0;
@@ -5121,8 +5104,7 @@ void overview_restore(Client *c, const Arg *arg) {
   } else {
     if (c->is_restoring_from_ov) {
       c->is_restoring_from_ov = false;
-      resizeclient(c, c->overview_backup_x, c->overview_backup_y,
-                   c->overview_backup_w, c->overview_backup_h, 0);
+      resize(c, c->overview_backup_geom, 0);
     }
   }
 
