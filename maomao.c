@@ -235,7 +235,7 @@ typedef struct {
   float scroller_proportion;
   bool need_set_position;
   struct dwl_animation animation;
-  struct wl_event_source *timer_tick;
+  // struct wl_event_source *timer_tick;
 
 } Client;
 
@@ -551,7 +551,7 @@ void incovgaps(const Arg *arg);
 void incigaps(const Arg *arg);
 void defaultgaps(const Arg *arg);
 void buffer_set_size(Client *c, animationScale scale_data);
-int timer_tick_action(void *data);
+// int timer_tick_action(void *data);
 
 #include "dispatch.h"
 
@@ -614,6 +614,7 @@ static Monitor *selmon;
 
 static int enablegaps = 1; /* enables gaps, used by togglegaps */
 static int axis_apply_time = 0;
+static int axis_apply_dir = 0;
 
 /* global event handlers */
 static struct zdwl_ipc_manager_v2_interface dwl_manager_implementation = {
@@ -1597,11 +1598,14 @@ axisnotify(struct wl_listener *listener, void *data) {
     a = &config.axis_bindings[ji];
     if (CLEANMASK(mods) == CLEANMASK(a->mod) && // 按键一致
         adir == a->dir && a->func) { // 滚轮方向判断一致且处理函数存在
-      if (event->time_msec - axis_apply_time > axis_bind_apply_timeout) {
+      if (event->time_msec - axis_apply_time > axis_bind_apply_timeout ||
+        axis_apply_dir * event->delta < 0) {
         a->func(&a->arg);
         axis_apply_time = event->time_msec;
+        axis_apply_dir = event->delta > 0 ? 1 : -1;
         return; // 如果成功匹配就不把这个滚轮事件传送给客户端了
       } else {
+        axis_apply_dir = event->delta > 0 ? 1 : -1;
         axis_apply_time = event->time_msec;
         return;
       }
@@ -3127,8 +3131,8 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->scene->node.data = c->scene_surface->node.data = c;
 
   client_get_geometry(c, &c->geom);
-  c->timer_tick = wl_event_loop_add_timer(wl_display_get_event_loop(dpy), timer_tick_action, c);
-  wl_event_source_timer_update(c->timer_tick, 0);
+  // c->timer_tick = wl_event_loop_add_timer(wl_display_get_event_loop(dpy), timer_tick_action, c);
+  // wl_event_source_timer_update(c->timer_tick, 0);
 
   /* Handle unmanaged clients first so we can return prior create borders */
   if (client_is_unmanaged(c)) {
@@ -3688,11 +3692,13 @@ void rendermon(struct wl_listener *listener, void *data) {
   struct wlr_output_state pending = {0};
 
   struct timespec now;
+  bool need_more_frames = false;
 
   // Draw frames for all clients
   wl_list_for_each(c, &clients, link) {
-    client_draw_frame(c);
+    need_more_frames = client_draw_frame(c) || need_more_frames;
   }
+
 
   wlr_scene_output_commit(m->scene_output, NULL);
 
@@ -3702,6 +3708,10 @@ void rendermon(struct wl_listener *listener, void *data) {
 
   // // Clean up pending state
   wlr_output_state_finish(&pending);
+
+  if (need_more_frames) {
+    wlr_output_schedule_frame(m->wlr_output);
+  }
 }
 
 void // 0.5
@@ -3903,7 +3913,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   if (!c->mon)
     return;
 
-  wl_event_source_timer_update(c->timer_tick, 10);
+  // wl_event_source_timer_update(c->timer_tick, 10);
   c->need_set_position = true;
   // oldgeom = c->geom;
   bbox = interact ? &sgeom : &c->mon->w;
@@ -4390,18 +4400,18 @@ void signalhandler(int signalnumber) {
   // 不调用 exit 以允许生成核心转储文件
 }
 
-int timer_tick_action(void *data) {
-  Client *c = (Client *)data;
+// int timer_tick_action(void *data) {
+//   Client *c = (Client *)data;
 
-  if (c->animation.running) {
-    wlr_output_schedule_frame(c->mon->wlr_output);
-    wl_event_source_timer_update(c->timer_tick, 10);
-  } else {
-    wl_event_source_timer_update(c->timer_tick, 0);
-  }
+//   if (c->animation.running) {
+//     wlr_output_schedule_frame(c->mon->wlr_output);
+//     wl_event_source_timer_update(c->timer_tick, 10);
+//   } else {
+//     wl_event_source_timer_update(c->timer_tick, 0);
+//   }
 
-  return 0;
-}
+//   return 0;
+// }
 
 void setup(void) {
 
@@ -5424,7 +5434,7 @@ void unmapnotify(struct wl_listener *listener, void *data) {
     wlr_foreign_toplevel_handle_v1_destroy(c->foreign_toplevel);
     c->foreign_toplevel = NULL;
   }
-  wl_event_source_remove(c->timer_tick);
+  // wl_event_source_remove(c->timer_tick);
   wlr_scene_node_destroy(&c->scene->node);
   printstatus();
   motionnotify(0, NULL, 0, 0, 0, 0);
