@@ -95,7 +95,7 @@ like `MAOMAOCONFIG=/home/xxx/maomao`
 
 - the default autostart path is `~/.config/maomao/autostart.sh`
 
-- the fallback config path is in /etc/maomao/config.conf
+- the fallback config path is in `/etc/maomao/config.conf`, you can find the default config here
 
 
 # my dotfile
