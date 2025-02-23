@@ -30,7 +30,7 @@ See below for more features.
 - monocle
 - grid
 - dwindle
-- sprial
+- spiral
 
 # window open rules
 ## options
