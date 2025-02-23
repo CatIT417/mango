@@ -86,7 +86,7 @@ mkdir -p ~/.config/maomao/
 
 
 # config
-you can use `MAOMAOCONFIG` env to set the config path
+you can use `MAOMAOCONFIG` env to set the config folder path
 
 - the only default keybinds is ctrl+alt+[F1-F12] to change tty
 
