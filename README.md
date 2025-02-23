@@ -86,13 +86,16 @@ mkdir -p ~/.config/maomao/
 
 
 # config
-you can use `MAOMAOCONFIG` env to set the config folder path
+you can use `MAOMAOCONFIG` env to set the config-folder-path and the autostart-folder-patch
+like `MAOMAOCONFIG=/home/xxx/maomao`
 
 - the only default keybinds is ctrl+alt+[F1-F12] to change tty
 
 - the default config path is `~/.config/maomao/config.conf`
 
 - the default autostart path is `~/.config/maomao/autostart.sh`
+
+- the fallback config path is in /etc/maomao/config.conf
 
 
 # my dotfile

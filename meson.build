@@ -1,5 +1,5 @@
 project('maomao', ['c', 'cpp'],
-  version : '0.1.1'
+  version : '0.1.5'
 )
 
 subdir('protocols')
@@ -71,3 +71,5 @@ executable('maomao',
 prefix = get_option('prefix')
 desktop_install_dir = join_paths(prefix, 'share/wayland-sessions')
 install_data('maomao.desktop', install_dir : desktop_install_dir)
+install_data('config.conf', install_dir : '/etc/maomao')
+
