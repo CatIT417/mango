@@ -1551,6 +1551,29 @@ void autostartexec(void) {
   const char *const *p;
   size_t i = 0;
 
+  const char *maomaoconfig = getenv("MAOMAOCONFIG");
+  static const char *autostart[4];  // 声明一个全局数组，大小为 5（包括 NULL 结 尾）
+  char autostart_path[1024];  // 用于存储脚本的完整路径
+
+  if (maomaoconfig && maomaoconfig[0] != '\0') {
+      // 如果 MAOMAOCONFIG 存在且不为空，使用它作为配置文件夹
+      snprintf(autostart_path, sizeof(autostart_path), "%s/autostart.sh", maomaoconfig);
+  } else {
+      // 否则使用 HOME 环境变量下的默认路径
+      const char *homedir = getenv("HOME");
+      if (!homedir) {
+          // 如果 HOME 环境变量不存在，无法继续
+          fprintf(stderr, "Error: HOME environment variable not set.\n");
+          return;
+      }
+      snprintf(autostart_path, sizeof(autostart_path), "%s/.config/maomao/autostart.sh", homedir);
+  }
+
+  autostart[0] = "/bin/sh";      // 使用 /bin/sh 执行脚本
+  autostart[1] = "-c";           // -c 参数表示从命令行读取脚本
+  autostart[2] = autostart_path; // 脚本的完整路径 
+  autostart[3] = NULL;           // 数组以 NULL 结尾
+
   /* count entries */
   for (p = autostart; *p; autostart_len++, p++)
     while (*++p)
@@ -4364,15 +4387,23 @@ void signalhandler(int signalnumber) {
   size_t i;
   char filename[1024];
 
-  // 获取当前用户家目录
-  const char *homedir = getenv("HOME");
-  if (!homedir) {
-    // 如果获取失败，则无法继续
-    return;
-  }
+  // 获取 MAOMAOCONFIG 环境变量
+  const char *maomaoconfig = getenv("MAOMAOCONFIG");
 
-  // 构建日志文件路径
-  snprintf(filename, sizeof(filename), "%s/.config/maomao/crash.log", homedir);
+  // 如果 MAOMAOCONFIG 环境变量不存在或为空，则使用 HOME 环境变量
+  if (!maomaoconfig || maomaoconfig[0] == '\0') {
+      // 获取当前用户家目录
+      const char *homedir = getenv("HOME");
+      if (!homedir) {
+          // 如果获取失败，则无法继续
+          return;
+      }
+      // 构建日志文件路径
+      snprintf(filename, sizeof(filename), "%s/.config/maomao/crash.log", homedir);
+  } else {
+      // 使用 MAOMAOCONFIG 环境变量作为配置文件夹路径
+      snprintf(filename, sizeof(filename), "%s/crash.log", maomaoconfig);
+  }
 
   // 打开日志文件
   FILE *fp = fopen(filename, "a");

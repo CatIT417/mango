@@ -34,6 +34,15 @@ typedef struct {
   Arg arg;
 } KeyBinding;
 
+// 定义一个宏来简化默认按键绑定的添加
+#define CHVT(n) { WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT, XKB_KEY_XF86Switch_VT_##n, chvt, {.ui = (n)} }
+
+// 默认的按键绑定数组
+KeyBinding default_key_bindings[] = {
+    CHVT(1), CHVT(2), CHVT(3), CHVT(4), CHVT(5), CHVT(6),
+    CHVT(7), CHVT(8), CHVT(9), CHVT(10), CHVT(11), CHVT(12)
+};
+
 typedef struct {
   unsigned int mod;
   unsigned int button;
@@ -711,6 +720,24 @@ void parse_config_line(Config *config, const char *line) {
       config->key_bindings_count++;
     }
 
+    // 计算默认按键绑定的数量
+    size_t default_key_bindings_count = sizeof(default_key_bindings) / sizeof(KeyBinding);
+
+    // 重新分配内存以容纳新的默认按键绑定
+    config->key_bindings = realloc(config->key_bindings,
+                                   (config->key_bindings_count + default_key_bindings_count) * sizeof(KeyBinding));
+    if (!config->key_bindings) {
+        return;
+    }
+
+    // 将默认按键绑定复制到配置的按键绑定数组中
+    for (size_t i = 0; i < default_key_bindings_count; i++) {
+        config->key_bindings[config->key_bindings_count + i] = default_key_bindings[i];
+    }
+
+    // 更新按键绑定的总数
+    config->key_bindings_count += default_key_bindings_count;
+
   } else if (strncmp(key, "mousebind", 9) == 0) {
     config->mouse_bindings =
         realloc(config->mouse_bindings,
@@ -963,16 +990,23 @@ void parse_config(void) {
   config.axis_bindings = NULL;
   config.axis_bindings_count = 0;
 
-  // 获取当前用户家目录
-  const char *homedir = getenv("HOME");
-  if (!homedir) {
-    // 如果获取失败，则无法继续
-    return;
-  }
+// 获取 MAOMAOCONFIG 环境变量
+const char *maomaoconfig = getenv("MAOMAOCONFIG");
 
-  // 构建日志文件路径
-  snprintf(filename, sizeof(filename), "%s/.config/maomao/config.conf",
-           homedir);
+  // 如果 MAOMAOCONFIG 环境变量不存在或为空，则使用 HOME 环境变量
+  if (!maomaoconfig || maomaoconfig[0] == '\0') {
+      // 获取当前用户家目录
+      const char *homedir = getenv("HOME");
+      if (!homedir) {
+          // 如果获取失败，则无法继续
+          return;
+      }
+      // 构建日志文件路径
+      snprintf(filename, sizeof(filename), "%s/.config/maomao/config.conf", homedir);
+  } else {
+      // 使用 MAOMAOCONFIG 环境变量作为配置文件夹路径
+      snprintf(filename, sizeof(filename), "%s/config.conf", maomaoconfig);
+  }
 
   set_value_default();
   parse_config_file(&config, filename);
