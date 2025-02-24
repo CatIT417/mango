@@ -35,13 +35,17 @@ typedef struct {
 } KeyBinding;
 
 // 定义一个宏来简化默认按键绑定的添加
-#define CHVT(n) { WLR_MODIFIER_CTRL|WLR_MODIFIER_ALT, XKB_KEY_XF86Switch_VT_##n, chvt, {.ui = (n)} }
+#define CHVT(n)                                                                \
+  {                                                                            \
+    WLR_MODIFIER_CTRL | WLR_MODIFIER_ALT, XKB_KEY_XF86Switch_VT_##n, chvt, {   \
+      .ui = (n)                                                                \
+    }                                                                          \
+  }
 
 // 默认的按键绑定数组
-KeyBinding default_key_bindings[] = {
-    CHVT(1), CHVT(2), CHVT(3), CHVT(4), CHVT(5), CHVT(6),
-    CHVT(7), CHVT(8), CHVT(9), CHVT(10), CHVT(11), CHVT(12)
-};
+KeyBinding default_key_bindings[] = {CHVT(1), CHVT(2),  CHVT(3),  CHVT(4),
+                                     CHVT(5), CHVT(6),  CHVT(7),  CHVT(8),
+                                     CHVT(9), CHVT(10), CHVT(11), CHVT(12)};
 
 typedef struct {
   unsigned int mod;
@@ -95,7 +99,7 @@ typedef struct {
   int repeat_rate;
   int repeat_delay;
   unsigned int numlockon;
-  
+
   /* Trackpad */
   int tap_to_click;
   int tap_and_drag;
@@ -103,8 +107,7 @@ typedef struct {
   int natural_scrolling;
   int disable_while_typing;
   int left_handed;
-  int middle_button_emulation; 
-
+  int middle_button_emulation;
 
   int smartgaps;
   unsigned int gappih;
@@ -162,7 +165,7 @@ int parse_circle_direction(const char *str) {
     return 1;
   } else {
     return -1;
-  } 
+  }
 }
 
 int parse_direction(const char *str) {
@@ -727,18 +730,22 @@ void parse_config_line(Config *config, const char *line) {
     }
 
     // 计算默认按键绑定的数量
-    size_t default_key_bindings_count = sizeof(default_key_bindings) / sizeof(KeyBinding);
+    size_t default_key_bindings_count =
+        sizeof(default_key_bindings) / sizeof(KeyBinding);
 
     // 重新分配内存以容纳新的默认按键绑定
-    config->key_bindings = realloc(config->key_bindings,
-                                   (config->key_bindings_count + default_key_bindings_count) * sizeof(KeyBinding));
+    config->key_bindings =
+        realloc(config->key_bindings,
+                (config->key_bindings_count + default_key_bindings_count) *
+                    sizeof(KeyBinding));
     if (!config->key_bindings) {
-        return;
+      return;
     }
 
     // 将默认按键绑定复制到配置的按键绑定数组中
     for (size_t i = 0; i < default_key_bindings_count; i++) {
-        config->key_bindings[config->key_bindings_count + i] = default_key_bindings[i];
+      config->key_bindings[config->key_bindings_count + i] =
+          default_key_bindings[i];
     }
 
     // 更新按键绑定的总数
@@ -927,61 +934,60 @@ void override_config(void) {
 }
 
 void set_value_default() {
-/* animaion */
-config.animations = 1;             // 是否启用动画
-config.animation_fade_in = 1;     // Enable animation fade in
-config.zoom_initial_ratio = 0.5; // 动画起始窗口比例
-config.fadein_begin_opacity = 0.5; // Begin opac window ratio for animations
-config.fadeout_begin_opacity = 0.5;
-config.animation_duration_move = 500;              // Animation move speed
-config.animation_duration_open = 400;              // Animation open speed
-config.animation_duration_tag = 300;               // Animation tag speed
-config.animation_duration_close = 300;               // Animation tag speed
+  /* animaion */
+  config.animations = 1;             // 是否启用动画
+  config.animation_fade_in = 1;      // Enable animation fade in
+  config.zoom_initial_ratio = 0.5;   // 动画起始窗口比例
+  config.fadein_begin_opacity = 0.5; // Begin opac window ratio for animations
+  config.fadeout_begin_opacity = 0.5;
+  config.animation_duration_move = 500;  // Animation move speed
+  config.animation_duration_open = 400;  // Animation open speed
+  config.animation_duration_tag = 300;   // Animation tag speed
+  config.animation_duration_close = 300; // Animation tag speed
 
-/* appearance */
-config.axis_bind_apply_timeout = 100; // 滚轮绑定动作的触发的时间间隔
-config.focus_on_activate = 1; // 收到窗口激活请求是否自动跳转聚焦
-config.new_is_master = 1;   // 新窗口是否插在头部
-config.default_mfact = 0.55f;     // master 窗口比例
-config.default_nmaster = 1; // 默认master数量
+  /* appearance */
+  config.axis_bind_apply_timeout = 100; // 滚轮绑定动作的触发的时间间隔
+  config.focus_on_activate = 1;         // 收到窗口激活请求是否自动跳转聚焦
+  config.new_is_master = 1;             // 新窗口是否插在头部
+  config.default_mfact = 0.55f;         // master 窗口比例
+  config.default_nmaster = 1;           // 默认master数量
 
-config.numlockon = 1; // 是否打开右边小键盘
+  config.numlockon = 1; // 是否打开右边小键盘
 
-config.ov_tab_mode = 0;    // alt tab切换模式
-config.hotarea_size = 10;  // 热区大小,10x10
-config.enable_hotarea = 1; // 是否启用鼠标热区
-config.smartgaps = 0;   /* 1 means no outer gap when there is only one window */
-config.sloppyfocus = 1; /* focus follows mouse */
-config.gappih = 5;  /* horiz inner gap between windows */
-config.gappiv = 5;  /* vert inner gap between windows */
-config.gappoh = 10; /* horiz outer gap between windows and screen edge */
-config.gappov = 10; /* vert outer gap between windows and screen edge */
+  config.ov_tab_mode = 0;    // alt tab切换模式
+  config.hotarea_size = 10;  // 热区大小,10x10
+  config.enable_hotarea = 1; // 是否启用鼠标热区
+  config.smartgaps = 0; /* 1 means no outer gap when there is only one window */
+  config.sloppyfocus = 1; /* focus follows mouse */
+  config.gappih = 5;      /* horiz inner gap between windows */
+  config.gappiv = 5;      /* vert inner gap between windows */
+  config.gappoh = 10;     /* horiz outer gap between windows and screen edge */
+  config.gappov = 10;     /* vert outer gap between windows and screen edge */
 
-config.scroller_structs = 20;
-config.scroller_default_proportion = 0.9;
-config.scoller_focus_center = 0;
+  config.scroller_structs = 20;
+  config.scroller_default_proportion = 0.9;
+  config.scoller_focus_center = 0;
 
-config.bypass_surface_visibility =
-    0; /* 1 means idle inhibitors will disable idle tracking even if it's
-          surface isn't visible  */
+  config.bypass_surface_visibility =
+      0; /* 1 means idle inhibitors will disable idle tracking even if it's
+            surface isn't visible  */
 
+  config.overviewgappi = 5;  /* overview时 窗口与边缘 缝隙大小 */
+  config.overviewgappo = 30; /* overview时 窗口与窗口 缝隙大小 */
 
-config.overviewgappi = 5;  /* overview时 窗口与边缘 缝隙大小 */
-config.overviewgappo = 30; /* overview时 窗口与窗口 缝隙大小 */
+  config.warpcursor = 1; /* Warp cursor to focused client */
 
-config.warpcursor = 1; /* Warp cursor to focused client */
+  config.repeat_rate = 25;
+  config.repeat_delay = 600;
 
-config.repeat_rate = 25;
-config.repeat_delay = 600;
-
-/* Trackpad */
-config.tap_to_click = 1;
-config.tap_and_drag = 1;
-config.drag_lock = 1;
-config.natural_scrolling = 0;
-config.disable_while_typing = 1;
-config.left_handed = 0;
-config.middle_button_emulation = 0;
+  /* Trackpad */
+  config.tap_to_click = 1;
+  config.tap_and_drag = 1;
+  config.drag_lock = 1;
+  config.natural_scrolling = 0;
+  config.disable_while_typing = 1;
+  config.left_handed = 0;
+  config.middle_button_emulation = 0;
 }
 
 void parse_config(void) {
@@ -1002,30 +1008,31 @@ void parse_config(void) {
 
   // 获取 MAOMAOCONFIG 环境变量
   const char *maomaoconfig = getenv("MAOMAOCONFIG");
-  
+
   // 如果 MAOMAOCONFIG 环境变量不存在或为空，则使用 HOME 环境变量
   if (!maomaoconfig || maomaoconfig[0] == '\0') {
-      // 获取当前用户家目录
-      const char *homedir = getenv("HOME");
-      if (!homedir) {
-          // 如果获取失败，则无法继续
-          return;
-      }
-      // 构建日志文件路径
-      snprintf(filename, sizeof(filename), "%s/.config/maomao/config.conf", homedir);
-    
-      // 检查文件是否存在
-      if (access(filename, F_OK) != 0) {
-          // 如果文件不存在，则使用 /etc/maomao/config.conf
-          snprintf(filename, sizeof(filename), "/etc/maomao/config.conf");
-      }
+    // 获取当前用户家目录
+    const char *homedir = getenv("HOME");
+    if (!homedir) {
+      // 如果获取失败，则无法继续
+      return;
+    }
+    // 构建日志文件路径
+    snprintf(filename, sizeof(filename), "%s/.config/maomao/config.conf",
+             homedir);
+
+    // 检查文件是否存在
+    if (access(filename, F_OK) != 0) {
+      // 如果文件不存在，则使用 /etc/maomao/config.conf
+      snprintf(filename, sizeof(filename), "/etc/maomao/config.conf");
+    }
   } else {
-      // 使用 MAOMAOCONFIG 环境变量作为配置文件夹路径
-      snprintf(filename, sizeof(filename), "%s/config.conf", maomaoconfig);
+    // 使用 MAOMAOCONFIG 环境变量作为配置文件夹路径
+    snprintf(filename, sizeof(filename), "%s/config.conf", maomaoconfig);
   }
 
-set_value_default();
-parse_config_file(&config, filename);
+  set_value_default();
+  parse_config_file(&config, filename);
   override_config();
 }
 
@@ -1035,11 +1042,11 @@ void reload_config(const Arg *arg) {
   parse_config();
   init_baked_points();
   wl_list_for_each(c, &clients, link) {
-    if (c&& !c->iskilling) {
+    if (c && !c->iskilling) {
       if (c->bw) {
         c->bw = borderpx;
       }
     }
-  }  
-  arrange(selmon,false);
+  }
+  arrange(selmon, false);
 }

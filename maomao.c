@@ -172,7 +172,7 @@ typedef struct Monitor Monitor;
 typedef struct {
   /* Must keep these three elements in this order */
   unsigned int type; /* XDGShell or X11* */
-  struct wlr_box geom, pending, oldgeom, animainit_geom,overview_backup_geom,
+  struct wlr_box geom, pending, oldgeom, animainit_geom, overview_backup_geom,
       current; /* layout-relative, includes border */
   Monitor *mon;
   struct wlr_scene_tree *scene;
@@ -365,7 +365,7 @@ typedef struct {
 
 /* function declarations */
 static void logtofile(const char *fmt, ...); // 日志函数
-static void lognumtofile(float num);  // 日志函数
+static void lognumtofile(float num);         // 日志函数
 static void applybounds(
     Client *c,
     struct wlr_box *bbox); // 设置边界规则,能让一些窗口拥有比较适合的大小
@@ -542,7 +542,7 @@ void apply_border(Client *c, struct wlr_box clip_box, int offset);
 void client_set_opacity(Client *c, double opacity);
 void init_baked_points(void);
 void scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer, int sx, int sy,
-  void *data);
+                                void *data);
 
 Client *direction_select(const Arg *arg);
 void bind_to_view(const Arg *arg);
@@ -721,7 +721,6 @@ double find_animation_curve_at(double t) {
   return baked_points[up].y;
 }
 
-
 void fadeout_client_animation_next_tick(Client *c) {
   if (!c)
     return;
@@ -750,7 +749,7 @@ void fadeout_client_animation_next_tick(Client *c) {
   double opacity = MAX(fadeout_begin_opacity - animation_passed, 0);
 
   wlr_scene_node_for_each_buffer(&c->snapshot_scene->node,
-    scene_buffer_apply_opacity, &opacity);
+                                 scene_buffer_apply_opacity, &opacity);
 
   if (animation_passed == 1.0) {
     wl_list_remove(&c->fadeout_link);
@@ -761,7 +760,6 @@ void fadeout_client_animation_next_tick(Client *c) {
     c->animation.passed_frames++;
   }
 }
-
 
 void client_animation_next_tick(Client *c) {
   double animation_passed =
@@ -838,7 +836,7 @@ void client_actual_size(Client *c, uint32_t *width, uint32_t *height) {
 
 void apply_border(Client *c, struct wlr_box clip_box, int offset) {
 
-  if(c->iskilling || !client_surface(c)->mapped)
+  if (c->iskilling || !client_surface(c)->mapped)
     return;
 
   wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
@@ -890,7 +888,7 @@ void apply_border(Client *c, struct wlr_box clip_box, int offset) {
 
 void client_apply_clip(Client *c) {
 
-  if(c->iskilling || !client_surface(c)->mapped)
+  if (c->iskilling || !client_surface(c)->mapped)
     return;
 
   uint32_t width, height;
@@ -928,12 +926,12 @@ void client_apply_clip(Client *c) {
 
   animationScale scale_data;
   scale_data.width = clip_box.width - 2 * c->bw;
-  scale_data.height = clip_box.height - 2* c->bw;
+  scale_data.height = clip_box.height - 2 * c->bw;
   wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
   apply_border(c, clip_box, offset);
   // if(c->animation.running) {
-  scale_data.width_scale = (float)clip_box.width/c->current.width;
-  scale_data.height_scale = (float)clip_box.height/c->current.height;
+  scale_data.width_scale = (float)clip_box.width / c->current.width;
+  scale_data.height_scale = (float)clip_box.height / c->current.height;
   buffer_set_size(c, scale_data);
   // } else {
   //   scale_data.width_scale = 1.0;
@@ -963,15 +961,13 @@ bool client_draw_frame(Client *c) {
   return true;
 }
 
-
 bool client_draw_fadeout_frame(Client *c) {
-  if(!c)
+  if (!c)
     return false;
 
   fadeout_client_animation_next_tick(c);
   return true;
 }
-
 
 void // 0.5
 applybounds(Client *c, struct wlr_box *bbox) {
@@ -1609,26 +1605,29 @@ void autostartexec(void) {
   size_t i = 0;
 
   const char *maomaoconfig = getenv("MAOMAOCONFIG");
-  static const char *autostart[4];  // 声明一个全局数组，大小为 5（包括 NULL 结 尾）
-  char autostart_path[1024];  // 用于存储脚本的完整路径
+  static const char
+      *autostart[4];         // 声明一个全局数组，大小为 5（包括 NULL 结 尾）
+  char autostart_path[1024]; // 用于存储脚本的完整路径
 
   if (maomaoconfig && maomaoconfig[0] != '\0') {
-      // 如果 MAOMAOCONFIG 存在且不为空，使用它作为配置文件夹
-      snprintf(autostart_path, sizeof(autostart_path), "%s/autostart.sh", maomaoconfig);
+    // 如果 MAOMAOCONFIG 存在且不为空，使用它作为配置文件夹
+    snprintf(autostart_path, sizeof(autostart_path), "%s/autostart.sh",
+             maomaoconfig);
   } else {
-      // 否则使用 HOME 环境变量下的默认路径
-      const char *homedir = getenv("HOME");
-      if (!homedir) {
-          // 如果 HOME 环境变量不存在，无法继续
-          fprintf(stderr, "Error: HOME environment variable not set.\n");
-          return;
-      }
-      snprintf(autostart_path, sizeof(autostart_path), "%s/.config/maomao/autostart.sh", homedir);
+    // 否则使用 HOME 环境变量下的默认路径
+    const char *homedir = getenv("HOME");
+    if (!homedir) {
+      // 如果 HOME 环境变量不存在，无法继续
+      fprintf(stderr, "Error: HOME environment variable not set.\n");
+      return;
+    }
+    snprintf(autostart_path, sizeof(autostart_path),
+             "%s/.config/maomao/autostart.sh", homedir);
   }
 
   autostart[0] = "/bin/sh";      // 使用 /bin/sh 执行脚本
   autostart[1] = "-c";           // -c 参数表示从命令行读取脚本
-  autostart[2] = autostart_path; // 脚本的完整路径 
+  autostart[2] = autostart_path; // 脚本的完整路径
   autostart[3] = NULL;           // 数组以 NULL 结尾
 
   /* count entries */
@@ -1679,7 +1678,7 @@ axisnotify(struct wl_listener *listener, void *data) {
     if (CLEANMASK(mods) == CLEANMASK(a->mod) && // 按键一致
         adir == a->dir && a->func) { // 滚轮方向判断一致且处理函数存在
       if (event->time_msec - axis_apply_time > axis_bind_apply_timeout ||
-        axis_apply_dir * event->delta < 0) {
+          axis_apply_dir * event->delta < 0) {
         a->func(&a->arg);
         axis_apply_time = event->time_msec;
         axis_apply_dir = event->delta > 0 ? 1 : -1;
@@ -1712,8 +1711,7 @@ buttonpress(struct wl_listener *listener, void *data) {
   struct wlr_surface *surface;
 
   struct wlr_surface *old_pointer_focus_surface =
-  seat->pointer_state.focused_surface;
-
+      seat->pointer_state.focused_surface;
 
   wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
@@ -1986,9 +1984,8 @@ void commitnotify(struct wl_listener *listener, void *data) {
   // if don't do this, some client may resize uncompleted
   resize(c, c->geom, (c->isfloating && !c->isfullscreen));
 
-	// if (c->configure_serial && c->configure_serial <= c->surface.xdg->current.configure_serial)
-	// 	c->configure_serial = 0;
-
+  // if (c->configure_serial && c->configure_serial <=
+  // c->surface.xdg->current.configure_serial) 	c->configure_serial = 0;
 }
 
 void // 0.5
@@ -2781,7 +2778,6 @@ void focusclient(Client *c, int lift) {
   if (c && client_surface(c) == old_keyboard_focus_surface)
     return;
 
-
   if (c && c->mon && c->mon != selmon) {
     selmon = c->mon;
   }
@@ -3153,117 +3149,112 @@ keypressmod(struct wl_listener *listener, void *data) {
   wlr_seat_keyboard_notify_modifiers(seat, &kb->wlr_keyboard->modifiers);
 }
 
-
-
 static bool scene_node_snapshot(struct wlr_scene_node *node, int lx, int ly,
-								struct wlr_scene_tree *snapshot_tree) {
-	if (!node->enabled && node->type != WLR_SCENE_NODE_TREE) {
-		return true;
-	}
+                                struct wlr_scene_tree *snapshot_tree) {
+  if (!node->enabled && node->type != WLR_SCENE_NODE_TREE) {
+    return true;
+  }
 
-	lx += node->x;
-	ly += node->y;
+  lx += node->x;
+  ly += node->y;
 
-	struct wlr_scene_node *snapshot_node = NULL;
-	switch (node->type) {
-	case WLR_SCENE_NODE_TREE:;
-		struct wlr_scene_tree *scene_tree = wlr_scene_tree_from_node(node);
-		struct wlr_scene_node *child;
-		wl_list_for_each(child, &scene_tree->children, link) {
-			scene_node_snapshot(child, lx, ly, snapshot_tree);
-		}
-		break;
-	case WLR_SCENE_NODE_RECT:;
+  struct wlr_scene_node *snapshot_node = NULL;
+  switch (node->type) {
+  case WLR_SCENE_NODE_TREE:;
+    struct wlr_scene_tree *scene_tree = wlr_scene_tree_from_node(node);
+    struct wlr_scene_node *child;
+    wl_list_for_each(child, &scene_tree->children, link) {
+      scene_node_snapshot(child, lx, ly, snapshot_tree);
+    }
+    break;
+  case WLR_SCENE_NODE_RECT:;
 
-		struct wlr_scene_rect *scene_rect = wlr_scene_rect_from_node(node);
+    struct wlr_scene_rect *scene_rect = wlr_scene_rect_from_node(node);
 
-		struct wlr_scene_rect *snapshot_rect =
-			wlr_scene_rect_create(snapshot_tree, scene_rect->width,
-								  scene_rect->height, scene_rect->color);
-		snapshot_rect->node.data = scene_rect->node.data;
-		if (snapshot_rect == NULL) {
-			return false;
-		}
-		snapshot_node = &snapshot_rect->node;
-		break;
-	case WLR_SCENE_NODE_BUFFER:;
+    struct wlr_scene_rect *snapshot_rect =
+        wlr_scene_rect_create(snapshot_tree, scene_rect->width,
+                              scene_rect->height, scene_rect->color);
+    snapshot_rect->node.data = scene_rect->node.data;
+    if (snapshot_rect == NULL) {
+      return false;
+    }
+    snapshot_node = &snapshot_rect->node;
+    break;
+  case WLR_SCENE_NODE_BUFFER:;
 
-		struct wlr_scene_buffer *scene_buffer =
-			wlr_scene_buffer_from_node(node);
+    struct wlr_scene_buffer *scene_buffer = wlr_scene_buffer_from_node(node);
 
-		struct wlr_scene_buffer *snapshot_buffer =
-			wlr_scene_buffer_create(snapshot_tree, NULL);
-		if (snapshot_buffer == NULL) {
-			return false;
-		}
-		snapshot_node = &snapshot_buffer->node;
-		snapshot_buffer->node.data = scene_buffer->node.data;
+    struct wlr_scene_buffer *snapshot_buffer =
+        wlr_scene_buffer_create(snapshot_tree, NULL);
+    if (snapshot_buffer == NULL) {
+      return false;
+    }
+    snapshot_node = &snapshot_buffer->node;
+    snapshot_buffer->node.data = scene_buffer->node.data;
 
-		wlr_scene_buffer_set_dest_size(snapshot_buffer, scene_buffer->dst_width,
-									   scene_buffer->dst_height);
-		wlr_scene_buffer_set_opaque_region(snapshot_buffer,
-										   &scene_buffer->opaque_region);
-		wlr_scene_buffer_set_source_box(snapshot_buffer,
-										&scene_buffer->src_box);
-		wlr_scene_buffer_set_transform(snapshot_buffer,
-									   scene_buffer->transform);
-		wlr_scene_buffer_set_filter_mode(snapshot_buffer,
-										 scene_buffer->filter_mode);
+    wlr_scene_buffer_set_dest_size(snapshot_buffer, scene_buffer->dst_width,
+                                   scene_buffer->dst_height);
+    wlr_scene_buffer_set_opaque_region(snapshot_buffer,
+                                       &scene_buffer->opaque_region);
+    wlr_scene_buffer_set_source_box(snapshot_buffer, &scene_buffer->src_box);
+    wlr_scene_buffer_set_transform(snapshot_buffer, scene_buffer->transform);
+    wlr_scene_buffer_set_filter_mode(snapshot_buffer,
+                                     scene_buffer->filter_mode);
 
-		// Effects
-		wlr_scene_buffer_set_opacity(snapshot_buffer, scene_buffer->opacity);
+    // Effects
+    wlr_scene_buffer_set_opacity(snapshot_buffer, scene_buffer->opacity);
 
-		wlr_scene_buffer_set_opacity(snapshot_buffer, scene_buffer->opacity);
+    wlr_scene_buffer_set_opacity(snapshot_buffer, scene_buffer->opacity);
 
-		snapshot_buffer->node.data = scene_buffer->node.data;
+    snapshot_buffer->node.data = scene_buffer->node.data;
 
-		struct wlr_scene_surface *scene_surface =
-			wlr_scene_surface_try_from_buffer(scene_buffer);
-		if (scene_surface != NULL && scene_surface->surface->buffer != NULL) {
-			wlr_scene_buffer_set_buffer(snapshot_buffer,
-										&scene_surface->surface->buffer->base);
-		} else {
-			wlr_scene_buffer_set_buffer(snapshot_buffer, scene_buffer->buffer);
-		}
-		break;
+    struct wlr_scene_surface *scene_surface =
+        wlr_scene_surface_try_from_buffer(scene_buffer);
+    if (scene_surface != NULL && scene_surface->surface->buffer != NULL) {
+      wlr_scene_buffer_set_buffer(snapshot_buffer,
+                                  &scene_surface->surface->buffer->base);
+    } else {
+      wlr_scene_buffer_set_buffer(snapshot_buffer, scene_buffer->buffer);
+    }
+    break;
+  }
 
-	}
+  if (snapshot_node != NULL) {
+    wlr_scene_node_set_position(snapshot_node, lx, ly);
+  }
 
-	if (snapshot_node != NULL) {
-		wlr_scene_node_set_position(snapshot_node, lx, ly);
-	}
-
-	return true;
+  return true;
 }
 
 struct wlr_scene_tree *wlr_scene_tree_snapshot(struct wlr_scene_node *node,
-											   struct wlr_scene_tree *parent) {
-	struct wlr_scene_tree *snapshot = wlr_scene_tree_create(parent);
-	if (snapshot == NULL) {
-		return NULL;
-	}
+                                               struct wlr_scene_tree *parent) {
+  struct wlr_scene_tree *snapshot = wlr_scene_tree_create(parent);
+  if (snapshot == NULL) {
+    return NULL;
+  }
 
-	// Disable and enable the snapshot tree like so to atomically update
-	// the scene-graph. This will prevent over-damaging or other weirdness.
-	wlr_scene_node_set_enabled(&snapshot->node, false);
+  // Disable and enable the snapshot tree like so to atomically update
+  // the scene-graph. This will prevent over-damaging or other weirdness.
+  wlr_scene_node_set_enabled(&snapshot->node, false);
 
-	if (!scene_node_snapshot(node, 0, 0, snapshot)) {
-		wlr_scene_node_destroy(&snapshot->node);
-		return NULL;
-	}
+  if (!scene_node_snapshot(node, 0, 0, snapshot)) {
+    wlr_scene_node_destroy(&snapshot->node);
+    return NULL;
+  }
 
-	wlr_scene_node_set_enabled(&snapshot->node, true);
+  wlr_scene_node_set_enabled(&snapshot->node, true);
 
-	return snapshot;
+  return snapshot;
 }
 
 void pending_kill_client(Client *c) {
 
-  if(!c->snapshot_scene) {
+  if (!c->snapshot_scene) {
     wlr_scene_node_destroy(&c->snapshot_scene->node);
   }
-  if(c->mon) {
-    c->snapshot_scene = wlr_scene_tree_snapshot(&c->scene->node, layers[LyrFadeOut]);
+  if (c->mon) {
+    c->snapshot_scene =
+        wlr_scene_tree_snapshot(&c->scene->node, layers[LyrFadeOut]);
     wlr_scene_node_set_enabled(&c->snapshot_scene->node, false);
   }
   // c->iskilling = 1; //不可以提前标记已经杀掉，因为有些客户端可能拒绝
@@ -3323,8 +3314,8 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->scene->node.data = c->scene_surface->node.data = c;
 
   client_get_geometry(c, &c->geom);
-  // c->timer_tick = wl_event_loop_add_timer(wl_display_get_event_loop(dpy), timer_tick_action, c);
-  // wl_event_source_timer_update(c->timer_tick, 0);
+  // c->timer_tick = wl_event_loop_add_timer(wl_display_get_event_loop(dpy),
+  // timer_tick_action, c); wl_event_source_timer_update(c->timer_tick, 0);
 
   /* Handle unmanaged clients first so we can return prior create borders */
   if (client_is_unmanaged(c)) {
@@ -3836,29 +3827,35 @@ void scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer, int sx, int sy,
   wlr_scene_buffer_set_opacity(buffer, *(double *)data);
 }
 
-void scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy, void *data) {
+void scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy,
+                             void *data) {
   animationScale *scale_data = (animationScale *)data;
   struct wlr_scene_surface *surface = wlr_scene_surface_try_from_buffer(buffer);
-  if(wlr_subsurface_try_from_wlr_surface(surface->surface) != NULL) {
-    wlr_scene_buffer_set_dest_size(buffer, buffer->dst_width * scale_data->width_scale, buffer->dst_height * scale_data->height_scale);
+  if (wlr_subsurface_try_from_wlr_surface(surface->surface) != NULL) {
+    wlr_scene_buffer_set_dest_size(
+        buffer, buffer->dst_width * scale_data->width_scale,
+        buffer->dst_height * scale_data->height_scale);
   } else {
-    wlr_scene_buffer_set_dest_size(buffer, scale_data->width, scale_data->height);
+    wlr_scene_buffer_set_dest_size(buffer, scale_data->width,
+                                   scale_data->height);
   }
 }
 
 void buffer_set_size(Client *c, animationScale data) {
-  if (c->animation.current.width <= c->geom.width && c->animation.current.height <= c->geom.height) {
+  if (c->animation.current.width <= c->geom.width &&
+      c->animation.current.height <= c->geom.height) {
     return;
   }
-  if(c->iskilling|| c->animation.tagouting || c->animation.tagining || c->animation.tagouted) {
+  if (c->iskilling || c->animation.tagouting || c->animation.tagining ||
+      c->animation.tagouted) {
     return;
   }
 
-  if(c == grabc)
+  if (c == grabc)
     return;
 
   wlr_scene_node_for_each_buffer(&c->scene_surface->node,
-    scene_buffer_apply_size, &data);
+                                 scene_buffer_apply_size, &data);
 }
 
 void client_set_opacity(Client *c, double opacity) {
@@ -3880,7 +3877,7 @@ void client_handle_opacity(Client *c) {
 
 void rendermon(struct wl_listener *listener, void *data) {
   Monitor *m = wl_container_of(listener, m, frame);
-  Client *c,*tmp;
+  Client *c, *tmp;
   struct wlr_output_state pending = {0};
 
   struct timespec now;
@@ -4164,15 +4161,15 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   if (c == grabc) {
     c->animation.running = false;
     c->need_output_flush = false;
-    c->animainit_geom = c->current = c->pending = c->animation.current = c->geom;
+    c->animainit_geom = c->current = c->pending = c->animation.current =
+        c->geom;
     wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
-    apply_border(c,c->geom, 0);
+    apply_border(c, c->geom, 0);
     wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
     client_get_clip(c, &clip);
     wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip);
     return;
   }
-    
 
   // 如果不是工作区切换时划出去的窗口，就让动画的结束位置，就是上面的真实位置和大小
   // c->pending 决定动画的终点，一般在其他调用resize的函数的附近设置了
@@ -4564,17 +4561,18 @@ void signalhandler(int signalnumber) {
 
   // 如果 MAOMAOCONFIG 环境变量不存在或为空，则使用 HOME 环境变量
   if (!maomaoconfig || maomaoconfig[0] == '\0') {
-      // 获取当前用户家目录
-      const char *homedir = getenv("HOME");
-      if (!homedir) {
-          // 如果获取失败，则无法继续
-          return;
-      }
-      // 构建日志文件路径
-      snprintf(filename, sizeof(filename), "%s/.config/maomao/crash.log", homedir);
+    // 获取当前用户家目录
+    const char *homedir = getenv("HOME");
+    if (!homedir) {
+      // 如果获取失败，则无法继续
+      return;
+    }
+    // 构建日志文件路径
+    snprintf(filename, sizeof(filename), "%s/.config/maomao/crash.log",
+             homedir);
   } else {
-      // 使用 MAOMAOCONFIG 环境变量作为配置文件夹路径
-      snprintf(filename, sizeof(filename), "%s/crash.log", maomaoconfig);
+    // 使用 MAOMAOCONFIG 环境变量作为配置文件夹路径
+    snprintf(filename, sizeof(filename), "%s/crash.log", maomaoconfig);
   }
 
   // 打开日志文件
@@ -5064,16 +5062,16 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
     wl_list_for_each(c, &clients, link) {
       if (VISIBLEON(c, c->mon) && !c->iskilling && !c->animation.tagouting &&
           c->mon == selmon) {
-          cw = (m->w.width - 2 * gappo) * 0.7;
-          ch = (m->w.height - 2 * gappo) * 0.8;
-          c->geom.x = m->w.x + (m->w.width - cw) / 2;
-          c->geom.y = m->w.y + (m->w.height - ch) / 2;
-          c->geom.width = cw - 2 * c->bw;
-          c->geom.height = ch - 2 * c->bw;
-          resize(c, c->geom, 0);
-          return;
+        cw = (m->w.width - 2 * gappo) * 0.7;
+        ch = (m->w.height - 2 * gappo) * 0.8;
+        c->geom.x = m->w.x + (m->w.width - cw) / 2;
+        c->geom.y = m->w.y + (m->w.height - ch) / 2;
+        c->geom.width = cw - 2 * c->bw;
+        c->geom.height = ch - 2 * c->bw;
+        resize(c, c->geom, 0);
+        return;
       }
-    }  
+    }
   }
 
   if (n == 2) {
@@ -5597,36 +5595,39 @@ unmaplayersurfacenotify(struct wl_listener *listener, void *data) {
 
 void init_fadeout_client(Client *c) {
 
-  if(!c->mon || client_is_unmanaged(c))
+  if (!c->mon || client_is_unmanaged(c))
     return;
 
-  if(!c->snapshot_scene) {
+  if (!c->snapshot_scene) {
     wlr_scene_node_destroy(&c->snapshot_scene->node);
   }
-  
-  Client *fadeout_cient =  ecalloc(1, sizeof(*fadeout_cient));
+
+  Client *fadeout_cient = ecalloc(1, sizeof(*fadeout_cient));
 
   wlr_scene_node_set_enabled(&c->scene->node, true);
-  fadeout_cient->snapshot_scene = wlr_scene_tree_snapshot(&c->scene->node, layers[LyrFadeOut]);
+  fadeout_cient->snapshot_scene =
+      wlr_scene_tree_snapshot(&c->scene->node, layers[LyrFadeOut]);
   wlr_scene_node_set_enabled(&c->scene->node, false);
 
-  if(!fadeout_cient->snapshot_scene) {
+  if (!fadeout_cient->snapshot_scene) {
     free(fadeout_cient);
     return;
   }
 
   fadeout_cient->animation.duration = animation_duration_close;
-  fadeout_cient->current = fadeout_cient->animainit_geom = c->animation.initial = c->animation.current;
+  fadeout_cient->current = fadeout_cient->animainit_geom =
+      c->animation.initial = c->animation.current;
   fadeout_cient->mon = c->mon;
   // 这里snap节点的坐标设置是使用的相对坐标，所以不能加上原来坐标
   // 这根普通node有区别
-  fadeout_cient->current.y = c->mon->m.height - (c->animation.current.y - c->mon->m.y);
-  fadeout_cient->current.x = 0; //x无偏差，垂直划出
+  fadeout_cient->current.y =
+      c->mon->m.height - (c->animation.current.y - c->mon->m.y);
+  fadeout_cient->current.x = 0; // x无偏差，垂直划出
   fadeout_cient->animation.passed_frames = 0;
   fadeout_cient->animation.total_frames =
-  fadeout_cient->animation.duration / output_frame_duration_ms(c);
-  fadeout_cient->is_fadeout_client =true;
-  wlr_scene_node_set_enabled(&fadeout_cient->snapshot_scene->node,true);
+      fadeout_cient->animation.duration / output_frame_duration_ms(c);
+  fadeout_cient->is_fadeout_client = true;
+  wlr_scene_node_set_enabled(&fadeout_cient->snapshot_scene->node, true);
   wl_list_insert(&fadeout_clients, &fadeout_cient->fadeout_link);
 }
 
@@ -5681,7 +5682,6 @@ void unmapnotify(struct wl_listener *listener, void *data) {
   wlr_scene_node_destroy(&c->scene->node);
   printstatus();
   motionnotify(0, NULL, 0, 0, 0, 0);
-
 }
 
 void // 0.5
@@ -6071,7 +6071,7 @@ void xytonode(double x, double y, struct wlr_surface **psurface, Client **pc,
     if (layer == LyrIMPopup)
       continue;
 #endif
-    if(layer == LyrFadeOut)
+    if (layer == LyrFadeOut)
       continue;
 
     if (!(node = wlr_scene_node_at(&layers[layer]->node, x, y, nx, ny)))
