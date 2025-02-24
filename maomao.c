@@ -178,7 +178,6 @@ typedef struct {
   struct wlr_scene_tree *scene;
   struct wlr_scene_rect *border[4]; /* top, bottom, left, right */
   struct wlr_scene_tree *scene_surface;
-  struct wlr_scene_tree *snapshot_scene;
   struct wl_list link;
   struct wl_list flink;
   struct wl_list fadeout_link;
@@ -726,7 +725,11 @@ void apply_opacity_to_rect_nodes(struct wlr_scene_node *node, double opacity) {
   if (node->type == WLR_SCENE_NODE_RECT) {
     struct wlr_scene_rect *rect = wlr_scene_rect_from_node(node);
     // Assuming the rect has a color field and we can modify it
-    rect->color[3] = opacity; // Set the alpha channel of the color
+    // rect->color[0] = opacity * rect->color[3] * rect->color[0] ; // Set the red channel of the color
+    // rect->color[1] = opacity * rect->color[3] * rect->color[1] ; // Set the green channel of the color
+    // rect->color[2] = opacity * rect->color[3] * rect->color[2] ; // Set the blue channel of the color
+    rect->color[3] = opacity ; // Set the alpha channel of the color
+    wlr_scene_rect_set_color(rect, rect->color);
   }
 
   // If the node is a tree, recursively traverse its children
@@ -757,7 +760,7 @@ void fadeout_client_animation_next_tick(Client *c) {
   uint32_t y =
       c->animation.initial.y + (c->current.y - c->animation.initial.y) * factor;
 
-  wlr_scene_node_set_position(&c->snapshot_scene->node, 0, y);
+  wlr_scene_node_set_position(&c->scene->node, 0, y);
   c->animation.current = (struct wlr_box){
       .x = x,
       .y = y,
@@ -767,14 +770,14 @@ void fadeout_client_animation_next_tick(Client *c) {
 
   double opacity = MAX(fadeout_begin_opacity - animation_passed, 0);
 
-  wlr_scene_node_for_each_buffer(&c->snapshot_scene->node,
+  wlr_scene_node_for_each_buffer(&c->scene->node,
                                  scene_buffer_apply_opacity, &opacity);
 
-  // apply_opacity_to_rect_nodes(&c->snapshot_scene->node, opacity);
+  // apply_opacity_to_rect_nodes(&c->scene->node, opacity);
 
   if (animation_passed == 1.0) {
     wl_list_remove(&c->fadeout_link);
-    wlr_scene_node_destroy(&c->snapshot_scene->node);
+    wlr_scene_node_destroy(&c->scene->node);
     free(c);
     c = NULL;
   } else {
@@ -3269,15 +3272,6 @@ struct wlr_scene_tree *wlr_scene_tree_snapshot(struct wlr_scene_node *node,
 }
 
 void pending_kill_client(Client *c) {
-
-  if (!c->snapshot_scene) {
-    wlr_scene_node_destroy(&c->snapshot_scene->node);
-  }
-  if (c->mon) {
-    c->snapshot_scene =
-        wlr_scene_tree_snapshot(&c->scene->node, layers[LyrFadeOut]);
-    wlr_scene_node_set_enabled(&c->snapshot_scene->node, false);
-  }
   // c->iskilling = 1; //不可以提前标记已经杀掉，因为有些客户端可能拒绝
   client_send_close(c);
 }
@@ -5619,18 +5613,18 @@ void init_fadeout_client(Client *c) {
   if (!c->mon || client_is_unmanaged(c))
     return;
 
-  if (!c->snapshot_scene) {
-    wlr_scene_node_destroy(&c->snapshot_scene->node);
+  if (!c->scene) {
+    return;
   }
 
   Client *fadeout_cient = ecalloc(1, sizeof(*fadeout_cient));
 
   wlr_scene_node_set_enabled(&c->scene->node, true);
-  fadeout_cient->snapshot_scene =
+  fadeout_cient->scene =
       wlr_scene_tree_snapshot(&c->scene->node, layers[LyrFadeOut]);
   wlr_scene_node_set_enabled(&c->scene->node, false);
 
-  if (!fadeout_cient->snapshot_scene) {
+  if (!fadeout_cient->scene) {
     free(fadeout_cient);
     return;
   }
@@ -5648,7 +5642,7 @@ void init_fadeout_client(Client *c) {
   fadeout_cient->animation.total_frames =
       fadeout_cient->animation.duration / output_frame_duration_ms(c);
   fadeout_cient->is_fadeout_client = true;
-  wlr_scene_node_set_enabled(&fadeout_cient->snapshot_scene->node, true);
+  wlr_scene_node_set_enabled(&fadeout_cient->scene->node, true);
   wl_list_insert(&fadeout_clients, &fadeout_cient->fadeout_link);
 }
 
