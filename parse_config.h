@@ -66,6 +66,7 @@ typedef struct {
   uint32_t animation_duration_move;
   uint32_t animation_duration_open;
   uint32_t animation_duration_tag;
+  uint32_t animation_duration_close;
   double animation_curve[4];
 
   int scroller_structs;
@@ -452,6 +453,8 @@ void parse_config_line(Config *config, const char *line) {
     config->animation_duration_open = atoi(value);
   } else if (strcmp(key, "animation_duration_tag") == 0) {
     config->animation_duration_tag = atoi(value);
+  } else if (strcmp(key, "animation_duration_close") == 0) {
+    config->animation_duration_close = atoi(value);
   } else if (strcmp(key, "animation_curve") == 0) {
     if (sscanf(value, "%lf,%lf,%lf,%lf", &config->animation_curve[0],
                &config->animation_curve[1], &config->animation_curve[2],
@@ -876,6 +879,7 @@ void override_config(void) {
   animation_duration_move = config.animation_duration_move;
   animation_duration_open = config.animation_duration_open;
   animation_duration_tag = config.animation_duration_tag;
+  animation_duration_close = config.animation_duration_close;
 
   // 复制数组类型的变量
   memcpy(animation_curve, config.animation_curve, sizeof(animation_curve));
@@ -927,6 +931,7 @@ config.fadein_begin_opacity = 0; // Begin opac window ratio for animations
 config.animation_duration_move = 500;              // Animation move speed
 config.animation_duration_open = 400;              // Animation open speed
 config.animation_duration_tag = 300;               // Animation tag speed
+config.animation_duration_close = 300;               // Animation tag speed
 
 /* appearance */
 config.axis_bind_apply_timeout = 100; // 滚轮绑定动作的触发的时间间隔

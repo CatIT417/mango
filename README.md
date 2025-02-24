@@ -58,6 +58,7 @@ See below for more features.
 - fade in animation
 - alt-tab switch window like gnome
 - niri like scroller layout
+- fadeout animation
 
 ## suggest tools
 ```
