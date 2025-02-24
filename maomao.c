@@ -747,7 +747,7 @@ void fadeout_client_animation_next_tick(Client *c) {
       .height = height,
   };
 
-  double opacity = MAX(1 - 0.4 - animation_passed, 0);
+  double opacity = MAX(fadeout_begin_opacity - animation_passed, 0);
 
   wlr_scene_node_for_each_buffer(&c->snapshot_scene->node,
     scene_buffer_apply_opacity, &opacity);
