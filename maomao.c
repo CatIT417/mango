@@ -233,7 +233,7 @@ typedef struct {
   bool is_open_animation;
   bool is_restoring_from_ov;
   float scroller_proportion;
-  bool need_set_position;
+  bool need_output_flush;
   struct dwl_animation animation;
   // struct wl_event_source *timer_tick;
 
@@ -714,7 +714,7 @@ double find_animation_curve_at(double t) {
   return baked_points[up].y;
 }
 
-bool client_animation_next_tick(Client *c) {
+void client_animation_next_tick(Client *c) {
   double animation_passed =
       (double)c->animation.passed_frames / c->animation.total_frames;
   double factor = find_animation_curve_at(animation_passed);
@@ -773,11 +773,11 @@ bool client_animation_next_tick(Client *c) {
     if (surface && pointer_c == selmon->sel) {
       wlr_seat_pointer_notify_enter(seat, surface, sx, sy);
     }
-    c->need_set_position = false;
-    return false;
+
+    // end flush in next frame, not the current frame
+    c->need_output_flush = false;
   } else {
     c->animation.passed_frames++;
-    return true;
   }
 }
 
@@ -897,23 +897,20 @@ bool client_draw_frame(Client *c) {
   if (!c || !client_surface(c)->mapped)
     return false;
 
-  if (!c->need_set_position)
+  if (!c->need_output_flush)
     return false;
 
-  bool need_more_frames = false;
   if (c->animation.running) {
-    if (client_animation_next_tick(c)) {
-      need_more_frames = true;
-    }
+    client_animation_next_tick(c);
     client_apply_clip(c);
   } else {
     wlr_scene_node_set_position(&c->scene->node, c->pending.x, c->pending.y);
     apply_border(c, c->pending, 0);
     client_apply_clip(c);
-    c->need_set_position = false;
+    c->need_output_flush = false;
   }
   // c->resize = 1;
-  return need_more_frames;
+  return true;
 }
 
 void // 0.5
@@ -3937,7 +3934,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
     return;
 
   // wl_event_source_timer_update(c->timer_tick, 10);
-  c->need_set_position = true;
+  c->need_output_flush = true;
   // oldgeom = c->geom;
   bbox = interact ? &sgeom : &c->mon->w;
 
@@ -3991,7 +3988,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
 
   if (c == grabc) {
     c->animation.running = false;
-    c->need_set_position = false;
+    c->need_output_flush = false;
     c->animainit_geom = c->current = c->pending = c->animation.current = c->geom;
     wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
     apply_border(c,c->geom, 0);
