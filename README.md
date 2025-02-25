@@ -140,6 +140,7 @@ like `MAOMAOCONFIG=/home/xxx/maomao`
                             '';
                             autostart_sh = ''
                               # see autostart.sh
+                              # Note: here no need to add shebang
                             '';
                           };
                         }
