@@ -3,6 +3,10 @@
 #include <stdint.h>
 #include <string.h>
 
+#ifndef SYSCONFDIR
+#define SYSCONFDIR "/etc" 
+#endif
+
 typedef struct {
   const char *id;
   const char *title;
@@ -1024,7 +1028,7 @@ void parse_config(void) {
     // 检查文件是否存在
     if (access(filename, F_OK) != 0) {
       // 如果文件不存在，则使用 /etc/maomao/config.conf
-      snprintf(filename, sizeof(filename), "/etc/maomao/config.conf");
+      snprintf(filename, sizeof(filename), "%s/maomao/config.conf",SYSCONFDIR);
     }
   } else {
     // 使用 MAOMAOCONFIG 环境变量作为配置文件夹路径
