@@ -721,7 +721,7 @@ double find_animation_curve_at(double t) {
 }
 
 // 有 bug,只是让上面那根透明了
-void apply_opacity_to_rect_nodes(struct wlr_scene_node *node, double animation_passed) {
+void apply_opacity_to_rect_nodes(Client *c,struct wlr_scene_node *node, double animation_passed) {
   if (node->type == WLR_SCENE_NODE_RECT) {
     struct wlr_scene_rect *rect = wlr_scene_rect_from_node(node);
     // Assuming the rect has a color field and we can modify it
@@ -730,6 +730,17 @@ void apply_opacity_to_rect_nodes(struct wlr_scene_node *node, double animation_p
     rect->color[2] = (1- animation_passed ) * rect->color[2];
     rect->color[3] = (1- animation_passed ) * rect->color[3]; 
     wlr_scene_rect_set_color(rect, rect->color);
+
+    // TODO: 判断当前窗口是否在屏幕外，如果在屏幕外就不要绘制
+    // 划出的border剪切屏幕之外的，这里底部bttome可以了，左右的还不不对
+    // if(node->y > c->geom.height/2  && c->geom.y +  c->animation.current.y + node->y >= c->mon->m.y + c->mon->m.height){
+    //   wlr_scene_rect_set_size(rect, 0, 0); // down
+    // } else if(node->x > c->geom.width/2  && c->geom.y +  c->animation.current.y + node->y >= c->mon->m.y + c->mon->m.height) {
+    //   wlr_scene_rect_set_size(rect, c->bw,rect->height - (c->geom.y +  c->animation.current.y + node->y - c->mon->m.y - c->mon->m.height)); // right
+    // } else if(rect->height > rect->width  && c->geom.y +  c->animation.current.y + node->y >= c->mon->m.y + c->mon->m.height) {
+    //   wlr_scene_rect_set_size(rect, c->bw,rect->height - (c->geom.y +  c->animation.current.y + node->y - c->mon->m.y - c->mon->m.height)); // left
+    // }
+
   }
 
   // If the node is a tree, recursively traverse its children
@@ -737,7 +748,7 @@ void apply_opacity_to_rect_nodes(struct wlr_scene_node *node, double animation_p
     struct wlr_scene_tree *scene_tree = wlr_scene_tree_from_node(node);
     struct wlr_scene_node *child;
     wl_list_for_each(child, &scene_tree->children, link) {
-      apply_opacity_to_rect_nodes(child, animation_passed);
+      apply_opacity_to_rect_nodes(c, child, animation_passed);
     }
   }
 }
@@ -773,7 +784,7 @@ void fadeout_client_animation_next_tick(Client *c) {
   wlr_scene_node_for_each_buffer(&c->scene->node,
                                  scene_buffer_apply_opacity, &opacity);
 
-  apply_opacity_to_rect_nodes(&c->scene->node, animation_passed);
+  apply_opacity_to_rect_nodes(c, &c->scene->node, animation_passed);
 
   if (animation_passed == 1.0) {
     wl_list_remove(&c->fadeout_link);
@@ -867,8 +878,7 @@ void apply_border(Client *c, struct wlr_box clip_box, int offset) {
   wlr_scene_rect_set_size(c->border[0], clip_box.width, c->bw);
   wlr_scene_rect_set_size(c->border[1], clip_box.width, c->bw);
 
-  if (c->animation.tagining || c->animation.tagouted ||
-      c->animation.tagouting) {
+  if (c->animation.running) {
     if (c->animation.current.x < c->mon->m.x) {
       wlr_scene_rect_set_size(c->border[2], 0, 0);
       wlr_scene_rect_set_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
@@ -934,8 +944,7 @@ void client_apply_clip(Client *c) {
   }
 
   // make tagout tagin animations not visible in other monitors
-  if (c->animation.tagouting || c->animation.tagining ||
-      c->animation.tagouted) {
+  if (c->animation.running) {
     if (c->animation.current.x <= c->mon->m.x) {
       offset = c->mon->m.x - c->animation.current.x;
       clip_box.x = clip_box.x + offset;
@@ -3787,46 +3796,12 @@ pointerfocus(Client *c, struct wlr_surface *surface, double sx, double sy,
 void // 17
 printstatus(void) {
   Monitor *m = NULL;
-  Client *c;
-  uint32_t occ, urg, sel;
-  const char *appid, *title;
-
   wl_list_for_each(m, &mons, link) {
     if (!m->wlr_output->enabled) {
       continue;
     }
-    occ = urg = 0;
-    wl_list_for_each(c, &clients, link) {
-      if (c->mon != m)
-        continue;
-      occ |= c->tags;
-      if (c->isurgent)
-        urg |= c->tags;
-    }
-    if ((c = focustop(m))) {
-      title = client_get_title(c);
-      appid = client_get_appid(c);
-      printf("%s title %s\n", m->wlr_output->name, title ? title : broken);
-      printf("%s appid %s\n", m->wlr_output->name, appid ? appid : broken);
-      printf("%s fullscreen %u\n", m->wlr_output->name, c->isfullscreen);
-      printf("%s floating %u\n", m->wlr_output->name, c->isfloating);
-      sel = c->tags;
-    } else {
-      printf("%s title \n", m->wlr_output->name);
-      printf("%s appid \n", m->wlr_output->name);
-      printf("%s fullscreen \n", m->wlr_output->name);
-      printf("%s floating \n", m->wlr_output->name);
-      sel = 0;
-    }
-
-    printf("%s selmon %u\n", m->wlr_output->name, m == selmon);
-    printf("%s tags %u %u %u %u\n", m->wlr_output->name, occ,
-           m->tagset[m->seltags], sel, urg);
-    printf("%s layout %s\n", m->wlr_output->name,
-           m->pertag->ltidxs[m->pertag->curtag]->symbol);
     dwl_ipc_output_printstatus(m); // 更新waybar上tag的状态 这里很关键
   }
-  fflush(stdout);
 }
 
 void // 0.5
