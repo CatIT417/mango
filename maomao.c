@@ -721,14 +721,14 @@ double find_animation_curve_at(double t) {
 }
 
 // 有 bug,只是让上面那根透明了
-void apply_opacity_to_rect_nodes(struct wlr_scene_node *node, double opacity) {
+void apply_opacity_to_rect_nodes(struct wlr_scene_node *node, double animation_passed) {
   if (node->type == WLR_SCENE_NODE_RECT) {
     struct wlr_scene_rect *rect = wlr_scene_rect_from_node(node);
     // Assuming the rect has a color field and we can modify it
-    // rect->color[0] = opacity * rect->color[3] * rect->color[0] ; // Set the red channel of the color
-    // rect->color[1] = opacity * rect->color[3] * rect->color[1] ; // Set the green channel of the color
-    // rect->color[2] = opacity * rect->color[3] * rect->color[2] ; // Set the blue channel of the color
-    rect->color[3] = opacity ; // Set the alpha channel of the color
+    rect->color[0] = (1- animation_passed ) * rect->color[0];
+    rect->color[1] = (1- animation_passed ) * rect->color[1];
+    rect->color[2] = (1- animation_passed ) * rect->color[2];
+    rect->color[3] = (1- animation_passed ) * rect->color[3]; 
     wlr_scene_rect_set_color(rect, rect->color);
   }
 
@@ -737,7 +737,7 @@ void apply_opacity_to_rect_nodes(struct wlr_scene_node *node, double opacity) {
     struct wlr_scene_tree *scene_tree = wlr_scene_tree_from_node(node);
     struct wlr_scene_node *child;
     wl_list_for_each(child, &scene_tree->children, link) {
-      apply_opacity_to_rect_nodes(child, opacity);
+      apply_opacity_to_rect_nodes(child, animation_passed);
     }
   }
 }
@@ -773,7 +773,7 @@ void fadeout_client_animation_next_tick(Client *c) {
   wlr_scene_node_for_each_buffer(&c->scene->node,
                                  scene_buffer_apply_opacity, &opacity);
 
-  // apply_opacity_to_rect_nodes(&c->scene->node, opacity);
+  apply_opacity_to_rect_nodes(&c->scene->node, animation_passed);
 
   if (animation_passed == 1.0) {
     wl_list_remove(&c->fadeout_link);
