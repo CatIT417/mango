@@ -99,6 +99,67 @@ like `MAOMAOCONFIG=/home/xxx/maomao`
 - the fallback config path is in `/etc/maomao/config.conf`, you can find the default config here
 
 
+# NixOS+Home-manager
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    maomaowm.url = "github:DreamMaoMao/maomaowm";
+
+  };
+  outputs =
+    inputs@{ self, flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      debug = true;
+      systems = [ "x86_64-linux" ];
+      flake = {
+        nixosConfigurations = {
+          hostname = inputs.nixpkgs.lib.nixosSystem {
+            system = "x86_64-linux";
+            modules = [
+              inputs.home-manager.nixosModules.home-manager
+              {
+                home-manager = {
+                  useGlobalPkgs = true;
+                  useUserPackages = true;
+                  backupFileExtension = "backup";
+                  users."username".imports =
+                    [
+                      (
+                        { ... }:
+                        {
+                          wayland.windowManager.maomaowm = {
+                            enable = true;
+                            settings = ''
+                              # see config.conf
+                            '';
+                            autostart_sh = ''
+                              # see autostart.sh
+                            '';
+                          };
+                        }
+                      )
+                    ]
+                    ++ [
+                      # Add maomaowm hm module
+                      inputs.maomaowm.hmModules.maomaowm
+                    ];
+                };
+              }
+            ];
+          };
+        };
+      };
+    };
+}
+```
+
+
 # my dotfile
 [maomao-config](https://github.com/DreamMaoMao/dotfile/tree/main/maomao)
 
