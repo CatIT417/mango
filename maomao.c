@@ -123,6 +123,7 @@ enum {
 }; /* EWMH atoms */
 #endif
 enum { UP, DOWN, LEFT, RIGHT, UNDIR }; /* movewin */
+enum {NONE,OPEN,MOVE,CLOSE,TAG};
 
 typedef struct {
   int i;
@@ -165,6 +166,7 @@ struct dwl_animation {
   uint32_t duration;
   struct wlr_box initial;
   struct wlr_box current;
+  int action;
 };
 
 typedef struct Pertag Pertag;
@@ -878,7 +880,7 @@ void apply_border(Client *c, struct wlr_box clip_box, int offset) {
   wlr_scene_rect_set_size(c->border[0], clip_box.width, c->bw);
   wlr_scene_rect_set_size(c->border[1], clip_box.width, c->bw);
 
-  if (c->animation.running) {
+  if (c->animation.running && c->animation.action != MOVE) {
     if (c->animation.current.x < c->mon->m.x) {
       wlr_scene_rect_set_size(c->border[2], 0, 0);
       wlr_scene_rect_set_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
@@ -944,7 +946,7 @@ void client_apply_clip(Client *c) {
   }
 
   // make tagout tagin animations not visible in other monitors
-  if (c->animation.running) {
+  if (c->animation.running && c->animation.action != MOVE) {
     if (c->animation.current.x <= c->mon->m.x) {
       offset = c->mon->m.x - c->animation.current.x;
       clip_box.x = clip_box.x + offset;
@@ -4119,12 +4121,16 @@ void resize(Client *c, struct wlr_box geo, int interact) {
 
   if (c->animation.tagouting) {
     c->animation.duration = animation_duration_tag;
+    c->animation.action = TAG;
   } else if (c->animation.tagining) {
     c->animation.duration = animation_duration_tag;
+    c->animation.action = TAG;
   } else if (c->is_open_animation) {
     c->animation.duration = animation_duration_open;
+    c->animation.action = OPEN;
   } else {
     c->animation.duration = animation_duration_move;
+    c->animation.action = MOVE;
   }
 
   // 动画起始位置大小设置
