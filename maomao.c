@@ -1234,7 +1234,7 @@ applyrulesgeom(Client *c) {
       c->geom.height = r->height > 0 ? r->height : c->geom.height;
       // 重新计算居中的坐标
       c->geom = setclient_coordinate_center(c->geom);
-      hit = 1;
+      hit = r->height > 0 || r->width > 0 ? 1 : 0;
     }
   }
   return hit;
