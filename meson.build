@@ -4,18 +4,29 @@ project('maomao', ['c', 'cpp'],
 
 subdir('protocols')
 
-# 获取 sysconfdir 并动态去掉前缀
+is_nixos = false
+os_release = run_command('cat', '/etc/os-release', check: false)
+if os_release.returncode() == 0
+    if os_release.stdout().contains('ID=nixos')
+        is_nixos = true
+    endif
+endif
+
 prefix = get_option('prefix')
 sysconfdir = get_option('sysconfdir')
 
 # 如果 sysconfdir 以 prefix 开头，去掉 prefix
-if sysconfdir.startswith(prefix)
+if sysconfdir.startswith(prefix) and not is_nixos
   sysconfdir = sysconfdir.substring(prefix.length())
+  # 确保 sysconfdir 是绝对路径
+  if not sysconfdir.startswith('/')
+    sysconfdir = '/' + sysconfdir
+  endif
 endif
 
 # 打印调试信息，确认 sysconfdir 的值
-message('prefix: ' + prefix)
-message('sysconfdir: ' + sysconfdir)
+# message('prefix: ' + prefix)
+# message('sysconfdir: ' + sysconfdir)
 
 cc = meson.get_compiler('c')
 libm = cc.find_library('m')
@@ -45,7 +56,7 @@ c_args = [
   '-DWLR_USE_UNSTABLE',
   '-D_POSIX_C_SOURCE=200809L',
   '-DVERSION="@0@"'.format(version_with_hash),  # 版本信息包含 Commit Hash
-  '-DSYSCONFDIR="@0@"'.format(sysconfdir),     # 添加 sysconfdir
+  '-DSYSCONFDIR="@0@"'.format('/etc'),     # 添加 sysconfdir
 ]
 
 if xcb.found() and xlibs.found()
@@ -73,11 +84,6 @@ executable('maomao',
 
 desktop_install_dir = join_paths(prefix, 'share/wayland-sessions')
 install_data('maomao.desktop', install_dir : desktop_install_dir)
-
-# 确保 sysconfdir 是绝对路径
-if not sysconfdir.startswith('/')
-  sysconfdir = '/' + sysconfdir
-endif
 
 # 安装 config.conf
 install_data('config.conf', install_dir : join_paths(sysconfdir, 'maomao'))
