@@ -104,10 +104,15 @@ All mod keys(alt,ctrl,shift,super) are case insensitive, in addition to other ke
 
 for example:
 
-this is wrong:
+### this is wrong:
+```
 bind=alt+shift,2,quit
-this is right:
+```
+
+### this is right:
+```
 bind=alt+shift,at,quit
+```
 
 because your keybinds contain shift, the `2` cover to `at`
 ![swappy-20250227-182157](https://github.com/user-attachments/assets/c4bca146-d1d7-42b1-aea5-a7e7e19e874b)
