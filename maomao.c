@@ -5680,9 +5680,10 @@ void init_fadeout_client(Client *c) {
       c->animation.initial = c->animation.current;
   fadeout_cient->mon = c->mon;
   // 这里snap节点的坐标设置是使用的相对坐标，所以不能加上原来坐标
-  // 这根普通node有区别
-  fadeout_cient->current.y =
-      c->mon->m.height - (c->animation.current.y - c->mon->m.y);
+  // 这跟普通node有区别
+  fadeout_cient->current.y = c->geom.y+c->geom.height/2 > c->mon->m.y+c->mon->m.height/2
+    ? c->mon->m.height - (c->animation.current.y - c->mon->m.y) //down out
+    : c->mon->m.y - c->geom.height; //up out
   fadeout_cient->current.x = 0; // x无偏差，垂直划出
   fadeout_cient->animation.passed_frames = 0;
   fadeout_cient->animation.total_frames =
