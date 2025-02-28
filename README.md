@@ -118,6 +118,17 @@ because your keybinds contain shift, the `2` cover to `at`
 ![swappy-20250227-182157](https://github.com/user-attachments/assets/c4bca146-d1d7-42b1-aea5-a7e7e19e874b)
 
 
+# custom animation
+
+```
+animation_curve=0.46,1.0,0.29,1
+```
+
+You can design your animaition curve in:
+[here, on cssportal.com](https://www.cssportal.com/css-cubic-bezier-generator/),
+
+or you can just choice a curve in:
+[easings.net](https://easings.net).
 
 # NixOS+Home-manager
 ```nix
