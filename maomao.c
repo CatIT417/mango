@@ -683,34 +683,64 @@ struct vec2 {
 };
 
 #define BAKED_POINTS_COUNT 256
-struct vec2 *baked_points;
 
-struct vec2 calculate_animation_curve_at(double t) {
+struct vec2 *baked_points_move;
+struct vec2 *baked_points_open;
+struct vec2 *baked_points_tag;
+
+struct vec2 calculate_animation_curve_at(double t, int type) {
   struct vec2 point;
+  double *animation_curve;
+  if (type == MOVE) {
+    animation_curve = animation_curve_move;
+  } else if (type == OPEN) {
+    animation_curve = animation_curve_open;
+  } else if (type == TAG) {
+    animation_curve = animation_curve_tag;
+  }
 
   point.x = 3 * t * (1 - t) * (1 - t) * animation_curve[0] +
-            3 * t * t * (1 - t) * animation_curve[2] + t * t * t;
+  3 * t * t * (1 - t) * animation_curve[2] + t * t * t;
 
   point.y = 3 * t * (1 - t) * (1 - t) * animation_curve[1] +
-            3 * t * t * (1 - t) * animation_curve[3] + t * t * t;
+  3 * t * t * (1 - t) * animation_curve[3] + t * t * t;
 
   return point;
 }
 
+
 void init_baked_points(void) {
-  baked_points = calloc(BAKED_POINTS_COUNT, sizeof(*baked_points));
+  baked_points_move = calloc(BAKED_POINTS_COUNT, sizeof(*baked_points_move));
+  baked_points_open = calloc(BAKED_POINTS_COUNT, sizeof(*baked_points_open));
+  baked_points_tag = calloc(BAKED_POINTS_COUNT, sizeof(*baked_points_tag));
 
   for (size_t i = 0; i < BAKED_POINTS_COUNT; i++) {
-    baked_points[i] =
-        calculate_animation_curve_at((double)i / (BAKED_POINTS_COUNT - 1));
+    baked_points_move[i] =
+        calculate_animation_curve_at((double)i / (BAKED_POINTS_COUNT - 1), MOVE);
+  }
+  for (size_t i = 0; i < BAKED_POINTS_COUNT; i++) {
+    baked_points_open[i] =
+        calculate_animation_curve_at((double)i / (BAKED_POINTS_COUNT - 1), OPEN);
+  }
+  for (size_t i = 0; i < BAKED_POINTS_COUNT; i++) {
+    baked_points_tag[i] =
+        calculate_animation_curve_at((double)i / (BAKED_POINTS_COUNT - 1), TAG);
   }
 }
 
-double find_animation_curve_at(double t) {
+double find_animation_curve_at(double t,int type) {
   size_t down = 0;
   size_t up = BAKED_POINTS_COUNT - 1;
 
   size_t middle = (up + down) / 2;
+  struct vec2 *baked_points;
+  if(type == MOVE) {
+    baked_points = baked_points_move;
+  } else if(type == OPEN) {
+    baked_points = baked_points_open;
+  } else if(type == TAG) {
+    baked_points = baked_points_tag;
+  }
   while (up - down != 1) {
     if (baked_points[middle].x <= t) {
       down = middle;
@@ -719,8 +749,8 @@ double find_animation_curve_at(double t) {
     }
     middle = (up + down) / 2;
   }
-
   return baked_points[up].y;
+
 }
 
 // 有 bug,只是让上面那根透明了
@@ -762,8 +792,8 @@ void fadeout_client_animation_next_tick(Client *c) {
     return;
   double animation_passed =
       (double)c->animation.passed_frames / c->animation.total_frames;
-  double factor = find_animation_curve_at(animation_passed);
-
+  int type = c->animation.action == NONE ? MOVE : c->animation.action;
+  double factor = find_animation_curve_at(animation_passed,type);
   uint32_t width = c->animation.initial.width +
                    (c->current.width - c->animation.initial.width) * factor;
   uint32_t height = c->animation.initial.height +
@@ -802,7 +832,10 @@ void fadeout_client_animation_next_tick(Client *c) {
 void client_animation_next_tick(Client *c) {
   double animation_passed =
       (double)c->animation.passed_frames / c->animation.total_frames;
-  double factor = find_animation_curve_at(animation_passed);
+
+  int type = c->animation.action == NONE ? MOVE : c->animation.action;
+  double factor = find_animation_curve_at(animation_passed,type);
+
   Client *pointer_c = NULL;
   double sx = 0, sy = 0;
   struct wlr_surface *surface = NULL;

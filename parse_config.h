@@ -76,7 +76,9 @@ typedef struct {
   uint32_t animation_duration_open;
   uint32_t animation_duration_tag;
   uint32_t animation_duration_close;
-  double animation_curve[4];
+  double animation_curve_move[4];
+  double animation_curve_open[4];
+  double animation_curve_tag[4];
 
   int scroller_structs;
   float scroller_default_proportion;
@@ -480,11 +482,23 @@ void parse_config_line(Config *config, const char *line) {
     config->animation_duration_tag = atoi(value);
   } else if (strcmp(key, "animation_duration_close") == 0) {
     config->animation_duration_close = atoi(value);
-  } else if (strcmp(key, "animation_curve") == 0) {
-    if (sscanf(value, "%lf,%lf,%lf,%lf", &config->animation_curve[0],
-               &config->animation_curve[1], &config->animation_curve[2],
-               &config->animation_curve[3]) != 4) {
-      fprintf(stderr, "Error: Invalid animation_curve format: %s\n", value);
+  } else if (strcmp(key, "animation_curve_move") == 0) {
+    if (sscanf(value, "%lf,%lf,%lf,%lf", &config->animation_curve_move[0],
+               &config->animation_curve_move[1], &config->animation_curve_move[2],
+               &config->animation_curve_move[3]) != 4) {
+      fprintf(stderr, "Error: Invalid animation_curve_move format: %s\n", value);
+    }
+  } else if (strcmp(key, "animation_curve_open") == 0) {
+    if (sscanf(value, "%lf,%lf,%lf,%lf", &config->animation_curve_open[0],
+               &config->animation_curve_open[1], &config->animation_curve_open[2],
+               &config->animation_curve_open[3]) != 4) {
+      fprintf(stderr, "Error: Invalid animation_curve_open format: %s\n", value);
+    }
+  } else if (strcmp(key, "animation_curve_tag") == 0) {
+    if (sscanf(value, "%lf,%lf,%lf,%lf", &config->animation_curve_tag[0],
+               &config->animation_curve_tag[1], &config->animation_curve_tag[2],
+               &config->animation_curve_tag[3]) != 4) {
+      fprintf(stderr, "Error: Invalid animation_curve_tag format: %s\n", value);
     }
   } else if (strcmp(key, "scroller_structs") == 0) {
     config->scroller_structs = atoi(value);
@@ -1030,7 +1044,9 @@ void override_config(void) {
   animation_duration_close = config.animation_duration_close;
 
   // 复制数组类型的变量
-  memcpy(animation_curve, config.animation_curve, sizeof(animation_curve));
+  memcpy(animation_curve_move, config.animation_curve_move, sizeof(animation_curve_move));
+  memcpy(animation_curve_open, config.animation_curve_open, sizeof(animation_curve_open));
+  memcpy(animation_curve_tag, config.animation_curve_tag, sizeof(animation_curve_tag));
 
   scroller_structs = config.scroller_structs;
   scroller_default_proportion = config.scroller_default_proportion;
@@ -1132,6 +1148,10 @@ void set_value_default() {
   config.disable_while_typing = 1;
   config.left_handed = 0;
   config.middle_button_emulation = 0;
+
+  memcpy(config.animation_curve_move, animation_curve_move, sizeof(animation_curve_move));
+  memcpy(config.animation_curve_open, animation_curve_open, sizeof(animation_curve_open));
+  memcpy(config.animation_curve_tag, animation_curve_tag, sizeof(animation_curve_tag));
 }
 
 void parse_config(void) {

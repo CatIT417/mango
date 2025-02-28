@@ -121,8 +121,12 @@ because your keybinds contain shift, the `2` cover to `at`
 # custom animation
 
 ```
-animation_curve=0.46,1.0,0.29,1
+animation_curve_open=0.46,1.0,0.29,1.1
+animation_curve_move=0.46,1.0,0.29,1 
+animation_curve_tag=0.46,1.0,0.29,1
+
 ```
+notice: close and move animations are the same curve.
 
 You can design your animaition curve in:
 [here, on cssportal.com](https://www.cssportal.com/css-cubic-bezier-generator/),
