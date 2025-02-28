@@ -40,7 +40,6 @@ unsigned int gappov = 10; /* vert outer gap between windows and screen edge */
 int scroller_structs = 20;
 float scroller_default_proportion = 0.9;
 int scoller_focus_center = 0;
-float scroller_proportion_preset[] = {0.5, 0.9, 1.0};
 
 int bypass_surface_visibility =
     0; /* 1 means idle inhibitors will disable idle tracking even if it's

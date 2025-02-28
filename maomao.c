@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include <wlr/types/wlr_fractional_scale_v1.h>
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
 #include <wlr/backend/libinput.h>
@@ -4405,7 +4406,38 @@ setlayout(const Arg *arg) {
 
 void switch_layout(const Arg *arg) {
 
-  int jk;
+  int jk,ji;
+  char *target_layout_name=NULL;
+  size_t len;
+
+  if(config.circle_layout_count != 0) {
+    for(jk = 0; jk < config.circle_layout_count; jk++) {
+
+      len = MAX(strlen(config.circle_layout[jk]), strlen(selmon->pertag->ltidxs[selmon->pertag->curtag]->name));
+
+      if(strncmp(config.circle_layout[jk], selmon->pertag->ltidxs[selmon->pertag->curtag]->name,len) == 0) {
+        target_layout_name = jk == config.circle_layout_count - 1 ? config.circle_layout[0] : config.circle_layout[jk + 1];
+        break;
+      }
+    }
+
+    if(!target_layout_name) {
+      target_layout_name = config.circle_layout[0];
+    }
+
+    for (ji = 0; ji < LENGTH(layouts); ji++) {
+      len = MAX(strlen(layouts[ji].name), strlen(target_layout_name));
+      if (strncmp(layouts[ji].name,target_layout_name,len) == 0) {
+        selmon->pertag->ltidxs[selmon->pertag->curtag] =  &layouts[ji];
+        break;
+      }
+    }
+
+    arrange(selmon, false);
+    printstatus();
+    return;
+  }
+
   for (jk = 0; jk < LENGTH(layouts); jk++) {
     if (strcmp(layouts[jk].name,
                selmon->pertag->ltidxs[selmon->pertag->curtag]->name) == 0) {
@@ -5338,26 +5370,26 @@ void overview_restore(Client *c, const Arg *arg) {
 void switch_proportion_preset(const Arg *arg) {
   float target_proportion = 0;
 
-  if (LENGTH(scroller_proportion_preset) == 0) {
+  if (config.scroller_proportion_preset_count == 0) {
     return;
   }
 
   if (selmon->sel) {
 
-    for (int i = 0; i < LENGTH(scroller_proportion_preset); i++) {
-      if (scroller_proportion_preset[i] == selmon->sel->scroller_proportion) {
-        if (i == LENGTH(scroller_proportion_preset) - 1) {
-          target_proportion = scroller_proportion_preset[0];
+    for (int i = 0; i < config.scroller_proportion_preset_count; i++) {
+      if (config.scroller_proportion_preset[i] == selmon->sel->scroller_proportion) {
+        if (i == config.scroller_proportion_preset_count - 1) {
+          target_proportion = config.scroller_proportion_preset[0];
           break;
         } else {
-          target_proportion = scroller_proportion_preset[i + 1];
+          target_proportion = config.scroller_proportion_preset[i + 1];
           break;
         }
       }
     }
 
     if (target_proportion == 0) {
-      target_proportion = scroller_proportion_preset[0];
+      target_proportion = config.scroller_proportion_preset[0];
     }
 
     unsigned int max_client_width =
