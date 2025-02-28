@@ -1056,6 +1056,15 @@ void override_config(void) {
   gappoh = config.gappoh;
   gappov = config.gappov;
   borderpx = config.borderpx;
+  repeat_rate = config.repeat_rate;
+  repeat_delay = config.repeat_delay;
+  tap_to_click = config.tap_to_click;
+  tap_and_drag = config.tap_and_drag;
+  drag_lock = config.drag_lock;
+  natural_scrolling = config.natural_scrolling;
+  disable_while_typing = config.disable_while_typing;
+  left_handed = config.left_handed;
+  middle_button_emulation = config.middle_button_emulation;
 
   // 复制颜色数组
   memcpy(rootcolor, config.rootcolor, sizeof(rootcolor));
@@ -1173,6 +1182,7 @@ void parse_config(void) {
 
 void reload_config(const Arg *arg) {
   Client *c;
+  Keyboard *kb;
   free_config();
   parse_config();
   init_baked_points();
@@ -1182,6 +1192,9 @@ void reload_config(const Arg *arg) {
         c->bw = borderpx;
       }
     }
+  }
+  wl_list_for_each(kb, &keyboards, link) {
+    wlr_keyboard_set_repeat_info(kb->wlr_keyboard, repeat_rate, repeat_delay);
   }
   arrange(selmon, false);
 }
