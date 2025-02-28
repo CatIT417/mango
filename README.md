@@ -160,6 +160,7 @@ because your keybinds contain shift, the `2` cover to `at`
                             '';
                             autostart_sh = ''
                               # see autostart.sh
+                              # Note: here no need to add shebang
                             '';
                           };
                         }
