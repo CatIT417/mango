@@ -559,6 +559,8 @@ void incovgaps(const Arg *arg);
 void incigaps(const Arg *arg);
 void defaultgaps(const Arg *arg);
 void buffer_set_size(Client *c, animationScale scale_data);
+void snap_scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy,
+  void *data);
 // int timer_tick_action(void *data);
 
 #include "dispatch.h"
@@ -790,6 +792,9 @@ void apply_opacity_to_rect_nodes(Client *c,struct wlr_scene_node *node, double a
 void fadeout_client_animation_next_tick(Client *c) {
   if (!c)
     return;
+
+  animationScale scale_data;
+
   double animation_passed =
       (double)c->animation.passed_frames / c->animation.total_frames;
   int type = c->animation.action == NONE ? MOVE : c->animation.action;
@@ -804,7 +809,8 @@ void fadeout_client_animation_next_tick(Client *c) {
   uint32_t y =
       c->animation.initial.y + (c->current.y - c->animation.initial.y) * factor;
 
-  wlr_scene_node_set_position(&c->scene->node, 0, y);
+  wlr_scene_node_set_position(&c->scene->node, x, y);
+
   c->animation.current = (struct wlr_box){
       .x = x,
       .y = y,
@@ -818,6 +824,18 @@ void fadeout_client_animation_next_tick(Client *c) {
                                  scene_buffer_apply_opacity, &opacity);
 
   apply_opacity_to_rect_nodes(c, &c->scene->node, animation_passed);
+
+  if((c->animation_type && strcmp(c->animation_type, "zoom") == 0)
+    || (!c->animation_type && strcmp(animation_type, "zoom") == 0)) {
+
+    scale_data.width = width;
+    scale_data.height = height;
+    scale_data.width_scale = animation_passed;
+    scale_data.height_scale = animation_passed;
+
+    wlr_scene_node_for_each_buffer(&c->scene->node,
+                                   snap_scene_buffer_apply_size, &scale_data);
+    }
 
   if (animation_passed == 1.0) {
     wl_list_remove(&c->fadeout_link);
@@ -3867,6 +3885,12 @@ void scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy,
   }
 }
 
+void snap_scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy,
+                             void *data) {
+  animationScale *scale_data = (animationScale *)data;
+  wlr_scene_buffer_set_dest_size(buffer, scale_data->width, scale_data->height);
+}
+
 void buffer_set_size(Client *c, animationScale data) {
   if (c->animation.current.width <= c->geom.width &&
       c->animation.current.height <= c->geom.height) {
@@ -5678,14 +5702,28 @@ void init_fadeout_client(Client *c) {
 
   fadeout_cient->animation.duration = animation_duration_close;
   fadeout_cient->current = fadeout_cient->animainit_geom =
-      c->animation.initial = c->animation.current;
+  fadeout_cient->animation.initial = c->animation.current;
   fadeout_cient->mon = c->mon;
+  fadeout_cient->animation_type = c->animation_type;
+  
   // 这里snap节点的坐标设置是使用的相对坐标，所以不能加上原来坐标
   // 这跟普通node有区别
+
+  fadeout_cient->animation.initial.x = 0;
+  fadeout_cient->animation.initial.y = 0;
+  if((c->animation_type && strcmp(c->animation_type, "slide") == 0)
+    || (!c->animation_type && strcmp(animation_type, "slide") == 0)) {
   fadeout_cient->current.y = c->geom.y+c->geom.height/2 > c->mon->m.y+c->mon->m.height/2
     ? c->mon->m.height - (c->animation.current.y - c->mon->m.y) //down out
     : c->mon->m.y - c->geom.height; //up out
   fadeout_cient->current.x = 0; // x无偏差，垂直划出
+  } else {
+    fadeout_cient->current.y = (c->geom.height - c->geom.height* zoom_initial_ratio)/2;
+    fadeout_cient->current.x = (c->geom.width - c->geom.width* zoom_initial_ratio)/2;
+    fadeout_cient->current.width = c->geom.width* zoom_initial_ratio;
+    fadeout_cient->current.height = c->geom.height* zoom_initial_ratio;
+  }
+
   fadeout_cient->animation.passed_frames = 0;
   fadeout_cient->animation.total_frames =
       fadeout_cient->animation.duration / output_frame_duration_ms(c);
