@@ -200,10 +200,15 @@ or you can just choice a curve in:
 [maomao-config](https://github.com/DreamMaoMao/dotfile/tree/main/maomao)
 
 # thanks for some refer repo 
-- https://github.com/dqrk0jeste/owl - for basal window animaition
 
-- https://github.com/djpohly/dwl - for basal dwl feature
+- https://gitlab.freedesktop.org/wlroots/wlroots - Implementation of wayland protocol
 
-- https://github.com/guyuming76/dwl - for text-input
+- https://github.com/dqrk0jeste/owl - Implementation of simple basic animation
 
-- https://github.com/swaywm/sway - for foreign-toplevel
+- https://github.com/djpohly/dwl - Basic compositor functionality
+
+- https://github.com/guyuming76/dwl - Implementation of text-input protocol
+
+- https://github.com/swaywm/sway - Demonstration application of the protocol
+
+- https://github.com/ErikReider/fx-comp - More cool effect
