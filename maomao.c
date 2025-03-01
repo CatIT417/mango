@@ -5666,6 +5666,7 @@ void init_fadeout_client(Client *c) {
   Client *fadeout_cient = ecalloc(1, sizeof(*fadeout_cient));
 
   wlr_scene_node_set_enabled(&c->scene->node, true);
+  client_set_border_color(c,bordercolor);
   fadeout_cient->scene =
       wlr_scene_tree_snapshot(&c->scene->node, layers[LyrFadeOut]);
   wlr_scene_node_set_enabled(&c->scene->node, false);
