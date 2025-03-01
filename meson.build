@@ -1,5 +1,5 @@
 project('maomao', ['c', 'cpp'],
-  version : '0.1.5'
+  version : '0.0.0'  # 这个版本号将被 Git tag 覆盖
 )
 
 subdir('protocols')
@@ -38,16 +38,18 @@ xkbcommon_dep = dependency('xkbcommon')
 libinput_dep = dependency('libinput')
 libwayland_client_dep = dependency('wayland-client')
 
-# 获取 Git Commit Hash
+# 获取 Git Commit Hash 和最新的 tag
 git = find_program('git', required : false)
 if git.found()
   commit_hash = run_command(git, 'rev-parse', '--short', 'HEAD', check : true).stdout().strip()
+  latest_tag = run_command(git, 'describe', '--tags', '--abbrev=0', check : true).stdout().strip()
 else
   commit_hash = 'unknown'
+  latest_tag = meson.project_version()  # 如果 Git 不可用，使用默认版本号
 endif
 
-# 将 Commit Hash 添加到版本信息中
-version_with_hash = '@0@(@1@)'.format(meson.project_version(), commit_hash)
+# 将 Commit Hash 和最新的 tag 添加到版本信息中
+version_with_hash = '@0@(@1@)'.format(latest_tag, commit_hash)
 
 # 定义编译参数
 c_args = [
@@ -55,7 +57,7 @@ c_args = [
   '-Wno-unused-function',
   '-DWLR_USE_UNSTABLE',
   '-D_POSIX_C_SOURCE=200809L',
-  '-DVERSION="@0@"'.format(version_with_hash),  # 版本信息包含 Commit Hash
+  '-DVERSION="@0@"'.format(version_with_hash),  # 版本信息包含 Commit Hash 和最新的 tag
   '-DSYSCONFDIR="@0@"'.format('/etc'),     # 添加 sysconfdir
 ]
 
