@@ -656,7 +656,6 @@ static Atom netatom[NetLast];
 
 /* configuration, allows nested code to access above variables */
 #include "preset_config.h"
-#include "parse_config.h"
 
 /* attempt to encapsulate suck into one file */
 #include "client.h"
@@ -680,6 +679,8 @@ struct Pertag {
 
 static pid_t *autostart_pids;
 static size_t autostart_len;
+
+#include "parse_config.h"
 
 struct vec2 {
   double x, y;

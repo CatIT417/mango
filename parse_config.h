@@ -1210,6 +1210,8 @@ void parse_config(void) {
 
 void reload_config(const Arg *arg) {
   Client *c;
+  Monitor *m;
+  int i;
   Keyboard *kb;
   free_config();
   parse_config();
@@ -1223,6 +1225,17 @@ void reload_config(const Arg *arg) {
   }
   wl_list_for_each(kb, &keyboards, link) {
     wlr_keyboard_set_repeat_info(kb->wlr_keyboard, repeat_rate, repeat_delay);
+  }
+
+  for (i = 0; i <= LENGTH(tags); i++) {
+    wl_list_for_each(m, &mons, link) {
+      if (!m->wlr_output->enabled) {
+        continue;
+      }
+      m->pertag->nmasters[i] = default_nmaster;
+      m->pertag->mfacts[i] = default_mfact;
+      m->pertag->smfacts[i] = default_smfact;
+    }
   }
   arrange(selmon, false);
 }
