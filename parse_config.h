@@ -456,6 +456,12 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value) {
   } else if (strcmp(func_name, "view") == 0) {
     func = bind_to_view;
     (*arg).ui = 1 << (atoi(arg_value) - 1);
+  } else if (strcmp(func_name, "toggletag") == 0) {
+    func = toggletag;
+    (*arg).ui = 1 << (atoi(arg_value) - 1);
+  } else if (strcmp(func_name, "toggleview") == 0) {
+    func = toggleview;
+    (*arg).ui = 1 << (atoi(arg_value) - 1);
   } else {
     return NULL;
   }
