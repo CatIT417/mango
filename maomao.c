@@ -673,6 +673,7 @@ struct Pertag {
   unsigned int curtag, prevtag;   /* current and previous tag */
   int nmasters[LENGTH(tags) + 1]; /* number of windows in master area */
   float mfacts[LENGTH(tags) + 1]; /* mfacts per tag */
+  float smfacts[LENGTH(tags) + 1]; /* smfacts per tag */
   const Layout
       *ltidxs[LENGTH(tags) + 1]; /* matrix of tags and layouts indexes  */
 };
@@ -2305,7 +2306,7 @@ createmon(struct wl_listener *listener, void *data) {
   for (i = 0; i <= LENGTH(tags); i++) {
     m->pertag->nmasters[i] = m->nmaster;
     m->pertag->mfacts[i] = m->mfact;
-
+    m->pertag->smfacts[i] = default_smfact;
     m->pertag->ltidxs[i] = m->lt;
 
     if (i > 0 && strlen(config.tags[i - 1].layout_name) > 0) {
@@ -4509,7 +4510,6 @@ void switch_layout(const Arg *arg) {
 }
 
 /* arg > 1.0 will set mfact absolutely */
-/* arg > 1.0 will set mfact absolutely */
 void // 17
 setmfact(const Arg *arg) {
   float f;
@@ -4523,6 +4523,22 @@ setmfact(const Arg *arg) {
     return;
   // selmon->mfact = f;
   selmon->pertag->mfacts[selmon->pertag->curtag] = f;
+  arrange(selmon, false);
+}
+
+void
+setsmfact(const Arg *arg) {
+  float f;
+
+  if (!arg || !selmon ||
+      !selmon->pertag->ltidxs[selmon->pertag->curtag]->arrange)
+    return;
+  f = arg->f < 1.0 ? arg->f + selmon->pertag->smfacts[selmon->pertag->curtag]
+                   : arg->f - 1.0;
+  if (f < 0.1 || f > 0.9)
+    return;
+  // selmon->mfact = f;
+  selmon->pertag->smfacts[selmon->pertag->curtag] = f;
   arrange(selmon, false);
 }
 
@@ -5052,7 +5068,8 @@ void overview(Monitor *m, unsigned int gappo, unsigned int gappi) {
   grid(m, overviewgappo, overviewgappi);
 }
 
-void fibonacci(Monitor *mon, int s) {
+void fibonacci(Monitor *mon, int s)
+{
   unsigned int i = 0, n = 0, nx, ny, nw, nh;
   Client *c;
 
@@ -5071,11 +5088,19 @@ void fibonacci(Monitor *mon, int s) {
   wl_list_for_each(c, &clients, link) if (VISIBLEON(c, mon) && !c->isfloating &&
                                           !c->iskilling && !c->isfullscreen &&
                                           !c->ismaxmizescreen &&
-                                          !c->animation.tagouting) {
-    if ((i % 2 && nh / 2 > 2 * c->bw) || (!(i % 2) && nw / 2 > 2 * c->bw)) {
-      if (i < n - 1) {
+                                          !c->animation.tagouting)
+  {
+    if ((i % 2 && nh / 2 > 2 * c->bw) || (!(i % 2) && nw / 2 > 2 * c->bw))
+    {
+      if (i < n - 1)
+      {
         if (i % 2)
-          nh /= 2;
+        {
+          if (i == 1)
+            nh = nh * c->mon->pertag->smfacts[selmon->pertag->curtag];
+          else
+            nh /= 2;
+        }
         else
           nw /= 2;
         if ((i % 4) == 2 && !s)
@@ -5083,28 +5108,39 @@ void fibonacci(Monitor *mon, int s) {
         else if ((i % 4) == 3 && !s)
           ny += nh;
       }
-      if ((i % 4) == 0) {
+
+      if ((i % 4) == 0)
+      {
         if (s)
           ny += nh;
         else
           ny -= nh;
-      } else if ((i % 4) == 1)
+      }
+      else if ((i % 4) == 1)
         nx += nw;
       else if ((i % 4) == 2)
         ny += nh;
-      else if ((i % 4) == 3) {
+      else if ((i % 4) == 3)
+      {
         if (s)
           nx += nw;
         else
           nx -= nw;
       }
-      if (i == 0) {
+
+      if (i == 0)
+      {
         if (n != 1)
           nw = (mon->w.width - gappoh) *
                mon->pertag->mfacts[mon->pertag->curtag];
         ny = mon->w.y + gappov;
-      } else if (i == 1)
+      }
+      else if (i == 1)
+      {
         nw = mon->w.width - gappoh - nw;
+      }
+      else if (i == 2)
+        nh = mon->w.height - gappov - nh;
       i++;
     }
 

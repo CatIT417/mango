@@ -91,6 +91,7 @@ typedef struct {
 
   unsigned int new_is_master;
   float default_mfact;
+  float default_smfact;
   unsigned int default_nmaster;
 
   unsigned int hotarea_size;
@@ -374,6 +375,9 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value) {
   } else if (strcmp(func_name, "setmfact") == 0) {
     func = setmfact;
     (*arg).f = atof(arg_value);
+  } else if (strcmp(func_name, "setsmfact") == 0) {
+    func = setsmfact;
+    (*arg).f = atof(arg_value);
   } else if (strcmp(func_name, "zoom") == 0) {
     func = zoom;
   } else if (strcmp(func_name, "exchange_client") == 0) {
@@ -613,6 +617,8 @@ void parse_config_line(Config *config, const char *line) {
     config->new_is_master = atoi(value);
   } else if (strcmp(key, "default_mfact") == 0) {
     config->default_mfact = atof(value);
+  } else if (strcmp(key, "default_smfact") == 0) {
+    config->default_smfact = atof(value);
   } else if (strcmp(key, "default_nmaster") == 0) {
     config->default_nmaster = atoi(value);
   } else if (strcmp(key, "hotarea_size") == 0) {
@@ -1054,6 +1060,7 @@ void override_config(void) {
 
   new_is_master = config.new_is_master;
   default_mfact = config.default_mfact;
+  default_smfact = config.default_smfact;
   default_nmaster = config.default_nmaster;
   hotarea_size = config.hotarea_size;
   enable_hotarea = config.enable_hotarea;
@@ -1110,6 +1117,7 @@ void set_value_default() {
   config.focus_on_activate = 1;         // 收到窗口激活请求是否自动跳转聚焦
   config.new_is_master = 1;             // 新窗口是否插在头部
   config.default_mfact = 0.55f;         // master 窗口比例
+  config.default_smfact = 0.5f;         // 第一个stack比例
   config.default_nmaster = 1;           // 默认master数量
 
   config.numlockon = 1; // 是否打开右边小键盘
