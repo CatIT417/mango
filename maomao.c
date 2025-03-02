@@ -968,6 +968,18 @@ void client_apply_clip(Client *c) {
 
   if (c->iskilling || !client_surface(c)->mapped)
     return;
+  struct wlr_box clip_box;
+
+  if(!animations) {
+    c->animation.running = false;
+    c->need_output_flush = false;
+    c->animainit_geom = c->current = c->pending = c->animation.current =
+        c->geom;
+    apply_border(c, c->geom, 0, 0);
+    client_get_clip(c, &clip_box);
+    wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box); 
+    return; 
+  }
 
   uint32_t width, height;
   client_actual_size(c, &width, &height);
@@ -976,7 +988,7 @@ void client_apply_clip(Client *c) {
 
   struct wlr_box geometry;
   client_get_geometry(c, &geometry);
-  struct wlr_box clip_box = (struct wlr_box){
+  clip_box = (struct wlr_box){
       .x = geometry.x,
       .y = geometry.y,
       .width = width,
@@ -1019,15 +1031,10 @@ void client_apply_clip(Client *c) {
   scale_data.height = clip_box.height - 2 * c->bw;
   wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
   apply_border(c, clip_box, offsetx, offsety);
-  // if(c->animation.running) {
+
   scale_data.width_scale = (float)clip_box.width / c->current.width;
   scale_data.height_scale = (float)clip_box.height / c->current.height;
   buffer_set_size(c, scale_data);
-  // } else {
-  //   scale_data.width_scale = 1.0;
-  //   scale_data.height_scale = 1.0;
-  //   buffer_set_size(c, scale_data);
-  // }
 }
 
 bool client_draw_frame(Client *c) {
@@ -1038,12 +1045,12 @@ bool client_draw_frame(Client *c) {
   if (!c->need_output_flush)
     return false;
 
-  if (c->animation.running) {
+  if (animations && c->animation.running) {
     client_animation_next_tick(c);
     client_apply_clip(c);
   } else {
     wlr_scene_node_set_position(&c->scene->node, c->pending.x, c->pending.y);
-    apply_border(c, c->pending, 0, 0);
+    c->animainit_geom = c->animation.initial = c->pending = c->current = c->geom;
     client_apply_clip(c);
     c->need_output_flush = false;
   }
@@ -1396,7 +1403,7 @@ arrange(Monitor *m, bool want_animation) {
         wlr_scene_node_set_enabled(&c->scene->node, true);
         client_set_suspended(c, false);
         if (!c->animation.from_rule && want_animation &&
-            m->pertag->prevtag != 0 && m->pertag->curtag != 0) {
+            m->pertag->prevtag != 0 && m->pertag->curtag != 0 && animations) {
           c->animation.tagining = true;
           if (m->pertag->curtag > m->pertag->prevtag) {
             c->animainit_geom.x =
@@ -1417,7 +1424,7 @@ arrange(Monitor *m, bool want_animation) {
       } else {
         if ((c->tags & (1 << (selmon->pertag->prevtag - 1))) &&
             want_animation && m->pertag->prevtag != 0 &&
-            m->pertag->curtag != 0) {
+            m->pertag->curtag != 0 && animations) {
           c->animation.tagouting = true;
           c->animation.tagining = false;
           if (m->pertag->curtag > m->pertag->prevtag) {
@@ -2020,7 +2027,9 @@ commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 void client_set_pending_state(Client *c) {
 
   // 判断是否需要动画
-  if (c->isglobal && c->isfloating) {
+  if(!animations) {
+    c->animation.should_animate = false;
+  } else if (c->isglobal && c->isfloating) {
     c->animation.should_animate = false;
   } else if (animations && c->animation.tagining) {
     c->animation.should_animate = true;
@@ -4222,7 +4231,6 @@ void resize(Client *c, struct wlr_box geo, int interact) {
         c->geom;
     wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
     apply_border(c, c->geom, 0, 0);
-    wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
     client_get_clip(c, &clip);
     wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip);
     return;
@@ -5777,7 +5785,8 @@ void unmapnotify(struct wl_listener *listener, void *data) {
   if (c->is_fadeout_client)
     return;
 
-  init_fadeout_client(c);
+  if(animations)
+    init_fadeout_client(c);
 
   if (c == grabc) {
     cursor_mode = CurNormal;
