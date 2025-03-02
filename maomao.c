@@ -768,6 +768,8 @@ double find_animation_curve_at(double t, int type) {
 // 有 bug,只是让上面那根透明了
 void apply_opacity_to_rect_nodes(Client *c, struct wlr_scene_node *node,
                                  double animation_passed) {
+  int offsetx = 0;
+  int offsety = 0;
   if (node->type == WLR_SCENE_NODE_RECT) {
     struct wlr_scene_rect *rect = wlr_scene_rect_from_node(node);
     // Assuming the rect has a color field and we can modify it
@@ -779,20 +781,20 @@ void apply_opacity_to_rect_nodes(Client *c, struct wlr_scene_node *node,
 
     // TODO: 判断当前窗口是否在屏幕外，如果在屏幕外就不要绘制
     // 划出的border剪切屏幕之外的，这里底部bttome可以了，左右的还不不对
-    // if(node->y > c->geom.height/2  && c->geom.y +  c->animation.current.y +
-    // node->y >= c->mon->m.y + c->mon->m.height){
-    //   wlr_scene_rect_set_size(rect, 0, 0); // down
-    // } else if(node->x > c->geom.width/2  && c->geom.y +
-    // c->animation.current.y + node->y >= c->mon->m.y + c->mon->m.height) {
-    //   wlr_scene_rect_set_size(rect, c->bw,rect->height - (c->geom.y +
-    //   c->animation.current.y + node->y - c->mon->m.y - c->mon->m.height)); //
-    //   right
-    // } else if(rect->height > rect->width  && c->geom.y +
-    // c->animation.current.y + node->y >= c->mon->m.y + c->mon->m.height) {
-    //   wlr_scene_rect_set_size(rect, c->bw,rect->height - (c->geom.y +
-    //   c->animation.current.y + node->y - c->mon->m.y - c->mon->m.height)); //
-    //   left
-    // }
+    offsetx = c->geom.width -  c->animation.current.width;
+    offsety = c->geom.height -  c->animation.current.height;
+    if(node->y > c->geom.y + c->geom.height/2 ){
+      wlr_scene_node_set_position(node,c->geom.x,c->geom.y + c->geom.height - offsety);
+      wlr_scene_rect_set_size(rect, c->animation.current.width, c->bw); // down
+    } else if(node->y < c->geom.y + c->geom.height/2 && rect->width > rect->height) {
+      wlr_scene_node_set_position(node,c->geom.x,c->geom.y);
+      wlr_scene_rect_set_size(rect, c->animation.current.width, c->bw); // up      
+    } else if(node->x < c->geom.x + c->geom.width/2 && rect->width < rect->height) {
+      wlr_scene_rect_set_size(rect,c->bw,c->animation.current.height); // left
+    } else {
+      wlr_scene_node_set_position(node,c->geom.x + c->geom.width - offsetx,c->geom.y);
+      wlr_scene_rect_set_size(rect,c->bw,c->animation.current.height); // right
+    }
   }
 
   // If the node is a tree, recursively traverse its children
@@ -5753,11 +5755,12 @@ void init_fadeout_client(Client *c) {
   }
 
   fadeout_cient->animation.duration = animation_duration_close;
-  fadeout_cient->current = fadeout_cient->animainit_geom =
+  fadeout_cient->geom = fadeout_cient->current = fadeout_cient->animainit_geom =
       fadeout_cient->animation.initial = c->animation.current;
   fadeout_cient->mon = c->mon;
   fadeout_cient->animation_type = c->animation_type;
   fadeout_cient->animation.action = CLOSE;
+  fadeout_cient->bw = c->bw;
 
   // 这里snap节点的坐标设置是使用的相对坐标，所以不能加上原来坐标
   // 这跟普通node有区别
