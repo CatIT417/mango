@@ -79,6 +79,7 @@ typedef struct {
   double animation_curve_move[4];
   double animation_curve_open[4];
   double animation_curve_tag[4];
+  double animation_curve_close[4];
 
   int scroller_structs;
   float scroller_default_proportion;
@@ -509,6 +510,12 @@ void parse_config_line(Config *config, const char *line) {
                &config->animation_curve_tag[1], &config->animation_curve_tag[2],
                &config->animation_curve_tag[3]) != 4) {
       fprintf(stderr, "Error: Invalid animation_curve_tag format: %s\n", value);
+    }
+  } else if (strcmp(key, "animation_curve_close") == 0) {
+    if (sscanf(value, "%lf,%lf,%lf,%lf", &config->animation_curve_close[0],
+               &config->animation_curve_close[1], &config->animation_curve_close[2],
+               &config->animation_curve_close[3]) != 4) {
+      fprintf(stderr, "Error: Invalid animation_curve_close format: %s\n", value);
     }
   } else if (strcmp(key, "scroller_structs") == 0) {
     config->scroller_structs = atoi(value);
@@ -1070,6 +1077,8 @@ void override_config(void) {
          sizeof(animation_curve_open));
   memcpy(animation_curve_tag, config.animation_curve_tag,
          sizeof(animation_curve_tag));
+  memcpy(animation_curve_close, config.animation_curve_close,
+   sizeof(animation_curve_close));
 
   scroller_structs = config.scroller_structs;
   scroller_default_proportion = config.scroller_default_proportion;
@@ -1180,6 +1189,8 @@ void set_value_default() {
          sizeof(animation_curve_open));
   memcpy(config.animation_curve_tag, animation_curve_tag,
          sizeof(animation_curve_tag));
+  memcpy(config.animation_curve_close, animation_curve_close,
+   sizeof(animation_curve_close));
 }
 
 void parse_config(void) {

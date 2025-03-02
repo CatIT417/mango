@@ -690,6 +690,7 @@ struct vec2 {
 struct vec2 *baked_points_move;
 struct vec2 *baked_points_open;
 struct vec2 *baked_points_tag;
+struct vec2 *baked_points_close;
 
 struct vec2 calculate_animation_curve_at(double t, int type) {
   struct vec2 point;
@@ -700,6 +701,8 @@ struct vec2 calculate_animation_curve_at(double t, int type) {
     animation_curve = animation_curve_open;
   } else if (type == TAG) {
     animation_curve = animation_curve_tag;
+  } else if (type == CLOSE) {
+    animation_curve = animation_curve_close;
   }
 
   point.x = 3 * t * (1 - t) * (1 - t) * animation_curve[0] +
@@ -715,6 +718,7 @@ void init_baked_points(void) {
   baked_points_move = calloc(BAKED_POINTS_COUNT, sizeof(*baked_points_move));
   baked_points_open = calloc(BAKED_POINTS_COUNT, sizeof(*baked_points_open));
   baked_points_tag = calloc(BAKED_POINTS_COUNT, sizeof(*baked_points_tag));
+  baked_points_close = calloc(BAKED_POINTS_COUNT, sizeof(*baked_points_close));
 
   for (size_t i = 0; i < BAKED_POINTS_COUNT; i++) {
     baked_points_move[i] = calculate_animation_curve_at(
@@ -727,6 +731,10 @@ void init_baked_points(void) {
   for (size_t i = 0; i < BAKED_POINTS_COUNT; i++) {
     baked_points_tag[i] =
         calculate_animation_curve_at((double)i / (BAKED_POINTS_COUNT - 1), TAG);
+  }
+  for (size_t i = 0; i < BAKED_POINTS_COUNT; i++) {
+    baked_points_close[i] =
+        calculate_animation_curve_at((double)i / (BAKED_POINTS_COUNT - 1), CLOSE);
   }
 }
 
@@ -742,7 +750,10 @@ double find_animation_curve_at(double t, int type) {
     baked_points = baked_points_open;
   } else if (type == TAG) {
     baked_points = baked_points_tag;
+  } else if (type == CLOSE) {
+    baked_points = baked_points_close;
   }
+
   while (up - down != 1) {
     if (baked_points[middle].x <= t) {
       down = middle;
@@ -802,7 +813,7 @@ void fadeout_client_animation_next_tick(Client *c) {
 
   double animation_passed =
       (double)c->animation.passed_frames / c->animation.total_frames;
-  int type = c->animation.action == NONE ? MOVE : c->animation.action;
+  int type = c->animation.action = c->animation.action;
   double factor = find_animation_curve_at(animation_passed, type);
   uint32_t width = c->animation.initial.width +
                    (c->current.width - c->animation.initial.width) * factor;
@@ -5746,6 +5757,7 @@ void init_fadeout_client(Client *c) {
       fadeout_cient->animation.initial = c->animation.current;
   fadeout_cient->mon = c->mon;
   fadeout_cient->animation_type = c->animation_type;
+  fadeout_cient->animation.action = CLOSE;
 
   // 这里snap节点的坐标设置是使用的相对坐标，所以不能加上原来坐标
   // 这跟普通node有区别

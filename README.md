@@ -124,10 +124,9 @@ because your keybinds contain shift, the `2` cover to `at`
 animation_curve_open=0.46,1.0,0.29,1.1
 animation_curve_move=0.46,1.0,0.29,1 
 animation_curve_tag=0.46,1.0,0.29,1
+animation_curve_close=0.46,1.0,0.29,1
 
 ```
-notice: close and move animations are the same curve.
-
 You can design your animaition curve in:
 [here, on cssportal.com](https://www.cssportal.com/css-cubic-bezier-generator/),
 
@@ -203,12 +202,10 @@ or you can just choice a curve in:
 
 - https://gitlab.freedesktop.org/wlroots/wlroots - Implementation of wayland protocol
 
-- https://github.com/dqrk0jeste/owl - Implementation of simple basic animation
+- https://github.com/dqrk0jeste/owl - for basal window animaition
 
-- https://github.com/djpohly/dwl - Basic compositor functionality
+- https://github.com/djpohly/dwl - for basal dwl feature
 
-- https://github.com/guyuming76/dwl - Implementation of text-input protocol
+- https://github.com/guyuming76/dwl - for text-input
 
-- https://github.com/swaywm/sway - Demonstration application of the protocol
-
-- https://github.com/ErikReider/fx-comp - More cool effect
+- https://github.com/swaywm/sway - for foreign-toplevel
