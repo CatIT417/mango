@@ -11,14 +11,13 @@ char animation_fade_in = 1;        // Enable animation fade in
 float zoom_initial_ratio = 0.5;    // 动画起始窗口比例
 float fadein_begin_opacity = 0.5;  // Begin opac window ratio for animations
 float fadeout_begin_opacity = 0.5; // Begin opac window ratio for animations
-uint32_t animation_duration_move = 500;              // Animation move speed
-uint32_t animation_duration_open = 400;              // Animation open speed
-uint32_t animation_duration_tag = 300;               // Animation tag speed
-uint32_t animation_duration_close = 300;             // Animation close speed
+uint32_t animation_duration_move = 500;  // Animation move speed
+uint32_t animation_duration_open = 400;  // Animation open speed
+uint32_t animation_duration_tag = 300;   // Animation tag speed
+uint32_t animation_duration_close = 300; // Animation close speed
 double animation_curve_move[4] = {0.46, 1.0, 0.29, 0.99}; // 动画曲线
 double animation_curve_open[4] = {0.46, 1.0, 0.29, 0.99}; // 动画曲线
-double animation_curve_tag[4] = {0.46, 1.0, 0.29, 0.99}; // 动画曲线
-
+double animation_curve_tag[4] = {0.46, 1.0, 0.29, 0.99};  // 动画曲线
 
 /* appearance */
 unsigned int axis_bind_apply_timeout = 100; // 滚轮绑定动作的触发的时间间隔

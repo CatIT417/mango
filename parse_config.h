@@ -4,7 +4,7 @@
 #include <string.h>
 
 #ifndef SYSCONFDIR
-#define SYSCONFDIR "/etc" 
+#define SYSCONFDIR "/etc"
 #endif
 
 typedef struct {
@@ -162,12 +162,14 @@ typedef void (*FuncType)(const Arg *);
 Config config;
 
 // 清理字符串中的不可见字符（包括 \r, \n, 空格等）
-char* sanitize_string(char *str) {
+char *sanitize_string(char *str) {
   // 去除首部不可见字符
-  while (*str != '\0' && !isprint((unsigned char)*str)) str++;
+  while (*str != '\0' && !isprint((unsigned char)*str))
+    str++;
   // 去除尾部不可见字符
   char *end = str + strlen(str) - 1;
-  while (end > str && !isprint((unsigned char)*end)) end--;
+  while (end > str && !isprint((unsigned char)*end))
+    end--;
   *(end + 1) = '\0';
   return str;
 }
@@ -488,15 +490,19 @@ void parse_config_line(Config *config, const char *line) {
     config->animation_duration_close = atoi(value);
   } else if (strcmp(key, "animation_curve_move") == 0) {
     if (sscanf(value, "%lf,%lf,%lf,%lf", &config->animation_curve_move[0],
-               &config->animation_curve_move[1], &config->animation_curve_move[2],
+               &config->animation_curve_move[1],
+               &config->animation_curve_move[2],
                &config->animation_curve_move[3]) != 4) {
-      fprintf(stderr, "Error: Invalid animation_curve_move format: %s\n", value);
+      fprintf(stderr, "Error: Invalid animation_curve_move format: %s\n",
+              value);
     }
   } else if (strcmp(key, "animation_curve_open") == 0) {
     if (sscanf(value, "%lf,%lf,%lf,%lf", &config->animation_curve_open[0],
-               &config->animation_curve_open[1], &config->animation_curve_open[2],
+               &config->animation_curve_open[1],
+               &config->animation_curve_open[2],
                &config->animation_curve_open[3]) != 4) {
-      fprintf(stderr, "Error: Invalid animation_curve_open format: %s\n", value);
+      fprintf(stderr, "Error: Invalid animation_curve_open format: %s\n",
+              value);
     }
   } else if (strcmp(key, "animation_curve_tag") == 0) {
     if (sscanf(value, "%lf,%lf,%lf,%lf", &config->animation_curve_tag[0],
@@ -514,15 +520,17 @@ void parse_config_line(Config *config, const char *line) {
     // 1. 统计 value 中有多少个逗号，确定需要解析的浮点数个数
     int count = 0; // 初始化为 0
     for (const char *p = value; *p; p++) {
-        if (*p == ',') count++;
+      if (*p == ',')
+        count++;
     }
     int float_count = count + 1; // 浮点数的数量是逗号数量加 1
 
     // 2. 动态分配内存，存储浮点数
-    config->scroller_proportion_preset = (float *)malloc(float_count * sizeof(float));
+    config->scroller_proportion_preset =
+        (float *)malloc(float_count * sizeof(float));
     if (!config->scroller_proportion_preset) {
-        fprintf(stderr, "Error: Memory allocation failed\n");
-        return;
+      fprintf(stderr, "Error: Memory allocation failed\n");
+      return;
     }
 
     // 3. 解析 value 中的浮点数
@@ -531,89 +539,95 @@ void parse_config_line(Config *config, const char *line) {
     int i = 0;
 
     while (token != NULL && i < float_count) {
-        if (sscanf(token, "%f", &config->scroller_proportion_preset[i]) != 1) {
-            fprintf(stderr, "Error: Invalid float value in scroller_proportion_preset: %s\n", token);
-            free(value_copy);
-            free(config->scroller_proportion_preset); // 释放已分配的内存
-            config->scroller_proportion_preset = NULL; // 防止野指针
-            return;
-        }
-        token = strtok(NULL, ",");
-        i++;
+      if (sscanf(token, "%f", &config->scroller_proportion_preset[i]) != 1) {
+        fprintf(
+            stderr,
+            "Error: Invalid float value in scroller_proportion_preset: %s\n",
+            token);
+        free(value_copy);
+        free(config->scroller_proportion_preset);  // 释放已分配的内存
+        config->scroller_proportion_preset = NULL; // 防止野指针
+        return;
+      }
+      token = strtok(NULL, ",");
+      i++;
     }
 
     // 4. 检查解析的浮点数数量是否匹配
     if (i != float_count) {
-        fprintf(stderr, "Error: Invalid scroller_proportion_preset format: %s\n", value);
-        free(value_copy);
-        free(config->scroller_proportion_preset); // 释放已分配的内存
-        config->scroller_proportion_preset = NULL; // 防止野指针
-        config->scroller_proportion_preset_count = 0;
-        return;
+      fprintf(stderr, "Error: Invalid scroller_proportion_preset format: %s\n",
+              value);
+      free(value_copy);
+      free(config->scroller_proportion_preset);  // 释放已分配的内存
+      config->scroller_proportion_preset = NULL; // 防止野指针
+      config->scroller_proportion_preset_count = 0;
+      return;
     }
     config->scroller_proportion_preset_count = float_count;
 
     // 5. 释放临时复制的字符串
     free(value_copy);
- } else if (strcmp(key, "circle_layout") == 0) {
-  // 1. 统计 value 中有多少个逗号，确定需要解析的字符串个数
-  int count = 0; // 初始化为 0
-  for (const char *p = value; *p; p++) {
-      if (*p == ',') count++;
-  }
-  int string_count = count + 1; // 字符串的数量是逗号数量加 1
+  } else if (strcmp(key, "circle_layout") == 0) {
+    // 1. 统计 value 中有多少个逗号，确定需要解析的字符串个数
+    int count = 0; // 初始化为 0
+    for (const char *p = value; *p; p++) {
+      if (*p == ',')
+        count++;
+    }
+    int string_count = count + 1; // 字符串的数量是逗号数量加 1
 
-  // 2. 动态分配内存，存储字符串指针
-  config->circle_layout = (char **)malloc(string_count * sizeof(char *));
-  memset(config->circle_layout, 0, string_count * sizeof(char *));
-  if (!config->circle_layout) {
+    // 2. 动态分配内存，存储字符串指针
+    config->circle_layout = (char **)malloc(string_count * sizeof(char *));
+    memset(config->circle_layout, 0, string_count * sizeof(char *));
+    if (!config->circle_layout) {
       fprintf(stderr, "Error: Memory allocation failed\n");
       return;
-  }
+    }
 
-  // 3. 解析 value 中的字符串
-  char *value_copy = strdup(value); // 复制 value，因为 strtok 会修改原字符串
-  char *token = strtok(value_copy, ",");
-  int i = 0;
-  char *cleaned_token;
-  while (token != NULL && i < string_count) {
+    // 3. 解析 value 中的字符串
+    char *value_copy = strdup(value); // 复制 value，因为 strtok 会修改原字符串
+    char *token = strtok(value_copy, ",");
+    int i = 0;
+    char *cleaned_token;
+    while (token != NULL && i < string_count) {
       // 为每个字符串分配内存并复制内容
       cleaned_token = sanitize_string(token);
       config->circle_layout[i] = strdup(cleaned_token);
       if (!config->circle_layout[i]) {
-          fprintf(stderr, "Error: Memory allocation failed for string: %s\n", token);
-          // 释放之前分配的内存
-          for (int j = 0; j < i; j++) {
-              free(config->circle_layout[j]);
-          }
-          free(config->circle_layout);
-          free(value_copy);
-          config->circle_layout = NULL; // 防止野指针
-          config->circle_layout_count = 0;
-          return;
+        fprintf(stderr, "Error: Memory allocation failed for string: %s\n",
+                token);
+        // 释放之前分配的内存
+        for (int j = 0; j < i; j++) {
+          free(config->circle_layout[j]);
+        }
+        free(config->circle_layout);
+        free(value_copy);
+        config->circle_layout = NULL; // 防止野指针
+        config->circle_layout_count = 0;
+        return;
       }
       token = strtok(NULL, ",");
       i++;
-  }
+    }
 
-  // 4. 检查解析的字符串数量是否匹配
-  if (i != string_count) {
+    // 4. 检查解析的字符串数量是否匹配
+    if (i != string_count) {
       fprintf(stderr, "Error: Invalid circle_layout format: %s\n", value);
       // 释放之前分配的内存
       for (int j = 0; j < i; j++) {
-          free(config->circle_layout[j]);
+        free(config->circle_layout[j]);
       }
       free(config->circle_layout);
       free(value_copy);
       config->circle_layout = NULL; // 防止野指针
       config->circle_layout_count = 0;
       return;
-  }
-  config->circle_layout_count = string_count;
+    }
+    config->circle_layout_count = string_count;
 
-  // 5. 释放临时复制的字符串
-  free(value_copy);
- } else if (strcmp(key, "new_is_master") == 0) {
+    // 5. 释放临时复制的字符串
+    free(value_copy);
+  } else if (strcmp(key, "new_is_master") == 0) {
     config->new_is_master = atoi(value);
   } else if (strcmp(key, "default_mfact") == 0) {
     config->default_mfact = atof(value);
@@ -969,16 +983,16 @@ void parse_config_file(Config *config, const char *file_path) {
 
 void free_circle_layout(Config *config) {
   if (config->circle_layout) {
-      // 释放每个字符串
-      for (int i = 0; i < config->circle_layout_count; i++) {
-          if (config->circle_layout[i]) {
-              free(config->circle_layout[i]); // 释放单个字符串
-              config->circle_layout[i] = NULL; // 防止野指针
-          }
+    // 释放每个字符串
+    for (int i = 0; i < config->circle_layout_count; i++) {
+      if (config->circle_layout[i]) {
+        free(config->circle_layout[i]);  // 释放单个字符串
+        config->circle_layout[i] = NULL; // 防止野指针
       }
-      // 释放 circle_layout 数组本身
-      free(config->circle_layout);
-      config->circle_layout = NULL; // 防止野指针
+    }
+    // 释放 circle_layout 数组本身
+    free(config->circle_layout);
+    config->circle_layout = NULL; // 防止野指针
   }
   config->circle_layout_count = 0; // 重置计数
 }
@@ -1050,9 +1064,12 @@ void override_config(void) {
   animation_duration_close = config.animation_duration_close;
 
   // 复制数组类型的变量
-  memcpy(animation_curve_move, config.animation_curve_move, sizeof(animation_curve_move));
-  memcpy(animation_curve_open, config.animation_curve_open, sizeof(animation_curve_open));
-  memcpy(animation_curve_tag, config.animation_curve_tag, sizeof(animation_curve_tag));
+  memcpy(animation_curve_move, config.animation_curve_move,
+         sizeof(animation_curve_move));
+  memcpy(animation_curve_open, config.animation_curve_open,
+         sizeof(animation_curve_open));
+  memcpy(animation_curve_tag, config.animation_curve_tag,
+         sizeof(animation_curve_tag));
 
   scroller_structs = config.scroller_structs;
   scroller_default_proportion = config.scroller_default_proportion;
@@ -1157,9 +1174,12 @@ void set_value_default() {
   config.left_handed = 0;
   config.middle_button_emulation = 0;
 
-  memcpy(config.animation_curve_move, animation_curve_move, sizeof(animation_curve_move));
-  memcpy(config.animation_curve_open, animation_curve_open, sizeof(animation_curve_open));
-  memcpy(config.animation_curve_tag, animation_curve_tag, sizeof(animation_curve_tag));
+  memcpy(config.animation_curve_move, animation_curve_move,
+         sizeof(animation_curve_move));
+  memcpy(config.animation_curve_open, animation_curve_open,
+         sizeof(animation_curve_open));
+  memcpy(config.animation_curve_tag, animation_curve_tag,
+         sizeof(animation_curve_tag));
 }
 
 void parse_config(void) {
@@ -1196,7 +1216,7 @@ void parse_config(void) {
     // 检查文件是否存在
     if (access(filename, F_OK) != 0) {
       // 如果文件不存在，则使用 /etc/maomao/config.conf
-      snprintf(filename, sizeof(filename), "%s/maomao/config.conf",SYSCONFDIR);
+      snprintf(filename, sizeof(filename), "%s/maomao/config.conf", SYSCONFDIR);
     }
   } else {
     // 使用 MAOMAOCONFIG 环境变量作为配置文件夹路径
