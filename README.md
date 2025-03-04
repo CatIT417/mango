@@ -18,7 +18,8 @@ https://github.com/user-attachments/assets/c9bf9415-fad1-4400-bcdc-3ad2d76de85a
 
 # Maomaowm
 
-This project is developed based on `dwl` , it is basically compatible with all `dwm` features.
+This project is developed based on [dwl](https://codeberg.org/dwl/dwl/),
+it is basically compatible with all `dwm` features.
 In addition, it is added many operation that supported in `hyprland`, such as `smooth and customizable animation`、`External configuration that can be hot overloaded`,`pin mode`,`maximize window` etc...
 
 See below for more features.
@@ -285,7 +286,7 @@ window#waybar.empty #window {
 
 - https://github.com/dqrk0jeste/owl - basal window animaition
 
-- https://github.com/djpohly/dwl - basal dwl feature
+- https://codeberg.org/dwl/dwl - basal dwl feature
 
 - https://github.com/guyuming76/dwl - sample of text-input protocol
 
