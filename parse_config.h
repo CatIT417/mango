@@ -19,6 +19,8 @@ typedef struct {
   int monitor;
   int width;
   int height;
+  int isterm;
+  int noswallow;
 } ConfigWinRule;
 
 typedef struct {
@@ -29,6 +31,8 @@ typedef struct {
   int rr;             // 旋转和翻转（假设为整数）
   float scale;        // 显示器缩放比例
   int x, y;           // 显示器位置
+  int isterm;
+  int noswallow;
 } ConfigMonitorRule;
 
 typedef struct {
@@ -783,6 +787,8 @@ void parse_config_line(Config *config, const char *line) {
     rule->isfloating = -1;
     rule->isfullscreen = -1;
     rule->isnoborder = -1;
+    rule->isterm = -1;
+    rule->noswallow = -1;
     rule->monitor = -1;
     rule->width = -1;
     rule->height = -1;
@@ -818,6 +824,10 @@ void parse_config_line(Config *config, const char *line) {
           rule->height = atoi(val);
         } else if (strcmp(key, "isnoborder") == 0) {
           rule->isnoborder = atoi(val);
+        } else if (strcmp(key, "isterm") == 0) {
+          rule->isterm = atoi(val);
+        } else if (strcmp(key, "noswallow") == 0) {
+          rule->noswallow = atoi(val);
         } else if (strcmp(key, "scroller_proportion") == 0) {
           rule->scroller_proportion = atof(val);
         } else if (strcmp(key, "isfullscreen") == 0) {

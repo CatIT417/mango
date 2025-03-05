@@ -171,7 +171,8 @@ struct dwl_animation {
 
 typedef struct Pertag Pertag;
 typedef struct Monitor Monitor;
-typedef struct {
+typedef struct Client Client;
+struct Client {
   /* Must keep these three elements in this order */
   unsigned int type; /* XDGShell or X11* */
   struct wlr_box geom, pending, oldgeom, animainit_geom, overview_backup_geom,
@@ -240,9 +241,12 @@ typedef struct {
   bool need_output_flush;
   struct dwl_animation animation;
   bool is_fadeout_client;
+  int isterm, noswallow;
   // struct wl_event_source *timer_tick;
+  pid_t pid;
+  Client *swallowing, *swallowedby;
+};
 
-} Client;
 
 typedef struct {
   struct wl_list link;
@@ -515,6 +519,10 @@ static Monitor *xytomon(double x, double y);
 static void xytonode(double x, double y, struct wlr_surface **psurface,
                      Client **pc, LayerSurface **pl, double *nx, double *ny);
 static void clear_fullscreen_flag(Client *c);
+static pid_t getparentprocess(pid_t p);
+static int isdescprocess(pid_t p, pid_t c);
+static Client *termforwin(Client *w);
+static void swallow(Client *c, Client *w);
 
 static void warp_cursor_to_selmon(const Monitor *m);
 unsigned int want_restore_fullscreen(Client *target_client);
@@ -560,6 +568,7 @@ void defaultgaps(const Arg *arg);
 void buffer_set_size(Client *c, animationScale scale_data);
 void snap_scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx,
                                   int sy, void *data);
+void client_set_pending_state(Client *c);
 // int timer_tick_action(void *data);
 
 #include "dispatch.h"
@@ -1224,6 +1233,64 @@ void toggle_scratchpad(const Arg *arg) {
   }
 }
 
+pid_t
+getparentprocess(pid_t p)
+{
+	unsigned int v = 0;
+
+	FILE *f;
+	char buf[256];
+	snprintf(buf, sizeof(buf) - 1, "/proc/%u/stat", (unsigned)p);
+
+	if (!(f = fopen(buf, "r")))
+		return 0;
+
+	fscanf(f, "%*u %*s %*c %u", &v);
+	fclose(f);
+
+	return (pid_t)v;
+}
+
+int
+isdescprocess(pid_t p, pid_t c)
+{
+	while (p != c && c != 0)
+		c = getparentprocess(c);
+
+	return (int)c;
+}
+
+Client *
+termforwin(Client *w)
+{
+	Client *c;
+
+	if (!w->pid || w->isterm || w->noswallow)
+		return NULL;
+
+	wl_list_for_each(c, &fstack, flink)
+		if (c->isterm && !c->swallowing && c->pid && isdescprocess(c->pid, w->pid))
+			return c;
+
+	return NULL;
+}
+
+void
+swallow(Client *c, Client *w)
+{
+	c->bw = w->bw;
+	c->isfloating = w->isfloating;
+	c->isurgent = w->isurgent;
+	c->isfullscreen = w->isfullscreen;
+  c->ismaxmizescreen = w->ismaxmizescreen;
+	c->tags = w->tags;
+	c->geom = w->geom;
+	wl_list_insert(&w->link, &c->link);
+	wl_list_insert(&w->flink, &c->flink);
+	wlr_scene_node_set_enabled(&w->scene->node, 0);
+	wlr_scene_node_set_enabled(&c->scene->node, 1);
+}
+
 void // 0.5
 handlesig(int signo) {
   if (signo == SIGCHLD) {
@@ -1344,6 +1411,8 @@ applyrules(Client *c) {
   if (!(title = client_get_title(c)))
     title = broken;
 
+  c->pid = client_get_pid(c);
+    
   for (ji = 0; ji < config.window_rules_count; ji++) {
     if (config.window_rules_count < 1)
       break;
@@ -1351,6 +1420,8 @@ applyrules(Client *c) {
 
     if ((r->title && strstr(title, r->title)) ||
         (r->id && strstr(appid, r->id))) {
+      c->isterm     = r->isterm > 0 ? r->isterm : c->isterm;
+      c->noswallow  = r->noswallow > 0? r->noswallow : c->noswallow;
       c->isfloating = r->isfloating > 0 ? r->isfloating : c->isfloating;
       c->animation_type =
           r->animation_type == NULL ? c->animation_type : r->animation_type;
@@ -1372,6 +1443,22 @@ applyrules(Client *c) {
         c->isfullscreen = 1;
         c->ignore_clear_fullscreen = 1;
       }
+    }
+  }
+
+  if (!c->noswallow && !client_is_float_type(c)
+      && !c->surface.xdg->initial_commit) {
+    Client *p = termforwin(c);
+    if (p) {
+      c->swallowedby = p;
+      p->swallowing  = c;
+      wl_list_remove(&c->link);
+      wl_list_remove(&c->flink);
+      swallow(c, p);
+      wl_list_remove(&p->link);
+      wl_list_remove(&p->flink);
+      mon = p->mon;
+      newtags = p->tags;
     }
   }
 
@@ -4257,6 +4344,15 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   if (!c->animation.tagouting && !c->iskilling) {
     c->pending = c->geom;
   }
+
+  if (c->swallowedby && c->animation.action == OPEN) {
+    c->animainit_geom = c->swallowedby->animation.current;
+  } 
+
+  if (c->swallowing) {
+    c->animainit_geom = c->geom;
+  }
+
   // 开始应用动画设置
   client_set_pending_state(c);
 
@@ -4352,7 +4448,7 @@ setfloating(Client *c, int floating) {
   target_box = c->geom;
 
   if (floating == 1) {
-    if (c->istiled) {
+    if (c->istiled && !c->swallowing) {
       target_box.height = target_box.height * 0.8;
       target_box.width = target_box.width * 0.8;
     }
@@ -5802,6 +5898,12 @@ void unmapnotify(struct wl_listener *listener, void *data) {
   if (animations)
     init_fadeout_client(c);
 
+  if (c->swallowedby) {
+    // c->swallowedby->geom = c->swallowedby->current = c->swallowedby->pending = c->current;
+    // c->swallowedby->animainit_geom = c->animation.current;
+  	swallow(c->swallowedby, c);
+  }
+
   if (c == grabc) {
     cursor_mode = CurNormal;
     grabc = NULL;
@@ -5830,14 +5932,29 @@ void unmapnotify(struct wl_listener *listener, void *data) {
     if (client_surface(c) == seat->keyboard_state.focused_surface)
       focusclient(focustop(selmon), 1);
   } else {
-    wl_list_remove(&c->link);
+    if (!c->swallowing)
+    	wl_list_remove(&c->link);
     setmon(c, NULL, 0);
-    wl_list_remove(&c->flink);
+    if (!c->swallowing)
+    	wl_list_remove(&c->flink);
   }
 
   if (c->foreign_toplevel) {
     wlr_foreign_toplevel_handle_v1_destroy(c->foreign_toplevel);
     c->foreign_toplevel = NULL;
+  }
+
+  if (c->swallowedby) {
+  	c->swallowedby->prev = c->geom;
+  	setfullscreen(c->swallowedby, c->isfullscreen);
+    setmaxmizescreen(c->swallowedby, c->ismaxmizescreen);
+  	c->swallowedby->swallowing = NULL;
+  	c->swallowedby = NULL;
+  }
+
+  if (c->swallowing) {
+  	c->swallowing->swallowedby = NULL;
+  	c->swallowing = NULL;
   }
 
   // wl_event_source_remove(c->timer_tick);

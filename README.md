@@ -46,6 +46,8 @@ See below for more features.
 - monitor  : type-num(0-99999)
 - width : type-num(0-9999)
 - height : type-num(0-9999)
+- isterm : type-num(0 or 1) it will be swallowed by the sub window 
+- noswallow: type-num(0 or 1) don't swallow the isterm window
 
 # some special feature
 - hycov like overview

@@ -296,6 +296,18 @@ static inline void client_send_close(Client *c) {
   wlr_xdg_toplevel_send_close(c->surface.xdg->toplevel);
 }
 
+static inline int
+client_get_pid(Client *c)
+{
+	pid_t pid;
+#ifdef XWAYLAND
+	if (client_is_x11(c))
+		return c->surface.xwayland->pid;
+#endif
+	wl_client_get_credentials(c->surface.xdg->client->client, &pid, NULL, NULL);
+	return pid;
+}
+
 static inline void client_set_border_color(Client *c,
                                            const float color[static 4]) {
   int i;
