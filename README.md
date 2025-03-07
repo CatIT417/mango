@@ -217,6 +217,10 @@ window#waybar.empty #window {
 
 ```
 
+# ipc
+
+refer to [ipc](https://github.com/DreamMaoMao/mmsg)
+
 # NixOS+Home-manager
 ```nix
 {
