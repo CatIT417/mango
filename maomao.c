@@ -2967,6 +2967,8 @@ void focusclient(Client *c, int lift) {
   if (locked)
     return;
 
+  if (c && !client_surface(c)->mapped)
+    return;
   if (c && c->iskilling)
     return;
 
@@ -4735,6 +4737,10 @@ void show_hide_client(Client *c) {
 void handle_foreign_activate_request(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, foreign_activate_request);
   unsigned int target;
+
+  if (c && c->swallowing)
+    return;
+
   if (c && !c->isminied && c == selmon->sel) {
     set_minized(c);
     return;
@@ -4761,6 +4767,10 @@ void handle_foreign_fullscreen_request(struct wl_listener *listener,
 
 void handle_foreign_close_request(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, foreign_close_request);
+
+  if (c && c->swallowing)
+    return;
+
   if (c) {
     pending_kill_client(c);
   }
