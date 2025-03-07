@@ -468,6 +468,8 @@ static void motionnotify(uint32_t time, struct wlr_input_device *device,
 static void motionrelative(struct wl_listener *listener, void *data);
 
 static void reset_foreign_tolevel(Client *c);
+static void remove_foreign_topleve(Client *c);
+static void add_foreign_topleve(Client *c);
 static void exchange_two_client(Client *c1, Client *c2);
 static void outputmgrapply(struct wl_listener *listener, void *data);
 static void outputmgrapplyortest(struct wlr_output_configuration_v1 *config,
@@ -1179,11 +1181,12 @@ void show_scratchpad(Client *c) {
   setborder_color(c);
 }
 
-void reset_foreign_tolevel(Client *c) {
+void remove_foreign_topleve(Client *c) {
   wlr_foreign_toplevel_handle_v1_destroy(c->foreign_toplevel);
-  c->foreign_toplevel = NULL;
-  // printstatus();
-  // 创建外部顶层窗口的句柄,每一个顶层窗口都有一个
+  c->foreign_toplevel = NULL;  
+}
+
+void add_foreign_toplevel(Client *c) {
   c->foreign_toplevel =
       wlr_foreign_toplevel_handle_v1_create(foreign_toplevel_manager);
   // 监听来自外部对于窗口的事件请求
@@ -1210,6 +1213,11 @@ void reset_foreign_tolevel(Client *c) {
     wlr_foreign_toplevel_handle_v1_output_enter(c->foreign_toplevel,
                                                 c->mon->wlr_output);
   }
+}
+
+void reset_foreign_tolevel(Client *c) {
+ remove_foreign_topleve(c);
+ add_foreign_toplevel(c);
 }
 
 void toggle_scratchpad(const Arg *arg) {
@@ -1288,8 +1296,15 @@ swallow(Client *c, Client *w)
 	c->geom = w->geom;
 	wl_list_insert(&w->link, &c->link);
 	wl_list_insert(&w->flink, &c->flink);
+
+  if(w->foreign_toplevel)
+    remove_foreign_topleve(w);
+
 	wlr_scene_node_set_enabled(&w->scene->node, 0);
 	wlr_scene_node_set_enabled(&c->scene->node, 1);
+
+  if(!c->foreign_toplevel && c->mon)
+    add_foreign_toplevel(c);
 }
 
 void // 0.5
@@ -2831,55 +2846,55 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
   focused = focustop(monitor);
   zdwl_ipc_output_v2_send_active(ipc_output->resource, monitor == selmon);
 
-  // if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
-  //   state = 0;
-  //   state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-  //   zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);
-  // } else {
-  //   for (tag = 0; tag < LENGTH(tags); tag++) {
-  //     numclients = state = focused_client = 0;
-  //     tagmask = 1 << tag;
-  //     if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-  //       state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
-
-  //     wl_list_for_each(c, &clients, link) {
-  //       if (c->iskilling)
-  //         continue;
-  //       if (c->mon != monitor)
-  //         continue;
-  //       if (!(c->tags & tagmask))
-  //         continue;
-  //       if (c == focused)
-  //         focused_client = 1;
-  //       if (c->isurgent)
-  //         state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
-
-  //       numclients++;
-  //     }
-  //     zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients,
-  //                                 focused_client);
-  //   }
-  // }
-
-  for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+  if ((monitor->tagset[monitor->seltags] & TAGMASK) == TAGMASK) {
+    state = 0;
+    state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+    zdwl_ipc_output_v2_send_tag(ipc_output->resource, 888, state, 1, 1);
+  } else {
+    for (tag = 0; tag < LENGTH(tags); tag++) {
       numclients = state = focused_client = 0;
       tagmask = 1 << tag;
       if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
-          state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+        state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+
       wl_list_for_each(c, &clients, link) {
-          if (c->mon != monitor)
-              continue;
-          if (!(c->tags & tagmask))
-              continue;
-          if (c == focused)
-              focused_client = 1;
-          if (c->isurgent)
-              state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
-          numclients++;
+        if (c->iskilling)
+          continue;
+        if (c->mon != monitor)
+          continue;
+        if (!(c->tags & tagmask))
+          continue;
+        if (c == focused)
+          focused_client = 1;
+        if (c->isurgent)
+          state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+
+        numclients++;
       }
-      zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state,
-      numclients, focused_client);
+      zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state, numclients,
+                                  focused_client);
+    }
   }
+
+  // for ( tag = 0 ; tag < LENGTH(tags); tag++) {
+  //     numclients = state = focused_client = 0;
+  //     tagmask = 1 << tag;
+  //     if ((tagmask & monitor->tagset[monitor->seltags]) != 0)
+  //         state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_ACTIVE;
+  //     wl_list_for_each(c, &clients, link) {
+  //         if (c->mon != monitor)
+  //             continue;
+  //         if (!(c->tags & tagmask))
+  //             continue;
+  //         if (c == focused)
+  //             focused_client = 1;
+  //         if (c->isurgent)
+  //             state |= ZDWL_IPC_OUTPUT_V2_TAG_STATE_URGENT;
+  //         numclients++;
+  //     }
+  //     zdwl_ipc_output_v2_send_tag(ipc_output->resource, tag, state,
+  //     numclients, focused_client);
+  // }
 
   title = focused ? client_get_title(focused) : "";
   appid = focused ? client_get_appid(focused) : "";
@@ -3578,34 +3593,8 @@ mapnotify(struct wl_listener *listener, void *data) {
     applyrules(c);
   }
 
-  // 创建外部顶层窗口的句柄,每一个顶层窗口都有一个
-  c->foreign_toplevel =
-      wlr_foreign_toplevel_handle_v1_create(foreign_toplevel_manager);
-
-  // 监听来自外部对于窗口的事件请求
-  if (c->foreign_toplevel) {
-    LISTEN(&(c->foreign_toplevel->events.request_activate),
-           &c->foreign_activate_request, handle_foreign_activate_request);
-    LISTEN(&(c->foreign_toplevel->events.request_fullscreen),
-           &c->foreign_fullscreen_request, handle_foreign_fullscreen_request);
-    LISTEN(&(c->foreign_toplevel->events.request_close),
-           &c->foreign_close_request, handle_foreign_close_request);
-    LISTEN(&(c->foreign_toplevel->events.destroy), &c->foreign_destroy,
-           handle_foreign_destroy);
-    // 设置外部顶层句柄的id为应用的id
-    const char *appid;
-    appid = client_get_appid(c);
-    if (appid)
-      wlr_foreign_toplevel_handle_v1_set_app_id(c->foreign_toplevel, appid);
-    // 设置外部顶层句柄的title为应用的title
-    const char *title;
-    title = client_get_title(c);
-    if (title)
-      wlr_foreign_toplevel_handle_v1_set_title(c->foreign_toplevel, title);
-    // 设置外部顶层句柄的显示监视器为当前监视器
-    wlr_foreign_toplevel_handle_v1_output_enter(c->foreign_toplevel,
-                                                selmon->wlr_output);
-  }
+  if(!c->foreign_toplevel && c->mon)
+    add_foreign_toplevel(c);
 
   if (selmon->sel && selmon->sel->foreign_toplevel)
     wlr_foreign_toplevel_handle_v1_set_activated(selmon->sel->foreign_toplevel,
