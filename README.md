@@ -74,6 +74,7 @@ Since 0.18 has some bugs that affect the experience,
 I chose the more stable 0.17.4.
 
 ```
+yay -S libinput
 git clone -b 0.17.4 https://gitlab.freedesktop.org/wlroots/wlroots.git
 cd wlroots
 meson build -Dprefix=/usr
@@ -90,6 +91,7 @@ This is the latest version of wlroots, it doesn't own enough test.
 you can try it out if you want to help to test.
 
 ```
+yay -S libinput
 yay -S wlroots-git
 git clone -b wlroots-0.19 https://github.com/DreamMaoMao/maomaowm.git
 cd maomaowm
