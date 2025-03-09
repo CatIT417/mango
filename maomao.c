@@ -4093,6 +4093,7 @@ void setborder_color(Client *c) {
   if (c->isurgent) {
     for (i = 0; i < 4; i++)
       wlr_scene_rect_set_color(c->border[i], urgentcolor);
+    return;
   }
   if (c->is_in_scratchpad && c == selmon->sel) {
     for (i = 0; i < 4; i++)
@@ -4446,7 +4447,7 @@ setfloating(Client *c, int floating) {
   target_box = c->geom;
 
   if (floating == 1) {
-    if (c->istiled && !c->swallowing) {
+    if (c->istiled && !c->swallowing && !c->is_open_animation) {
       target_box.height = target_box.height * 0.8;
       target_box.width = target_box.width * 0.8;
     }
