@@ -72,7 +72,11 @@ yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist w
 ## stable - wlroots(0.17)
 Since 0.18 has some bugs that affect the experience, 
 I chose the more stable 0.17.4.
-
+- Arch
+```
+yay -S maomaowm-git
+```
+- Other
 ```
 yay -S libinput
 git clone -b 0.17.4 https://gitlab.freedesktop.org/wlroots/wlroots.git
