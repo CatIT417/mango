@@ -162,7 +162,7 @@ ov_tab_mode=0
 ### notice
   when you in ov mode, you can use right mouse button to close window, and left mouse button to jump to a window.
 
-# About warbar
+# About waybar
 
 - you can also use the dwl moudle in waybar to show tags and window title
 refer to waybar wiki: [dwl-module](https://github.com/Alexays/Waybar/wiki/Module:-Dwl)
