@@ -62,12 +62,6 @@ See below for more features.
 - alt-tab switch window like gnome
 - niri like scroller layout
 
-## suggest tools
-```
-yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist wl-clipboard wlsunset
-
-```
-
 # install 
 ## stable - wlroots(0.17)
 Since 0.18 has some bugs that affect the experience, 
@@ -103,7 +97,18 @@ meson build -Dprefix=/usr
 sudo ninja -C build install
 ```
 
+## suggest tools
+```
+yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist wl-clipboard wlsunset
+
+```
+
 # config
+```
+cp /etc/maomao/config.conf ~/.config/maomao/config.conf
+touch ~/.config/maomao/autostart.sh
+chmod +x ~/.config/maomao/autostart.sh
+```
 you can use `MAOMAOCONFIG` env to set the config-folder-path and the autostart-folder-patch
 like `MAOMAOCONFIG=/home/xxx/maomao`
 
