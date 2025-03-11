@@ -227,7 +227,8 @@ struct Client {
   struct wl_listener destroy_decoration;
 
   unsigned int ignore_clear_fullscreen;
-  const char *animation_type;
+  const char *animation_type_open;
+  const char *animation_type_close;
   int is_in_scratchpad;
   int is_scratchpad_show;
   int isglobal;
@@ -352,7 +353,8 @@ typedef struct {
   int isfloating;
   int isfullscreen;
   float scroller_proportion;
-  const char *animation_type;
+  const char *animation_type_open;
+  const char *animation_type_close;
   int isnoborder;
   int monitor;
   unsigned int width;
@@ -855,8 +857,8 @@ void fadeout_client_animation_next_tick(Client *c) {
 
   apply_opacity_to_rect_nodes(c, &c->scene->node, animation_passed);
 
-  if ((c->animation_type && strcmp(c->animation_type, "zoom") == 0) ||
-      (!c->animation_type && strcmp(animation_type, "zoom") == 0)) {
+  if ((c->animation_type_close && strcmp(c->animation_type_close, "zoom") == 0) ||
+      (!c->animation_type_close && strcmp(animation_type_close, "zoom") == 0)) {
 
     scale_data.width = width;
     scale_data.height = height;
@@ -1439,8 +1441,10 @@ applyrules(Client *c) {
       c->isterm     = r->isterm > 0 ? r->isterm : c->isterm;
       c->noswallow  = r->noswallow > 0? r->noswallow : c->noswallow;
       c->isfloating = r->isfloating > 0 ? r->isfloating : c->isfloating;
-      c->animation_type =
-          r->animation_type == NULL ? c->animation_type : r->animation_type;
+      c->animation_type_open =
+          r->animation_type_open == NULL ? c->animation_type_open : r->animation_type_open;
+      c->animation_type_close =
+          r->animation_type_close == NULL ? c->animation_type_close : r->animation_type_close;
       c->scroller_proportion = r->scroller_proportion > 0
                                    ? r->scroller_proportion
                                    : scroller_default_proportion;
@@ -4197,8 +4201,8 @@ void set_open_animaiton(Client *c, struct wlr_box geo) {
   int vertical, vertical_value;
   int special_direction;
   int center_x, center_y;
-  if (strcmp(animation_type, "zoom") == 0 ||
-      (c->animation_type && strcmp(c->animation_type, "zoom") == 0)) {
+  if (strcmp(animation_type_open, "zoom") == 0 ||
+      (c->animation_type_open && strcmp(c->animation_type_open, "zoom") == 0)) {
     c->animainit_geom.width = c->geom.width * zoom_initial_ratio;
     c->animainit_geom.height = c->geom.height * zoom_initial_ratio;
     c->animainit_geom.x = c->geom.x + (c->geom.width - c->animainit_geom.width) / 2;
@@ -5861,7 +5865,7 @@ void init_fadeout_client(Client *c) {
   fadeout_cient->geom = fadeout_cient->current = fadeout_cient->animainit_geom =
       fadeout_cient->animation.initial = c->animation.current;
   fadeout_cient->mon = c->mon;
-  fadeout_cient->animation_type = c->animation_type;
+  fadeout_cient->animation_type_close = c->animation_type_close;
   fadeout_cient->animation.action = CLOSE;
   fadeout_cient->bw = c->bw;
 
@@ -5870,8 +5874,8 @@ void init_fadeout_client(Client *c) {
 
   fadeout_cient->animation.initial.x = 0;
   fadeout_cient->animation.initial.y = 0;
-  if ((c->animation_type && strcmp(c->animation_type, "slide") == 0) ||
-      (!c->animation_type && strcmp(animation_type, "slide") == 0)) {
+  if ((c->animation_type_close && strcmp(c->animation_type_close, "slide") == 0) ||
+      (!c->animation_type_close && strcmp(animation_type_close, "slide") == 0)) {
     fadeout_cient->current.y =
         c->geom.y + c->geom.height / 2 > c->mon->m.y + c->mon->m.height / 2
             ? c->mon->m.height -

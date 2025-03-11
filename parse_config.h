@@ -14,7 +14,8 @@ typedef struct {
   int isfloating;
   int isfullscreen;
   float scroller_proportion;
-  const char *animation_type;
+  const char *animation_type_open;
+  const char *animation_type_close;
   int isnoborder;
   int monitor;
   int width;
@@ -71,7 +72,8 @@ typedef struct {
 
 typedef struct {
   int animations;
-  char animation_type[10];
+  char animation_type_open[10];
+  char animation_type_close[10];
   char animation_fade_in;
   float zoom_initial_ratio;
   float fadein_begin_opacity;
@@ -481,8 +483,10 @@ void parse_config_line(Config *config, const char *line) {
 
   if (strcmp(key, "animations") == 0) {
     config->animations = atoi(value);
-  } else if (strcmp(key, "animation_type") == 0) {
-    strncpy(config->animation_type, value, sizeof(config->animation_type));
+  } else if (strcmp(key, "animation_type_open") == 0) {
+    strncpy(config->animation_type_open, value, sizeof(config->animation_type_open));
+  } else if (strcmp(key, "animation_type_close") == 0) {
+    strncpy(config->animation_type_close, value, sizeof(config->animation_type_close));
   } else if (strcmp(key, "animation_fade_in") == 0) {
     config->animation_fade_in = atoi(value);
   } else if (strcmp(key, "zoom_initial_ratio") == 0) {
@@ -792,7 +796,8 @@ void parse_config_line(Config *config, const char *line) {
     rule->monitor = -1;
     rule->width = -1;
     rule->height = -1;
-    rule->animation_type = NULL;
+    rule->animation_type_open = NULL;
+    rule->animation_type_close = NULL;
     rule->scroller_proportion = -1;
     rule->id = NULL;
     rule->title = NULL;
@@ -812,8 +817,10 @@ void parse_config_line(Config *config, const char *line) {
           rule->title = strdup(val);
         } else if (strcmp(key, "appid") == 0) {
           rule->id = strdup(val);
-        } else if (strcmp(key, "animation_type") == 0) {
-          rule->animation_type = strdup(val);
+        } else if (strcmp(key, "animation_type_open") == 0) {
+          rule->animation_type_open = strdup(val);
+        } else if (strcmp(key, "animation_type_close") == 0) {
+          rule->animation_type_close = strdup(val);
         } else if (strcmp(key, "tags") == 0) {
           rule->tags = 1 << (atoi(val) - 1);
         } else if (strcmp(key, "monitor") == 0) {
@@ -1029,8 +1036,10 @@ void free_config(void) {
       free((void *)rule->id);
     if (rule->title)
       free((void *)rule->title);
-    if (rule->animation_type)
-      free((void *)rule->animation_type);
+    if (rule->animation_type_open)
+      free((void *)rule->animation_type_open);
+    if (rule->animation_type_close)
+      free((void *)rule->animation_type_close);
   }
   free(config.window_rules);
 
@@ -1076,7 +1085,8 @@ void free_config(void) {
 
 void override_config(void) {
   animations = config.animations;
-  animation_type = config.animation_type;
+  animation_type_open = config.animation_type_open;
+  animation_type_close = config.animation_type_close;
   animation_fade_in = config.animation_fade_in;
   zoom_initial_ratio = config.zoom_initial_ratio;
   fadein_begin_opacity = config.fadein_begin_opacity;
