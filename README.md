@@ -49,6 +49,7 @@ See below for more features.
 - height : type-num(0-9999)
 - isterm : type-num(0 or 1) it will be swallowed by the sub window 
 - noswallow: type-num(0 or 1) don't swallow the isterm window
+- globalkeybinding: type-string(for example-- alt-l or alt+super-l)
 
 # some special feature
 - hycov like overview

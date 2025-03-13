@@ -457,6 +457,7 @@ static void inputdevice(struct wl_listener *listener, void *data);
 static int keybinding(uint32_t mods, xkb_keysym_t sym);
 static void keypress(struct wl_listener *listener, void *data);
 static void keypressmod(struct wl_listener *listener, void *data);
+static bool keypressglobal(struct wlr_surface *last_surface, struct wlr_keyboard *keyboard, struct wlr_keyboard_key_event *event, uint32_t mods, xkb_keysym_t keysym);
 static void locksession(struct wl_listener *listener, void *data);
 static void maplayersurfacenotify(struct wl_listener *listener, void *data);
 static void mapnotify(struct wl_listener *listener, void *data);
@@ -3285,12 +3286,76 @@ keybinding(uint32_t mods, xkb_keysym_t sym) {
   return handled;
 }
 
+bool
+keypressglobal(struct wlr_surface *last_surface, struct wlr_keyboard *keyboard, struct wlr_keyboard_key_event *event, uint32_t mods, xkb_keysym_t keysym)
+{
+	Client *c = NULL, *lastc = focustop(selmon);
+	uint32_t keycodes[32] = {0};
+	int reset = false;
+	const char *appid = NULL;
+  const char *title = NULL;
+  int appid_len,title_len,ji;
+  const ConfigWinRule *r;
+
+  for (ji = 0; ji < config.window_rules_count; ji++) {
+    if (config.window_rules_count < 1)
+      break;
+    r = &config.window_rules[ji];
+
+    if(!r->globalkeybinding.mod || !r->globalkeybinding.keysym )
+      continue;
+
+
+		/* match key only (case insensitive) ignoring mods */
+		if (r->globalkeybinding.keysym  == keysym && r->globalkeybinding.mod == mods) {
+			wl_list_for_each(c, &clients, link) {
+				if (c && c != lastc) {
+					appid = client_get_appid(c);
+          title = client_get_title(c);
+          if (appid && r->id) {
+            appid_len = strlen(appid);
+            if(strncmp(appid, r->id, appid_len) == 0) {
+              reset = true;
+              wlr_seat_keyboard_enter(seat, client_surface(c), keycodes, 0, &keyboard->modifiers);
+              wlr_seat_keyboard_send_key(seat, event->time_msec, event->keycode, event->state);
+              goto done;              
+            }
+          }
+          
+          if (title && r->title) {
+            title_len = strlen(title);
+            if(strncmp(title, r->title, title_len) == 0) {
+              reset = true;
+              wlr_seat_keyboard_enter(seat, client_surface(c), keycodes, 0, &keyboard->modifiers);  
+              wlr_seat_keyboard_send_key(seat, event->time_msec, event->keycode, event->state);
+              goto done;              
+            }
+          }
+				}
+			}
+		}
+	}
+
+done:
+	if (reset)
+		wlr_seat_keyboard_enter(seat, last_surface, keycodes, 0, &keyboard->modifiers);
+  return reset;
+}
+
 void // 17
 keypress(struct wl_listener *listener, void *data) {
   int i;
   /* This event is raised when a key is pressed or released. */
   Keyboard *kb = wl_container_of(listener, kb, key);
   struct wlr_keyboard_key_event *event = data;
+
+	struct wlr_surface *last_surface = seat->keyboard_state.focused_surface;
+	struct wlr_xdg_surface *xdg_surface = last_surface ? wlr_xdg_surface_try_from_wlr_surface(last_surface) : NULL;
+	int pass = 0;
+  bool hit_global = false;
+#ifdef XWAYLAND
+	struct wlr_xwayland_surface *xsurface = last_surface ? wlr_xwayland_surface_try_from_wlr_surface(last_surface) : NULL;
+#endif
 
   /* Translate libinput keycode -> xkbcommon */
   uint32_t keycode = event->keycode + 8;
@@ -3343,6 +3408,21 @@ keypress(struct wl_listener *listener, void *data) {
 
   if (handled)
     return;
+
+	/* don't pass when popup is focused
+	 * this is better than having popups (like fuzzel or wmenu) closing while typing in a passed keybind */
+	pass = (xdg_surface && xdg_surface->role != WLR_XDG_SURFACE_ROLE_POPUP) || !last_surface
+#ifdef XWAYLAND
+		|| xsurface
+#endif
+		;
+	/* passed keys don't get repeated */
+	if (pass && syms)
+    hit_global = keypressglobal(last_surface, kb->wlr_keyboard, event, mods, syms[0]);
+
+  if(hit_global) {
+    return;
+  }
 
 #ifdef IM
   /* if there is a keyboard grab, we send the key there */

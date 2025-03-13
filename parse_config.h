@@ -8,6 +8,13 @@
 #endif
 
 typedef struct {
+  uint32_t mod;
+  xkb_keysym_t keysym;
+  void (*func)(const Arg *);
+  Arg arg;
+} KeyBinding;
+
+typedef struct {
   const char *id;
   const char *title;
   unsigned int tags;
@@ -22,6 +29,9 @@ typedef struct {
   int height;
   int isterm;
   int noswallow;
+  uint32_t passmod;
+  xkb_keysym_t keysym;
+  KeyBinding globalkeybinding;
 } ConfigWinRule;
 
 typedef struct {
@@ -35,13 +45,6 @@ typedef struct {
   int isterm;
   int noswallow;
 } ConfigMonitorRule;
-
-typedef struct {
-  uint32_t mod;
-  xkb_keysym_t keysym;
-  void (*func)(const Arg *);
-  Arg arg;
-} KeyBinding;
 
 // 定义一个宏来简化默认按键绑定的添加
 #define CHVT(n)                                                                \
@@ -802,6 +805,7 @@ void parse_config_line(Config *config, const char *line) {
     rule->id = NULL;
     rule->title = NULL;
     rule->tags = 0;
+    rule->globalkeybinding = (KeyBinding){0};
 
     char *token = strtok(value, ",");
     while (token != NULL) {
@@ -839,6 +843,11 @@ void parse_config_line(Config *config, const char *line) {
           rule->scroller_proportion = atof(val);
         } else if (strcmp(key, "isfullscreen") == 0) {
           rule->isfullscreen = atoi(val);
+        } else if (strcmp(key, "globalkeybinding") == 0) {
+          char mod_str[256], keysym_str[256];
+          sscanf(val, "%[^-]-%[a-zA-Z]", mod_str, keysym_str);
+          rule->globalkeybinding.mod = parse_mod(mod_str);
+          rule->globalkeybinding.keysym = parse_keysym(keysym_str);
         }
       }
       token = strtok(NULL, ",");
