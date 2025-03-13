@@ -1151,6 +1151,15 @@ void minized(const Arg *arg) {
 
 void restore_minized(const Arg *arg) {
   Client *c;
+
+  if(selmon && selmon->sel && selmon->sel->is_scratchpad_show && !selmon->sel->iskilling) {
+    show_hide_client(selmon->sel);
+    selmon->sel->is_scratchpad_show = 0;
+    selmon->sel->is_in_scratchpad = 0;
+    setborder_color(selmon->sel);
+    return;
+  }
+
   wl_list_for_each(c, &clients, link) {
     if (c->isminied) {
       show_hide_client(c);
