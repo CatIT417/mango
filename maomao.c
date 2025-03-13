@@ -1451,6 +1451,7 @@ applyrules(Client *c) {
       c->isterm     = r->isterm > 0 ? r->isterm : c->isterm;
       c->noswallow  = r->noswallow > 0? r->noswallow : c->noswallow;
       c->isfloating = r->isfloating > 0 ? r->isfloating : c->isfloating;
+      c->isfullscreen = r->isfullscreen > 0 ? r->isfullscreen : c->isfullscreen;
       c->animation_type_open =
           r->animation_type_open == NULL ? c->animation_type_open : r->animation_type_open;
       c->animation_type_close =
@@ -1469,8 +1470,7 @@ applyrules(Client *c) {
         // 重新计算居中的坐标
         c->geom = setclient_coordinate_center(c->geom);
       }
-      if (r->isfullscreen && r->isfullscreen > 0) {
-        c->isfullscreen = 1;
+      if (c->isfullscreen) {
         c->ignore_clear_fullscreen = 1;
       }
     }
@@ -4562,7 +4562,7 @@ setfloating(Client *c, int floating) {
     c->is_in_scratchpad = 0;
     // 让当前tag中的全屏窗口退出全屏参与平铺
     wl_list_for_each(fc, &clients,
-                     link) if (fc && c->tags & fc->tags && ISFULLSCREEN(fc)) {
+                     link) if (fc && fc != c && c->tags & fc->tags && ISFULLSCREEN(fc)) {
       clear_fullscreen_flag(fc);
     }
   }
@@ -4777,10 +4777,12 @@ setmon(Client *c, Monitor *m, uint32_t newtags) {
     c->tags = newtags
                   ? newtags
                   : m->tagset[m->seltags]; /* assign tags of target monitor */
-    setfullscreen(c, c->isfullscreen);     /* This will call arrange(c->mon) */
     setfloating(c, c->isfloating);
+    setfullscreen(c, c->isfullscreen);     /* This will call arrange(c->mon) */
+    if(c && VISIBLEON(c, c->mon))
+      focusclient(c,1);
   }
-  focusclient(focustop(selmon), 1);
+  
 }
 
 void // 17
