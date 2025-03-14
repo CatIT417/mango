@@ -4445,6 +4445,10 @@ void resize(Client *c, struct wlr_box geo, int interact) {
     c->animainit_geom = c->geom;
   }
 
+  if (c->animation_type_open && strcmp(c->animation_type_open,"none") == 0 && c->animation.action == OPEN) {
+    c->animainit_geom = c->geom;
+  }
+
   // 开始应用动画设置
   client_set_pending_state(c);
 
