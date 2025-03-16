@@ -4,6 +4,7 @@ void toggle_scratchpad(const Arg *arg);
 void focusdir(const Arg *arg);
 void toggleoverview(const Arg *arg);
 void set_proportion(const Arg *arg);
+void increase_proportion(const Arg *arg);
 void switch_proportion_preset(const Arg *arg);
 void zoom(const Arg *arg);
 void tagtoleft(const Arg *arg);

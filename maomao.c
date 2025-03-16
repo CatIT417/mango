@@ -5746,6 +5746,16 @@ void set_proportion(const Arg *arg) {
   }
 }
 
+void increase_proportion(const Arg *arg) {
+  if (selmon->sel) {
+    unsigned int max_client_width =
+        selmon->w.width - 2 * scroller_structs - gappih;
+    selmon->sel->scroller_proportion = MIN(MAX(arg->f + selmon->sel->scroller_proportion,0.1),1.0);
+    selmon->sel->geom.width = max_client_width * arg->f;
+    arrange(selmon, false);
+  }
+}
+
 // 显示所有tag 或 跳转到聚焦窗口的tag
 void toggleoverview(const Arg *arg) {
 
