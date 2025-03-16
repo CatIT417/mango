@@ -480,7 +480,7 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value) {
 void parse_config_line(Config *config, const char *line) {
   char key[256], value[256];
   if (sscanf(line, "%[^=]=%[^\n]", key, value) != 2) {
-    fprintf(stderr, "Error: Invalid line format: %s\n", line);
+    // fprintf(stderr, "Error: Invalid line format: %s\n", line);
     return;
   }
 
