@@ -801,7 +801,7 @@ void parse_config_line(Config *config, const char *line) {
     rule->height = -1;
     rule->animation_type_open = NULL;
     rule->animation_type_close = NULL;
-    rule->scroller_proportion = -1;
+    rule->scroller_proportion = 0;
     rule->id = NULL;
     rule->title = NULL;
     rule->tags = 0;
