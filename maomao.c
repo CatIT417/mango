@@ -5287,6 +5287,25 @@ void spawn(const Arg *arg) {
   }
 }
 
+void spawn_on_empty(const Arg *arg) {
+  bool is_empty = true;
+  Client *c;
+  
+  wl_list_for_each(c, &clients, link) {
+    if (arg->ui & c->tags) {
+      is_empty = false;
+      break;
+    }
+  }
+  if(!is_empty) {
+    view(arg,true);
+    return;
+  } else {
+    view(arg,true);
+    spawn(arg);
+  }
+}
+
 void startdrag(struct wl_listener *listener, void *data) {
   struct wlr_drag *drag = data;
   if (!drag->icon)
