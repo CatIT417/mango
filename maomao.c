@@ -40,6 +40,7 @@
 #include <wlr/types/wlr_output.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_output_management_v1.h>
+#include <wlr/types/wlr_output_power_management_v1.h>
 #include <wlr/types/wlr_pointer.h>
 #include <wlr/types/wlr_presentation_time.h>
 #include <wlr/types/wlr_primary_selection.h>
@@ -329,6 +330,7 @@ struct Monitor {
   int isoverview;
   int is_in_hotarea;
   int gamma_lut_changed;
+  int asleep;
 };
 
 typedef struct {
@@ -431,6 +433,7 @@ static void dwl_ipc_manager_get_output(struct wl_client *client,
 static void dwl_ipc_manager_release(struct wl_client *client,
                                     struct wl_resource *resource);
 static void dwl_ipc_output_destroy(struct wl_resource *resource);
+static void powermgrsetmode(struct wl_listener *listener, void *data);
 static void dwl_ipc_output_printstatus(Monitor *monitor);
 static void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output);
 static void dwl_ipc_output_set_client_tags(struct wl_client *client,
@@ -610,6 +613,7 @@ static struct wlr_layer_shell_v1 *layer_shell;
 static struct wlr_output_manager_v1 *output_mgr;
 static struct wlr_virtual_keyboard_manager_v1 *virtual_keyboard_mgr;
 static struct wlr_virtual_pointer_manager_v1 *virtual_pointer_mgr;
+static struct wlr_output_power_manager_v1 *power_mgr;
 
 static struct wlr_cursor *cursor;
 static struct wlr_xcursor_manager *cursor_mgr;
@@ -3989,6 +3993,10 @@ outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test) {
     Monitor *m = wlr_output->data;
     struct wlr_output_state state;
 
+		/* Ensure displays previously disabled by wlr-output-power-management-v1
+		 * are properly handled*/
+		m->asleep = 0;
+
     wlr_output_state_init(&state);
     wlr_output_state_set_enabled(&state, config_head->state.enabled);
     if (!config_head->state.enabled)
@@ -4030,6 +4038,21 @@ outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int test) {
 
   /* TODO: use a wrapper function? */
   updatemons(NULL, NULL);
+}
+
+void
+powermgrsetmode(struct wl_listener *listener, void *data)
+{
+	struct wlr_output_power_v1_set_mode_event *event = data;
+	struct wlr_output_state state = {0};
+
+	if (!event->output->data)
+		return;
+
+	wlr_output_state_set_enabled(&state, event->mode);
+	wlr_output_commit_state(event->output, &state);
+
+	((Monitor *)(event->output->data))->asleep = !event->mode;
 }
 
 void // 0.5
@@ -5049,6 +5072,9 @@ void setup(void) {
 
   gamma_control_mgr = wlr_gamma_control_manager_v1_create(dpy);
   LISTEN_STATIC(&gamma_control_mgr->events.set_gamma, setgamma);
+
+	power_mgr = wlr_output_power_manager_v1_create(dpy);
+	LISTEN_STATIC(&power_mgr->events.set_mode, powermgrsetmode);
 
   /* Creates an output layout, which a wlroots utility for working with an
    * arrangement of screens in a physical layout. */
@@ -6117,7 +6143,7 @@ updatemons(struct wl_listener *listener, void *data) {
 
   /* First remove from the layout the disabled monitors */
   wl_list_for_each(m, &mons, link) {
-    if (m->wlr_output->enabled)
+    if (m->wlr_output->enabled || m->asleep)
       continue;
     config_head =
         wlr_output_configuration_head_v1_create(config, m->wlr_output);
