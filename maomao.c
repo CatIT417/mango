@@ -966,6 +966,9 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
   if (c->iskilling || !client_surface(c)->mapped)
     return;
 
+  if(clip_box.width <= 0 || clip_box.height <= 0)
+    return;
+
   wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
   wlr_scene_rect_set_size(c->border[0], clip_box.width, c->bw);
   wlr_scene_rect_set_size(c->border[1], clip_box.width, c->bw);
