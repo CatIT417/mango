@@ -227,7 +227,6 @@ struct Client {
   struct wl_listener set_decoration_mode;
   struct wl_listener destroy_decoration;
 
-  unsigned int ignore_clear_fullscreen;
   const char *animation_type_open;
   const char *animation_type_close;
   int is_in_scratchpad;
@@ -1476,9 +1475,6 @@ applyrules(Client *c) {
         // 重新计算居中的坐标
         c->geom = setclient_coordinate_center(c->geom);
       }
-      if (c->isfullscreen) {
-        c->ignore_clear_fullscreen = 1;
-      }
     }
   }
 
@@ -1500,19 +1496,17 @@ applyrules(Client *c) {
 
   wlr_scene_node_reparent(&c->scene->node,
                           layers[c->isfloating ? LyrFloat : LyrTile]);
-  setmon(c, mon, newtags);
 
   Client *fc;
   // 如果当前的tag中有新创建的非悬浮窗口,就让当前tag中的全屏窗口退出全屏参与平铺
-  wl_list_for_each(fc, &clients, link) if (fc && !c->ignore_clear_fullscreen &&
+  wl_list_for_each(fc, &clients, link) if (fc && fc !=c &&
                                            c->tags & fc->tags &&
                                            ISFULLSCREEN(fc) && !c->isfloating) {
     clear_fullscreen_flag(fc);
     arrange(c->mon, false);
   }
-  else if (c->ignore_clear_fullscreen && c->isfullscreen) {
-    setfullscreen(c, 1);
-  }
+
+  setmon(c, mon, newtags);
 
   if (!(c->tags & (1 << (selmon->pertag->curtag - 1)))) {
     c->animation.from_rule = true;
@@ -3660,10 +3654,8 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->ismaxmizescreen = 0;
   c->isfullscreen = 0;
   c->istiled = 0;
-  c->ignore_clear_fullscreen = 0;
   c->iskilling = 0;
   c->scroller_proportion = scroller_default_proportion;
-  c->is_open_animation = true;
   // nop
   if (new_is_master &&
       strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
@@ -3701,6 +3693,10 @@ mapnotify(struct wl_listener *listener, void *data) {
   selmon->sel = c;
   if (c->foreign_toplevel)
     wlr_foreign_toplevel_handle_v1_set_activated(c->foreign_toplevel, true);
+
+  // make sure the window animation is open animation
+  c->is_open_animation = true;
+  resize(c,c->geom,0);
 
   printstatus();
 }
@@ -4400,10 +4396,12 @@ void resize(Client *c, struct wlr_box geo, int interact) {
 
   struct wlr_box *bbox;
   struct wlr_box clip;
+  struct wlr_box prev_geom;
 
   if (!c->mon)
     return;
 
+  prev_geom = c->geom;
   // wl_event_source_timer_update(c->timer_tick, 10);
   c->need_output_flush = true;
   // oldgeom = c->geom;
@@ -4426,7 +4424,9 @@ void resize(Client *c, struct wlr_box geo, int interact) {
     client_set_opacity(c, 1);
   }
 
-  if (c->animation.tagouting) {
+  if(c->animation.action == OPEN && wlr_box_equal(&prev_geom, &c->geom)) {
+    c->animation.action = c->animation.action;
+  } else if (c->animation.tagouting) {
     c->animation.duration = animation_duration_tag;
     c->animation.action = TAG;
   } else if (c->animation.tagining) {
@@ -4629,7 +4629,6 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
   wlr_scene_node_reparent(&c->scene->node, layers[maxmizescreen   ? LyrTile
                                                   : c->isfloating ? LyrFloat
                                                                   : LyrTile]);
-
   if (maxmizescreen) {
     if (c->isfloating)
       c->oldgeom = c->geom;
