@@ -447,6 +447,8 @@ static void dwl_ipc_output_set_tags(struct wl_client *client,
                                     uint32_t tagmask, uint32_t toggle_tagset);
 static void dwl_ipc_output_release(struct wl_client *client,
                                    struct wl_resource *resource);
+static void dwl_ipc_output_quit(struct wl_client *client,struct wl_resource *resource);
+
 static void focusclient(Client *c, int lift);
 
 static void setborder_color(Client *c);
@@ -2976,6 +2978,12 @@ void dwl_ipc_output_set_layout(struct wl_client *client,
   monitor->pertag->ltidxs[monitor->pertag->curtag] = &layouts[index];
   arrange(monitor, false);
   printstatus();
+}
+
+void
+dwl_ipc_output_quit(struct wl_client *client, struct wl_resource *resource)
+{
+  quit(&(Arg){0});
 }
 
 void

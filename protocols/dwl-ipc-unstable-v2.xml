@@ -178,4 +178,9 @@ I would probably just submit raphi's patchset but I don't think that would be po
       <arg name="is_floating" type="uint" summary="If the selected client is floating. Nonzero is valid, zero invalid"/>
     </event>
   </interface>
+
+  <!-- maomao custom -->
+    <request name="quit">
+      <description summary="Quit maomao"/>
+    </request>
 </protocol>
