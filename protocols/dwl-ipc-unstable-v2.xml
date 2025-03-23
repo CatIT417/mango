@@ -163,6 +163,10 @@ I would probably just submit raphi's patchset but I don't think that would be po
       <arg name="index" type="uint" summary="index of a layout recieved by dwl_ipc_manager.layout"/>
     </request>
 
+    <request name="quit" since="2">
+      <description summary="Quit maomao">This request allows clients to instruct the compositor to quit maomao.</description>
+    </request>
+
     <!-- Version 2 -->
     <event name="fullscreen" since="2">
       <description summary="Update fullscreen status">
@@ -179,8 +183,4 @@ I would probably just submit raphi's patchset but I don't think that would be po
     </event>
   </interface>
 
-  <!-- maomao custom -->
-    <request name="quit">
-      <description summary="Quit maomao"/>
-    </request>
 </protocol>
