@@ -6,10 +6,15 @@
       url = "github:numtide/treefmt-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    mmsg = {
+      url = "github:DreamMaoMao/mmsg";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
     {
+      self,
       flake-parts,
       treefmt-nix,
       ...
@@ -19,7 +24,10 @@
         inputs.flake-parts.flakeModules.easyOverlay
       ];
 
-      flake.hmModules.maomaowm = import ./nix/hm-modules.nix;
+      flake = {
+        hmModules.maomaowm = import ./nix/hm-modules.nix;
+        nixosModules.maomaowm = import ./nix/nixos-modules.nix { inherit inputs self; };
+      };
 
       perSystem =
         {
