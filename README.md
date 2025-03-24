@@ -250,6 +250,12 @@ refer to [ipc](https://github.com/DreamMaoMao/mmsg)
 
 # NixOS+Home-manager
 
+The repo contains a flake that provides a NixOS module and a home-manager module for maomaowm.
+Use the NixOS module to install maomaowm with other necessary components of a working wayland environment.
+Use the home-manager module to declare configuration and autostart for maomaowm.
+
+Here's an example of using the modules in a flake:
+
 ```nix
 {
   inputs = {
@@ -260,7 +266,6 @@ refer to [ipc](https://github.com/DreamMaoMao/mmsg)
     };
     flake-parts.url = "github:hercules-ci/flake-parts";
     maomaowm.url = "github:DreamMaoMao/maomaowm";
-
   };
   outputs =
     inputs@{ self, flake-parts, ... }:
@@ -273,6 +278,15 @@ refer to [ipc](https://github.com/DreamMaoMao/mmsg)
             system = "x86_64-linux";
             modules = [
               inputs.home-manager.nixosModules.home-manager
+
+              # Add maomaowm nixos module
+              inputs.maomaowm.nixosModules.maomaowm
+              {
+                programs.maomaowm.enable = true;
+
+                # mmsg is the ipc for maomamwm and is enabled by default
+                programs.maomaowm.mmsg.enable = true;
+              }
               {
                 home-manager = {
                   useGlobalPkgs = true;
