@@ -49,6 +49,10 @@ stdenv.mkDerivation {
       xwayland
     ];
 
+  passthru = {
+    providedSessions = [ "maomao" ];
+  };
+
   meta = {
     mainProgram = "maomao";
     description = "A streamlined but feature-rich Wayland compositor";
