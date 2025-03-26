@@ -2224,6 +2224,12 @@ void commitnotify(struct wl_listener *listener, void *data) {
   if (c == grabc)
     return;
 
+  uint32_t width, height;
+  client_actual_size(c, &width, &height);
+
+  if(c->geom.width == width && c->geom.height == height) 
+    return;
+
   // if don't do this, some client may resize uncompleted
   resize(c, c->geom, (c->isfloating && !c->isfullscreen));
 
@@ -4172,9 +4178,10 @@ void snap_scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx,
 
 void buffer_set_size(Client *c, animationScale data) {
   if (c->animation.current.width <= c->geom.width &&
-      c->animation.current.height <= c->geom.height) {
+    c->animation.current.height <= c->geom.height &&
+    data.height_scale == 1 && data.width_scale == 1) {
     return;
-  }
+  } 
   if (c->iskilling || c->animation.tagouting || c->animation.tagining ||
       c->animation.tagouted) {
     return;
