@@ -4186,7 +4186,7 @@ void buffer_set_size(Client *c, animationScale data) {
       (double)c->animation.passed_frames / c->animation.total_frames;
 
   if (c->animation.current.width <= c->geom.width &&
-      c->animation.current.height <= c->geom.height && animation_passed > 0.1) {
+      c->animation.current.height <= c->geom.height && (c->animation.action != OPEN || animation_passed > 0.1)) {
     return;
   }
 
