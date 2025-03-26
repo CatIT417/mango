@@ -3037,10 +3037,6 @@ void focusclient(Client *c, int lift) {
   if (c && client_surface(c) == old_keyboard_focus_surface)
     return;
 
-  if (c && c->mon && c->mon != selmon) {
-    selmon = c->mon;
-  }
-
   if (selmon && selmon->sel && selmon->sel->foreign_toplevel) {
     wlr_foreign_toplevel_handle_v1_set_activated(selmon->sel->foreign_toplevel,
                                                  false);
@@ -5381,17 +5377,26 @@ void tag(const Arg *arg) {
 
 void tagmon(const Arg *arg) {
   Client *c = focustop(selmon);
+  Client *fc;
+  Monitor *m;
   if (c) {
-    setmon(c, dirtomon(arg->i), 0);
+    m = dirtomon(arg->i);
+    fc = focustop(selmon);
+    if(!fc)
+      selmon->sel = c;
+    setmon(c, m, 0);
     reset_foreign_tolevel(c);
-    selmon = c->mon;
-    c->geom.width = (int)(c->geom.width * selmon->m.width / c->mon->m.width);
-    c->geom.height =
-        (int)(c->geom.height * selmon->m.height / c->mon->m.height);
     // 重新计算居中的坐标
     if (c->isfloating) {
+      c->geom.width = (int)(c->geom.width * c->mon->w.width / selmon->w.width);
+      c->geom.height =
+        (int)(c->geom.height * c->mon->w.height / selmon->w.height);
+      selmon = c->mon;
       c->geom = setclient_coordinate_center(c->geom);
-      resize(c, c->geom, 0);
+      resize(c, c->geom, 1);
+    } else {
+      selmon = c->mon;
+      arrange(selmon, false);
     }
     warp_cursor_to_selmon(c->mon);
     focusclient(c, 1);
