@@ -132,14 +132,6 @@ typedef struct {
   char *v;
   unsigned int ui;
 } Arg;
-
-typedef struct {
-  float width_scale;
-  float height_scale;
-  int width;
-  int height;
-} animationScale;
-
 typedef struct {
   unsigned int mod;
   unsigned int button;
@@ -173,6 +165,15 @@ struct dwl_animation {
 typedef struct Pertag Pertag;
 typedef struct Monitor Monitor;
 typedef struct Client Client;
+
+typedef struct {
+  float width_scale;
+  float height_scale;
+  int width;
+  int height;
+  Monitor *m;
+} animationScale;
+
 struct Client {
   /* Must keep these three elements in this order */
   unsigned int type; /* XDGShell or X11* */
@@ -1068,6 +1069,7 @@ void client_apply_clip(Client *c) {
   animationScale scale_data;
   scale_data.width = clip_box.width - 2 * c->bw;
   scale_data.height = clip_box.height - 2 * c->bw;
+  scale_data.m = c->mon;
   wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
   apply_border(c, clip_box, offsetx, offsety);
 
@@ -4129,11 +4131,33 @@ void scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer, int sx, int sy,
 void scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy,
                              void *data) {
   animationScale *scale_data = (animationScale *)data;
-  struct wlr_scene_surface *surface = wlr_scene_surface_try_from_buffer(buffer);
-  if (wlr_subsurface_try_from_wlr_surface(surface->surface) != NULL) {
-    wlr_scene_buffer_set_dest_size(
-        buffer, buffer->dst_width * scale_data->width_scale,
-        buffer->dst_height * scale_data->height_scale);
+  
+  if(scale_data->height_scale <= 0 || scale_data->width_scale <= 0) {
+    return;
+  }
+
+  if(scale_data->height <= 0 || scale_data->width <= 0) { 
+    return;
+  }
+
+  struct wlr_scene_surface *scene_surface = wlr_scene_surface_try_from_buffer(buffer);
+
+  if(scene_surface == NULL) return;
+
+  struct wlr_surface *surface = scene_surface->surface;
+
+  uint32_t surface_width = surface->current.width;
+  uint32_t surface_height = surface->current.height;
+
+  surface_width *= scale_data->width_scale;
+  surface_height *= scale_data->height_scale;
+
+
+  if (wlr_subsurface_try_from_wlr_surface(surface) != NULL && 
+      surface_width <= scale_data->m->m.width && 
+      surface_height <= scale_data->m->m.height &&
+      surface_height > 0 && surface_width > 0) {
+    wlr_scene_buffer_set_dest_size(buffer, surface_width, surface_height);
   } else {
     wlr_scene_buffer_set_dest_size(buffer, scale_data->width,
                                    scale_data->height);
