@@ -78,6 +78,7 @@
 /* macros */
 #define MAX(A, B) ((A) > (B) ? (A) : (B))
 #define MIN(A, B) ((A) < (B) ? (A) : (B))
+#define GEZERO(A) ((A) >= 0 ? (A) : 0)
 #define CLEANMASK(mask) (mask & ~WLR_MODIFIER_CAPS)
 #define VISIBLEON(C, M)                                                        \
   ((M) && (C)->mon == (M) && ((C)->tags & (M)->tagset[(M)->seltags]))
@@ -247,7 +248,7 @@ struct Client {
   // struct wl_event_source *timer_tick;
   pid_t pid;
   Client *swallowing, *swallowedby;
-  bool need_scale_first_frame;
+  bool is_clip_to_hide;
 };
 
 
@@ -708,6 +709,10 @@ struct vec2 {
   double x, y;
 };
 
+struct uvec2 {
+  int x, y;
+};
+
 #define BAKED_POINTS_COUNT 256
 
 struct vec2 *baked_points_move;
@@ -964,37 +969,38 @@ void client_actual_size(Client *c, uint32_t *width, uint32_t *height) {
   *height = c->animation.current.height;
 }
 
+void set_rect_size(struct wlr_scene_rect *rect, int width, int height) {
+  wlr_scene_rect_set_size(rect, GEZERO(width), GEZERO(height));
+}
+
 void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
                   int offsety) {
 
   if (c->iskilling || !client_surface(c)->mapped)
     return;
 
-  if(clip_box.width <= 0 || clip_box.height <= 0)
-    return;
-
   wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
-  wlr_scene_rect_set_size(c->border[0], clip_box.width, c->bw);
-  wlr_scene_rect_set_size(c->border[1], clip_box.width, c->bw);
-  wlr_scene_rect_set_size(c->border[2], c->bw, clip_box.height - 2 * c->bw);
-  wlr_scene_rect_set_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
+  set_rect_size(c->border[0], clip_box.width, c->bw);
+  set_rect_size(c->border[1], clip_box.width, c->bw);
+  set_rect_size(c->border[2], c->bw, clip_box.height - 2 * c->bw);
+  set_rect_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
   wlr_scene_node_set_position(&c->border[0]->node, 0, 0);
   wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
   wlr_scene_node_set_position(&c->border[1]->node, 0, clip_box.height - c->bw);
   wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw,
                               c->bw);
 
-  if (c->animation.running && c->animation.action != MOVE) {
+  if (c->istiled) {
     if (c->animation.current.x < c->mon->m.x) {
-      wlr_scene_rect_set_size(c->border[2], 0, 0);
+      set_rect_size(c->border[2], 0, 0);
     } else if (c->animation.current.x + c->animation.current.width >
                c->mon->m.x + c->mon->m.width) {
-      wlr_scene_rect_set_size(c->border[3], 0, 0);
+      set_rect_size(c->border[3], 0, 0);
     } else if (c->animation.current.y < c->mon->m.y) {
-      wlr_scene_rect_set_size(c->border[0], 0, 0);
+      set_rect_size(c->border[0], 0, 0);
     } else if (c->animation.current.y + c->animation.current.height >
                c->mon->m.y + c->mon->m.height) {
-      wlr_scene_rect_set_size(c->border[1], 0, 0);
+      set_rect_size(c->border[1], 0, 0);
     }
   }
 
@@ -1006,27 +1012,82 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
       &c->border[3]->node, clip_box.width - c->bw + offsetx, c->bw + offsety);
 }
 
+struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
+  int offsetx=0;
+  int offsety=0;
+  struct uvec2 offset;
+
+  // // make tagout tagin animations not visible in other monitors
+  if (c->istiled) {
+    if (c->animation.current.x <= c->mon->m.x) {
+      offsetx = c->mon->m.x - c->animation.current.x;
+      clip_box->x = clip_box->x + offsetx;
+      clip_box->width = clip_box->width - offsetx;
+    } else if (c->animation.current.x + c->animation.current.width >=
+               c->mon->m.x + c->mon->m.width) {
+      clip_box->width = clip_box->width -
+                       (c->animation.current.x + c->animation.current.width -
+                        c->mon->m.x - c->mon->m.width);
+    }
+
+    if (c->animation.current.y <= c->mon->m.y) {
+      offsety = c->mon->m.y - c->animation.current.y;
+      clip_box->y = clip_box->y + offsety;
+      clip_box->height = clip_box->height - offsety;
+    } else if (c->animation.current.y + c->animation.current.height >=
+               c->mon->m.y + c->mon->m.height) {
+      clip_box->height = clip_box->height -
+                        (c->animation.current.y + c->animation.current.height -
+                         c->mon->m.y - c->mon->m.height);
+    }
+  }
+
+  offset.x = offsetx;
+  offset.y = offsety;
+
+  if((clip_box->width <= 0 || clip_box->height <= 0) && (c->istiled)) {
+    c->is_clip_to_hide = true;
+    wlr_scene_node_set_enabled(&c->scene->node, false);
+  } else if(c->is_clip_to_hide && VISIBLEON(c, c->mon)) {
+    c->is_clip_to_hide = false;
+    wlr_scene_node_set_enabled(&c->scene->node, true);
+  }
+
+  return offset;
+}
+
+void apply_buffer_scale(Client *c, struct wlr_box clip_box ) {
+  animationScale scale_data;
+  scale_data.width = clip_box.width - 2 * c->bw;
+  scale_data.height = clip_box.height - 2 * c->bw;
+  scale_data.m = c->mon;
+  scale_data.width_scale = (float)clip_box.width / c->current.width;
+  scale_data.height_scale = (float)clip_box.height / c->current.height;
+  buffer_set_size(c, scale_data);
+}
+
 void client_apply_clip(Client *c) {
 
   if (c->iskilling || !client_surface(c)->mapped)
     return;
   struct wlr_box clip_box;
+  struct uvec2 offset;
 
   if (!animations) {
     c->animation.running = false;
     c->need_output_flush = false;
     c->animainit_geom = c->current = c->pending = c->animation.current =
         c->geom;
-    apply_border(c, c->geom, 0, 0);
     client_get_clip(c, &clip_box);
+    offset = clip_to_hide(c, &clip_box);
+    apply_border(c, clip_box, offset.x, offset.y);
     wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
+    /* apply_buffer_scale(c, clip_box); */
     return;
   }
 
   uint32_t width, height;
   client_actual_size(c, &width, &height);
-  int offsetx = 0;
-  int offsety = 0;
 
   struct wlr_box geometry;
   client_get_geometry(c, &geometry);
@@ -1042,41 +1103,11 @@ void client_apply_clip(Client *c) {
     clip_box.y = 0;
   }
 
-  // // make tagout tagin animations not visible in other monitors
-  if (c->animation.running && c->animation.action != MOVE) {
-    if (c->animation.current.x <= c->mon->m.x) {
-      offsetx = c->mon->m.x - c->animation.current.x;
-      clip_box.x = clip_box.x + offsetx;
-      clip_box.width = clip_box.width - offsetx;
-    } else if (c->animation.current.x + c->animation.current.width >=
-               c->mon->m.x + c->mon->m.width) {
-      clip_box.width = clip_box.width -
-                       (c->animation.current.x + c->animation.current.width -
-                        c->mon->m.x - c->mon->m.width);
-    }
+  offset = clip_to_hide(c, &clip_box);
 
-    if (c->animation.current.y <= c->mon->m.y) {
-      offsety = c->mon->m.y - c->animation.current.y;
-      clip_box.y = clip_box.y + offsety;
-      clip_box.height = clip_box.height - offsety;
-    } else if (c->animation.current.y + c->animation.current.height >=
-               c->mon->m.y + c->mon->m.height) {
-      clip_box.height = clip_box.height -
-                        (c->animation.current.y + c->animation.current.height -
-                         c->mon->m.y - c->mon->m.height);
-    }
-  }
-
-  animationScale scale_data;
-  scale_data.width = clip_box.width - 2 * c->bw;
-  scale_data.height = clip_box.height - 2 * c->bw;
-  scale_data.m = c->mon;
   wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
-  apply_border(c, clip_box, offsetx, offsety);
-
-  scale_data.width_scale = (float)clip_box.width / c->current.width;
-  scale_data.height_scale = (float)clip_box.height / c->current.height;
-  buffer_set_size(c, scale_data);
+  apply_border(c, clip_box, offset.x, offset.y);
+  apply_buffer_scale(c,clip_box);
 }
 
 bool client_draw_frame(Client *c) {
@@ -1526,6 +1557,9 @@ void // 17
 arrange(Monitor *m, bool want_animation) {
   Client *c;
 
+  if(!m)
+    return;
+
   if (!m->wlr_output->enabled)
     return;
 
@@ -1541,7 +1575,10 @@ arrange(Monitor *m, bool want_animation) {
 
     if (c->mon == m) {
       if (VISIBLEON(c, m)) {
-        wlr_scene_node_set_enabled(&c->scene->node, true);
+        if(!c->is_clip_to_hide || strcmp(c->mon->pertag->ltidxs[c->mon->pertag->curtag]->name,
+             "scroller") != 0) {
+          wlr_scene_node_set_enabled(&c->scene->node, true);
+        }
         client_set_suspended(c, false);
         if (!c->animation.from_rule && want_animation &&
             m->pertag->prevtag != 0 && m->pertag->curtag != 0 && animations) {
@@ -1550,7 +1587,7 @@ arrange(Monitor *m, bool want_animation) {
             c->animainit_geom.x =
                 c->animation.running
                     ? c->animation.current.x
-                    : c->geom.x + c->mon->m.width - (c->geom.x - c->mon->m.x);
+                    : c->mon->m.x + c->mon->m.width;
           } else {
             c->animainit_geom.x = c->animation.running ? c->animation.current.x
                                                        : m->m.x - c->geom.width;
@@ -1575,7 +1612,7 @@ arrange(Monitor *m, bool want_animation) {
           } else {
             c->pending = c->geom;
             c->pending.x =
-                c->geom.x + c->mon->m.width - (c->geom.x - c->mon->m.x);
+                c->mon->m.x + c->mon->m.width;
             resize(c, c->geom, 0);
           }
         } else {
@@ -2233,15 +2270,16 @@ void commitnotify(struct wl_listener *listener, void *data) {
   if (c == grabc)
     return;
 
-  uint32_t width, height;
-  client_actual_size(c, &width, &height);
-
-  if(c->geom.width == width && c->geom.height == height) 
+  if(!c->dirty)
     return;
 
-  // if don't do this, some client may resize uncompleted
+	wlr_log(WLR_DEBUG, "app commit event handle:%s",client_get_appid(c));
   resize(c, c->geom, (c->isfloating && !c->isfullscreen));
 
+  uint32_t width, height;
+  client_actual_size(c, &width, &height);
+  if(width == c->geom.width && height == c->geom.height)
+    c->dirty = false;
   // if (c->configure_serial && c->configure_serial <=
   // c->surface.xdg->current.configure_serial) 	c->configure_serial = 0;
 }
@@ -3683,7 +3721,6 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->istiled = 0;
   c->iskilling = 0;
   c->scroller_proportion = scroller_default_proportion;
-  c->need_scale_first_frame = true;
   // nop
   if (new_is_master &&
       strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
@@ -4143,6 +4180,7 @@ void scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer, int sx, int sy,
   wlr_scene_buffer_set_opacity(buffer, *(double *)data);
 }
 
+
 void scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy,
                              void *data) {
   animationScale *scale_data = (animationScale *)data;
@@ -4167,13 +4205,12 @@ void scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy,
   surface_width *= scale_data->width_scale;
   surface_height *= scale_data->height_scale;
 
-
   if (wlr_subsurface_try_from_wlr_surface(surface) != NULL && 
       surface_width <= scale_data->m->m.width && 
       surface_height <= scale_data->m->m.height &&
       surface_height > 0 && surface_width > 0) {
     wlr_scene_buffer_set_dest_size(buffer, surface_width, surface_height);
-  } else {
+  } else if(scale_data->width >0 && scale_data->height > 0) {
     wlr_scene_buffer_set_dest_size(buffer, scale_data->width,
                                    scale_data->height);
   }
@@ -4187,15 +4224,8 @@ void snap_scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx,
 
 void buffer_set_size(Client *c, animationScale data) {
 
-  if (c->animation.current.width <= c->geom.width &&
-      c->animation.current.height <= c->geom.height && !c->need_scale_first_frame) {
-    return;
-  }
-
-  c->need_scale_first_frame = false;
-
-  if (c->iskilling || c->animation.tagouting || c->animation.tagining ||
-      c->animation.tagouted) {
+  if (c->iskilling || c->animation.tagouting ||
+      c->animation.tagouted || c->animation.tagining) {
     return;
   }
 
@@ -4440,6 +4470,7 @@ void set_open_animaiton(Client *c, struct wlr_box geo) {
     }
   }
 }
+
 void resize(Client *c, struct wlr_box geo, int interact) {
 
   // 动画设置的起始函数，这里用来计算一些动画的起始值
@@ -4454,8 +4485,9 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   if (!c->mon)
     return;
 
-    // wl_event_source_timer_update(c->timer_tick, 10);
+  // wl_event_source_timer_update(c->timer_tick, 10);
   c->need_output_flush = true;
+
   // oldgeom = c->geom;
   bbox = interact ? &sgeom : &c->mon->w;
 
@@ -4469,6 +4501,10 @@ void resize(Client *c, struct wlr_box geo, int interact) {
     c->geom = geo;
     applybounds(
         c, bbox); // 去掉这个推荐的窗口大小,因为有时推荐的窗口特别大导致平铺异常
+  }
+
+  if(c->geom.width <0 || c->geom.height <0) {
+    return;
   }
 
   if (!c->is_open_animation) {
