@@ -4682,7 +4682,7 @@ setfloating(Client *c, int floating) {
 
   target_box = c->geom;
 
-  if (floating == 1) {
+  if (floating == 1 && c != grabc) {
     if (c->istiled && !c->swallowing && !c->is_open_animation) {
       target_box.height = target_box.height * 0.8;
       target_box.width = target_box.width * 0.8;
@@ -4698,6 +4698,8 @@ setfloating(Client *c, int floating) {
     } else {
       resize(c, target_box, 0);
     }
+    c->istiled = 0;
+  } else if(c->isfloating && c == grabc) {
     c->istiled = 0;
   } else {
     c->istiled = 1;
