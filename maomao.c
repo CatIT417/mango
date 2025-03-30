@@ -3173,18 +3173,20 @@ void focusclient(Client *c, int lift) {
   client_activate_surface(client_surface(c), 1);
 }
 
-void // 0.5
-focusmon(const Arg *arg) {
+void focusmon(const Arg *arg) {
+  Client *c;
   int i = 0, nmons = wl_list_length(&mons);
   if (nmons) {
     do /* don't switch to disabled mons */
       selmon = dirtomon(arg->i);
     while (!selmon->wlr_output->enabled && i++ < nmons);
-    if (!selmon->wlr_output->enabled)
-      selmon = NULL;
   }
   warp_cursor_to_selmon(selmon);
-  focusclient(focustop(selmon), 1);
+  c = focustop(selmon);
+  if(!c)
+    selmon->sel = NULL;
+  else
+    focusclient(c, 1);
 }
 
 void // 17
