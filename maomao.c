@@ -6192,8 +6192,7 @@ void unmapnotify(struct wl_listener *listener, void *data) {
     init_fadeout_client(c);
 
   if (c->swallowedby) {
-    // c->swallowedby->geom = c->swallowedby->current = c->swallowedby->pending = c->current;
-    // c->swallowedby->animainit_geom = c->animation.current;
+    c->swallowedby->mon = c->mon;
   	swallow(c->swallowedby, c);
   }
 
