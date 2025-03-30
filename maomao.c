@@ -1350,7 +1350,6 @@ swallow(Client *c, Client *w)
   c->ismaxmizescreen = w->ismaxmizescreen;
 	c->tags = w->tags;
 	c->geom = w->geom;
-  c->mon = w->mon;
   c->scroller_proportion = w->scroller_proportion;
 	wl_list_insert(&w->link, &c->link);
 	wl_list_insert(&w->flink, &c->flink);
@@ -1363,8 +1362,6 @@ swallow(Client *c, Client *w)
 
   if(!c->foreign_toplevel && c->mon)
     add_foreign_toplevel(c);
-
-  focusclient(c, true);
 }
 
 void // 0.5
