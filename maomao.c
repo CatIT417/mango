@@ -1363,6 +1363,8 @@ swallow(Client *c, Client *w)
 
   if(!c->foreign_toplevel && c->mon)
     add_foreign_toplevel(c);
+
+  focusclient(c, true);
 }
 
 void // 0.5
