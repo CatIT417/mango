@@ -4905,30 +4905,27 @@ void setsmfact(const Arg *arg) {
   arrange(selmon, false);
 }
 
-void // 0.5
-setmon(Client *c, Monitor *m, uint32_t newtags) {
-  Monitor *oldmon = c->mon;
+void
+setmon(Client *c, Monitor *m, uint32_t newtags)
+{
+	Monitor *oldmon = c->mon;
 
-  if (oldmon == m)
-    return;
-  c->mon = m;
-  c->prev = c->geom;
+	if (oldmon == m)
+		return;
+	c->mon = m;
+	c->prev = c->geom;
 
-  /* Scene graph sends surface leave/enter events on move and resize */
-  if (oldmon)
-    arrange(oldmon, false);
-  if (m) {
-    /* Make sure window actually overlaps with the monitor */
-    resize(c, c->geom, 0);
-    c->tags = newtags
-                  ? newtags
-                  : m->tagset[m->seltags]; /* assign tags of target monitor */
-    setfloating(c, c->isfloating);
-    setfullscreen(c, c->isfullscreen);     /* This will call arrange(c->mon) */
-    if(c && VISIBLEON(c, c->mon))
-      focusclient(c,1);
-  }
-  
+	/* Scene graph sends surface leave/enter events on move and resize */
+	if (oldmon)
+		arrange(oldmon,false);
+	if (m) {
+		/* Make sure window actually overlaps with the monitor */
+		resize(c, c->geom, 0);
+		c->tags = newtags ? newtags : m->tagset[m->seltags]; /* assign tags of target monitor */
+		setfullscreen(c, c->isfullscreen); /* This will call arrange(c->mon) */
+		setfloating(c, c->isfloating);
+	}
+	focusclient(focustop(selmon), 1);
 }
 
 void // 17
