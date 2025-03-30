@@ -1680,7 +1680,7 @@ Client *direction_select(const Arg *arg) {
 
   // 第一次遍历，计算客户端数量
   wl_list_for_each(c, &clients, link) {
-    if (c && (c->tags & c->mon->tagset[c->mon->seltags])) {
+    if (c && (focus_cross_monitor || c->mon == selmon) && (c->tags & c->mon->tagset[c->mon->seltags])) {
       last++;
     }
   }
@@ -1699,7 +1699,7 @@ Client *direction_select(const Arg *arg) {
   // 第二次遍历，填充 tempClients
   last = -1;
   wl_list_for_each(c, &clients, link) {
-    if (c && (c->tags & c->mon->tagset[c->mon->seltags])) {
+    if (c && (focus_cross_monitor || c->mon == selmon) && (c->tags & c->mon->tagset[c->mon->seltags])) {
       last++;
       tempClients[last] = c;
     }
