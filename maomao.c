@@ -1523,7 +1523,7 @@ applyrules(Client *c) {
     }
   }
 
-  if (!c->noswallow && !client_is_float_type(c)
+  if (!c->noswallow && !c->isfloating && !client_is_float_type(c)
       && !c->surface.xdg->initial_commit) {
     Client *p = termforwin(c);
     if (p) {
