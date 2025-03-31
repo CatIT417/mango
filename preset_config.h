@@ -31,6 +31,7 @@ unsigned int default_nmaster = 1;           // 默认master数量
 /* logging */
 int log_level = WLR_ERROR;
 unsigned int numlockon = 1; // 是否打开右边小键盘
+unsigned int capslock = 0; // 是否启用快捷键
 
 unsigned int ov_tab_mode = 0;    // alt tab切换模式
 unsigned int hotarea_size = 10;  // 热区大小,10x10
@@ -44,7 +45,8 @@ unsigned int gappov = 10; /* vert outer gap between windows and screen edge */
 
 int scroller_structs = 20;
 float scroller_default_proportion = 0.9;
-int scoller_focus_center = 0;
+int scroller_focus_center = 0;
+int scroller_prefer_center = 0;
 int focus_cross_monitor = 0;
 
 int bypass_surface_visibility =
