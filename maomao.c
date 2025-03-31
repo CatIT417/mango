@@ -1018,6 +1018,10 @@ struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
   int offsetx=0;
   int offsety=0;
   struct uvec2 offset;
+  offset.x = 0;
+  offset.y =0;
+
+  if(!ISTILED(c)) return offset;
 
   // // make tagout tagin animations not visible in other monitors
   if (ISTILED(c)) {
@@ -3962,7 +3966,7 @@ motionnotify(uint32_t time, struct wlr_input_device *device, double dx,
     wlr_cursor_set_xcursor(cursor, cursor_mgr, "left_ptr");
 
 
-  if(c && c->mon && !c->animation.running && !(c->geom.x + c->geom.width > c->mon->m.x + c->mon->m.width || c->geom.x < c->mon->m.x)) {
+  if(c && c->mon && !c->animation.running && (!(c->geom.x + c->geom.width > c->mon->m.x + c->mon->m.width || c->geom.x < c->mon->m.x) || !ISTILED(c))) {
     scroller_focus_lock = 0;
   } 
 
@@ -3974,7 +3978,7 @@ motionnotify(uint32_t time, struct wlr_input_device *device, double dx,
     } 
     pointerfocus(c, surface, sx, sy, time);
 
-    if(should_lock && c && c->mon && c == c->mon->sel) {
+    if(should_lock && c && c->mon && ISTILED(c) && c == c->mon->sel) {
       scroller_focus_lock = 1;
     }
   }
