@@ -6612,6 +6612,8 @@ void warp_cursor(const Client *c) {
       cursor->y < c->geom.y || cursor->y > c->geom.y + c->geom.height)
     wlr_cursor_warp_closest(cursor, NULL, c->geom.x + c->geom.width / 2.0,
                             c->geom.y + c->geom.height / 2.0);
+  motionnotify(0, NULL, 0, 0, 0, 0);
+
 }
 
 void warp_cursor_to_selmon(const Monitor *m) {
