@@ -259,9 +259,6 @@ Here's an example of using the modules in a flake:
               inputs.maomaowm.nixosModules.maomaowm
               {
                 programs.maomaowm.enable = true;
-
-                # mmsg is the ipc for maomamwm and is enabled by default
-                programs.maomaowm.mmsg.enable = true;
               }
               {
                 home-manager = {
