@@ -69,32 +69,16 @@ See below for more features.
 yay -S glibc wayland libinput libdrm pixman libxkbcommon git meson ninja wayland-protocols libdisplay-info libliftoff hwdata seatd
 ```
 
-## stable - wlroots(0.17)
-
-Since 0.18 has some bugs that affect the experience,
-I chose the more stable 0.17.4.
-
-```
-git clone -b 0.17.4 https://gitlab.freedesktop.org/wlroots/wlroots.git
-cd wlroots
-meson build -Dprefix=/usr
-sudo ninja -C build install
-
-git clone https://github.com/DreamMaoMao/maomaowm.git
-cd maomaowm
-meson build -Dprefix=/usr
-sudo ninja -C build install
+## arch
+```bash
+yay -S maomaowm-git
 
 ```
 
-## unstable wlroots(0.19)
-
-This is the latest version of wlroots, it doesn't own enough test.
-you can try it out if you want to help to test.
-
-```
+## other
+```bash
 yay -S wlroots-git
-git clone -b wlroots-0.19 https://github.com/DreamMaoMao/maomaowm.git
+git clone https://github.com/DreamMaoMao/maomaowm.git
 cd maomaowm
 meson build -Dprefix=/usr
 sudo ninja -C build install

@@ -1,6 +1,7 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs-wayland.url = "github:nix-community/nixpkgs-wayland";
     flake-parts.url = "github:hercules-ci/flake-parts";
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";
@@ -25,8 +26,8 @@
       ];
 
       flake = {
-        hmModules.maomaowm = import ./nix/hm-modules.nix;
-        nixosModules.maomaowm = import ./nix/nixos-modules.nix { inherit inputs self; };
+        hmModules.maomaowm = import ./nix/hm-modules.nix self;
+        nixosModules.maomaowm = import ./nix/nixos-modules.nix self;
       };
 
       perSystem =
@@ -39,7 +40,10 @@
           inherit (pkgs)
             callPackage
             ;
-          maomaowm = callPackage ./nix { };
+          maomaowm = callPackage ./nix {
+            inherit (inputs.nixpkgs-wayland.packages.${pkgs.system}) wlroots;
+            inherit (inputs.mmsg.packages.${pkgs.system}) mmsg;
+          };
           shellOverride = old: {
             nativeBuildInputs = old.nativeBuildInputs ++ [ ];
             buildInputs = old.buildInputs ++ [ ];

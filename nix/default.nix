@@ -10,12 +10,13 @@
   wayland,
   wayland-protocols,
   wayland-scanner,
-  wlroots_0_17,
   xcbutilwm,
   xwayland,
   enableXWayland ? true,
   meson,
   ninja,
+  wlroots,
+  mmsg,
 }:
 let
   pname = "maomaowm";
@@ -41,7 +42,7 @@ stdenv.mkDerivation {
       pixman
       wayland
       wayland-protocols
-      wlroots_0_17
+      wlroots
     ]
     ++ lib.optionals enableXWayland [
       libX11
@@ -51,6 +52,7 @@ stdenv.mkDerivation {
 
   passthru = {
     providedSessions = [ "maomao" ];
+    inherit mmsg;
   };
 
   meta = {
