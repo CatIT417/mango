@@ -219,7 +219,7 @@ struct Client {
   struct wl_listener set_hints;
 #endif
   unsigned int bw;
-  unsigned int tags, oldtags;
+  unsigned int tags, oldtags, mini_restore_tag;
   bool dirty;
   uint32_t configure_serial;
   struct wlr_foreign_toplevel_handle_v1 *foreign_toplevel;
@@ -4166,6 +4166,7 @@ void set_minized(Client *c) {
   }
   c->is_scratchpad_show = 0;
   c->oldtags = c->mon->sel->tags;
+  c->mini_restore_tag = c->tags;
   c->tags = 0;
   c->isminied = 1;
   c->is_in_scratchpad = 1;
@@ -4195,7 +4196,7 @@ minimizenotify(struct wl_listener *listener, void *data) {
   // togglemaxmizescreen(&(Arg){0});
   Client *c = wl_container_of(listener, c, minimize);
 
-  if (!c || !c->mon || c->iskilling)
+  if (!c || !c->mon || c->iskilling || c->isminied)
     return;
 
   set_minized(c);
@@ -7305,6 +7306,15 @@ void activatex11(struct wl_listener *listener, void *data) {
     return;
 
   if (focus_on_activate && c != selmon->sel) {
+    if(c->isminied) {
+      c->isminied = 0;
+      c->tags = c->mini_restore_tag;
+      c->is_scratchpad_show = 0;
+      c->is_in_scratchpad = 0;
+      wlr_foreign_toplevel_handle_v1_set_minimized(c->foreign_toplevel, false);
+      wlr_foreign_toplevel_handle_v1_set_activated(c->foreign_toplevel, true);
+      setborder_color(c);
+    }
     view(&(Arg){.ui = c->tags}, true);
     focusclient(c, 1);
   } else if (c != focustop(selmon)) {
