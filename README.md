@@ -112,7 +112,7 @@ like `MAOMAOCONFIG=/home/xxx/maomao`
 
 # keybinds notice
 
-All mod keys(alt,ctrl,shift,super) are case insensitive, in addition to other key names are case sensitive, the name follows the xkb standard name, you can use the `xev` command to get the key name of the key you want, note that if your mod key contains the shift key, then it may not be the key name displayed on the keyboard. Real name Refer to the name displayed in the `xev` command.
+All mod keys(alt,ctrl,shift,super,none) are case insensitive, in addition to other key names are case sensitive, the name follows the xkb standard name, you can use the `xev` command to get the key name of the key you want, note that if your mod key contains the shift key, then it may not be the key name displayed on the keyboard. Real name Refer to the name displayed in the `xev` command.
 
 for example:
 
