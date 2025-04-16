@@ -2974,7 +2974,7 @@ createnotify(struct wl_listener *listener, void *data) {
   LISTEN(&toplevel->events.request_fullscreen, &c->fullscreen,
          fullscreennotify);
   LISTEN(&toplevel->events.request_maximize, &c->maximize, maximizenotify);
-  LISTEN(&toplevel->events.request_maximize, &c->minimize, minimizenotify);
+  LISTEN(&toplevel->events.request_minimize, &c->minimize, minimizenotify);
   LISTEN(&toplevel->events.set_title, &c->set_title, updatetitle);
 }
 
