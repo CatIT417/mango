@@ -2637,7 +2637,7 @@ void commitnotify(struct wl_listener *listener, void *data) {
   if (c == grabc)
     return;
 
-  if(!c->dirty)
+  if(!c->dirty || client_is_unmanaged(c))
     return;
 
   struct wlr_box geometry;
