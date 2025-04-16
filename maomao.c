@@ -662,6 +662,7 @@ static struct wlr_cursor *cursor;
 static struct wlr_xcursor_manager *cursor_mgr;
 static struct wlr_session *session;
 
+static struct wlr_scene_rect *root_bg;
 static struct wlr_session_lock_manager_v1 *session_lock_mgr;
 static struct wlr_scene_rect *locked_bg;
 static struct wlr_session_lock_v1 *cur_lock;
@@ -5463,6 +5464,7 @@ void setup(void) {
 
   /* Initialize the scene graph used to lay out windows */
   scene = wlr_scene_create();
+	root_bg = wlr_scene_rect_create(&scene->tree, 0, 0, rootcolor);
   for (i = 0; i < NUM_LAYERS; i++)
     layers[i] = wlr_scene_tree_create(&scene->tree);
   drag_icon = wlr_scene_tree_create(&scene->tree);
@@ -6677,8 +6679,8 @@ updatemons(struct wl_listener *listener, void *data)
 	/* Now that we update the output layout we can get its box */
 	wlr_output_layout_get_box(output_layout, NULL, &sgeom);
 
-	// wlr_scene_node_set_position(&root_bg->node, sgeom.x, sgeom.y);
-	// wlr_scene_rect_set_size(root_bg, sgeom.width, sgeom.height);
+	wlr_scene_node_set_position(&root_bg->node, sgeom.x, sgeom.y);
+	wlr_scene_rect_set_size(root_bg, sgeom.width, sgeom.height);
 
 	/* Make sure the clients are hidden when dwl is locked */
 	wlr_scene_node_set_position(&locked_bg->node, sgeom.x, sgeom.y);
