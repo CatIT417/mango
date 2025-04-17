@@ -5114,7 +5114,7 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
     return;
 
   client_set_fullscreen(c, fullscreen);
-  wlr_scene_node_reparent(&c->scene->node, layers[fullscreen      ? LyrTile
+  wlr_scene_node_reparent(&c->scene->node, layers[fullscreen? LyrFloat
                                                   : c->isfloating ? LyrFloat
                                                                   : LyrTile]);
 
