@@ -1634,9 +1634,6 @@ applyrules(Client *c) {
     }
   }
 
-  wlr_scene_node_reparent(&c->scene->node,
-                          layers[c->isfloating ? LyrFloat : LyrTile]);
-
   Client *fc;
   // 如果当前的tag中有新创建的非悬浮窗口,就让当前tag中的全屏窗口退出全屏参与平铺
   wl_list_for_each(fc, &clients, link) if (fc && fc != c &&
