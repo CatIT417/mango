@@ -230,7 +230,6 @@ struct Client {
       fullscreen_backup_h;
   int overview_isfullscreenbak, overview_ismaxmizescreenbak,
       overview_isfloatingbak;
-  uint32_t resize; /* configure serial of a pending resize */
 
   struct wlr_xdg_toplevel_decoration_v1 *decoration;
   struct wl_listener foreign_activate_request;
@@ -249,7 +248,6 @@ struct Client {
   int isopensilent;
   int iskilling;
   struct wlr_box bounds;
-  bool resizing;
   bool is_open_animation;
   bool is_restoring_from_ov;
   float scroller_proportion;
@@ -2562,8 +2560,6 @@ void client_set_pending_state(Client *c) {
   // 判断是否需要动画
   if (!animations) {
     c->animation.should_animate = false;
-  } else if (c->isglobal && c->isfloating) {
-    c->animation.should_animate = false;
   } else if (animations && c->animation.tagining) {
     c->animation.should_animate = true;
     c->animation.initial = c->animainit_geom;
@@ -4082,6 +4078,15 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->isfullscreen = 0;
   c->need_float_size_reduce = 0;
   c->iskilling = 0;
+  c->isglobal = 0;
+  c->isminied = 0;
+  c->is_in_scratchpad = 0;
+  c->is_scratchpad_show = 0;
+  c->need_float_size_reduce = 0;
+  c->is_clip_to_hide = 0;
+  c->is_restoring_from_ov = 0;
+  c->isurgent = 0;
+  c->need_output_flush = 0;
   c->scroller_proportion = scroller_default_proportion;
 
   if (new_is_master &&
@@ -4154,15 +4159,11 @@ maximizenotify(struct wl_listener *listener, void *data) {
 
 void set_minized(Client *c) {
 
-  if (!c)
+  if (!c || !c->mon)
     return;
 
-  if (c->isglobal) {
-    c->isglobal = 0;
-    selmon->sel->tags = selmon->tagset[selmon->seltags];
-  }
-  c->is_scratchpad_show = 0;
-  c->oldtags = c->mon->sel->tags;
+  c->isglobal = 0;
+  c->oldtags = c->mon->tagset[c->mon->seltags];
   c->mini_restore_tag = c->tags;
   c->tags = 0;
   c->isminied = 1;
@@ -4925,6 +4926,10 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   if (c->swallowing) {
     c->animainit_geom = c->geom;
   }
+
+  if (c->isglobal && c->isfloating && c->animation.action == TAG) {
+    c->animainit_geom = c->geom;
+  } 
 
   if (c->animation_type_open && strcmp(c->animation_type_open,"none") == 0 && c->animation.action == OPEN) {
     c->animainit_geom = c->geom;
@@ -6573,7 +6578,7 @@ void unmapnotify(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, unmap);
   c->iskilling = 1;
 
-  if (animations)
+  if (animations && !c->isminied && (!c->mon || VISIBLEON(c, c->mon)))
     init_fadeout_client(c);
 
   if (c->swallowedby) {
