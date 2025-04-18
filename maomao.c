@@ -2335,6 +2335,8 @@ buttonpress(struct wl_listener *listener, void *data) {
       selmon = xytomon(cursor->x, cursor->y);
       setmon(grabc, selmon, 0,true);
       reset_foreign_tolevel(grabc);
+      selmon->prevsel = selmon->sel;
+      selmon->sel = grabc;
       grabc = NULL;
       return;
     } else {
@@ -3457,13 +3459,13 @@ void focusclient(Client *c, int lift) {
                                                  false);
   }
 
-  if(c && !c->iskilling && c->mon) {
-    selmon = c->mon;
-  }
+  if (c && !c->iskilling && !client_is_unmanaged(c) && c->mon) {
 
-  if (selmon) {
+    selmon = c->mon;
     selmon->prevsel = selmon->sel;
     selmon->sel = c;
+
+    // decide whether need to re-arrange
     if (c && selmon->prevsel && !selmon->prevsel->isfloating &&
         selmon->prevsel->tags == c->tags && !c->isfloating &&
         !c->isfullscreen &&
@@ -3473,21 +3475,18 @@ void focusclient(Client *c, int lift) {
     } else if (selmon->prevsel) {
       selmon->prevsel = NULL;
     }
-  }
-  if (c && c->foreign_toplevel)
-    wlr_foreign_toplevel_handle_v1_set_activated(c->foreign_toplevel, true);
 
-  /* Put the new client atop the focus stack and select its monitor */
-  if (c && !client_is_unmanaged(c)) {
+    // change focus link position
     wl_list_remove(&c->flink);
     wl_list_insert(&fstack, &c->flink);
-    selmon = c->mon;
-    c->isurgent = 0;
 
+    // change border color
+    c->isurgent = 0;
     setborder_color(c);
-    /* Don't change border color if there is an exclusive focus or we are
-     * handling a drag operation */
   }
+
+  if (c && !c->iskilling && c->foreign_toplevel)
+    wlr_foreign_toplevel_handle_v1_set_activated(c->foreign_toplevel, true);
 
   /* Deactivate old client if focus is changing */
   if (old_keyboard_focus_surface &&
@@ -6601,18 +6600,18 @@ void unmapnotify(struct wl_listener *listener, void *data) {
     grabc = NULL;
   }
 
-  if (c == selmon->prevsel)
-    selmon->prevsel = NULL;
+  if (c->mon && c == c->mon->prevsel)
+    c->mon->prevsel = NULL;
 
-  if (c == selmon->sel) {
-    selmon->sel = NULL;
-    Client *nextfocus = focustop(selmon);
+  if (c->mon && c == c->mon->sel) {
+    c->mon->sel = NULL;
+    Client *nextfocus = focustop(c->mon);
 
-    if (nextfocus) {
+    if (nextfocus && c->mon && c->mon == selmon) {
       focusclient(nextfocus, 0);
     }
 
-    if (!nextfocus && selmon->isoverview) {
+    if (!nextfocus && selmon->isoverview && c->mon && c->mon == selmon) {
       Arg arg = {0};
       toggleoverview(&arg);
     }
