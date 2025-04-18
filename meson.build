@@ -67,8 +67,8 @@ if xcb.found() and xlibs.found()
 endif
 
 executable('maomao',
-  'maomao.c',
-  'util.c',
+  'src/maomao.c',
+  'src/util.c',
   wayland_sources,
   dependencies : [
     libm,
