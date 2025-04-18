@@ -4088,6 +4088,7 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->isurgent = 0;
   c->need_output_flush = 0;
   c->scroller_proportion = scroller_default_proportion;
+  c->is_open_animation = true;
 
   if (new_is_master &&
       strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
@@ -6117,7 +6118,7 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
   for (i = 0; i < n; i++) {
     c = tempClients[i];
     if (root_client == c) {
-      if (c->geom.x >= m->w.x + scroller_structs &&
+      if (!c->is_open_animation && c->geom.x >= m->w.x + scroller_structs &&
           c->geom.x + c->geom.width <= m->w.x + m->w.width - scroller_structs) {
         need_scroller = false;
       } else {
