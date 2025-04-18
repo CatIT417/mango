@@ -299,7 +299,7 @@ uint32_t parse_mod(const char *mod_str) {
 }
 
 xkb_keysym_t parse_keysym(const char *keysym_str) {
-  return xkb_keysym_from_name(keysym_str, XKB_KEYSYM_NO_FLAGS);
+  return  xkb_keysym_to_upper(xkb_keysym_from_name(keysym_str, XKB_KEYSYM_NO_FLAGS));
 }
 
 int parse_button(const char *str) {

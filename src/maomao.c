@@ -3716,7 +3716,7 @@ keybinding(uint32_t mods, xkb_keysym_t sym) {
     if (config.key_bindings_count < 1)
       break;
     k = &config.key_bindings[ji];
-    if (CLEANMASK(mods) == CLEANMASK(k->mod) && sym == k->keysym && k->func) {
+    if (CLEANMASK(mods) == CLEANMASK(k->mod) && xkb_keysym_to_upper(sym) == k->keysym && k->func) {
       k->func(&k->arg);
       handled = 1;
     }
