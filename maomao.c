@@ -7223,11 +7223,10 @@ void movewin(const Arg *arg) {
     break;
   }
 
-  resize(
-      c,
-      (struct wlr_box){
-          .x = nx, .y = ny, .width = c->geom.width, .height = c->geom.height},
-      1);
+  c->oldgeom = (struct wlr_box){
+    .x = nx, .y = ny, .width = c->geom.width, .height = c->geom.height};
+
+  resize(c, c->oldgeom, 1);
 }
 
 void resizewin(const Arg *arg) {
@@ -7293,10 +7292,10 @@ void resizewin(const Arg *arg) {
     break;
   }
 
-  resize(c,
-         (struct wlr_box){
-             .x = c->geom.x, .y = c->geom.y, .width = nw, .height = nh},
-         1);
+  c->oldgeom = (struct wlr_box){
+    .x = c->geom.x, .y = c->geom.y, .width = nw, .height = nh};
+
+  resize(c, c->oldgeom, 1);
 }
 
 #ifdef XWAYLAND
