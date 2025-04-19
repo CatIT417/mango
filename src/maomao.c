@@ -2573,14 +2573,12 @@ void client_set_pending_state(Client *c) {
     c->animation.should_animate = false;
   } else if (animations && c->animation.tagining) {
     c->animation.should_animate = true;
-    c->animation.initial = c->animainit_geom;
   } else if (!animations || c == grabc ||
              (!c->is_open_animation &&
               wlr_box_equal(&c->current, &c->pending))) {
     c->animation.should_animate = false;
   } else {
     c->animation.should_animate = true;
-    c->animation.initial = c->animainit_geom;
   }
 
   // 开始动画
@@ -2604,6 +2602,11 @@ void client_commit(Client *c) {
   c->current = c->pending; // 设置动画的结束位置
 
   if (c->animation.should_animate) {
+    if(!c->animation.running) {
+      c->animation.current =  c->animainit_geom;
+    }
+
+    c->animation.initial = c->animainit_geom;
     // 设置动画速度
     c->animation.passed_frames = 0;
     c->animation.total_frames =
