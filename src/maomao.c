@@ -6807,14 +6807,14 @@ void view_in_mon(const Arg *arg, bool want_animation, Monitor *m) {
   if (!m || (arg->ui != ~0 && m->isoverview)) {
     return;
   }
-  if ((m->tagset[m->seltags] & arg->ui & TAGMASK) != 0) {
-    want_animation = false;
-  }
+  // if ((m->tagset[m->seltags] & arg->ui & TAGMASK) != 0) {
+  //   want_animation = false;
+  // }
 
   m->seltags ^= 1; /* toggle sel tagset */
   if (arg->ui & TAGMASK) {
     m->tagset[m->seltags] = arg->ui & TAGMASK;
-    m->pertag->prevtag = m->pertag->curtag;
+    tmptag = m->pertag->curtag;
 
     if (arg->ui == ~0)
     m->pertag->curtag = 0;
@@ -6823,6 +6823,8 @@ void view_in_mon(const Arg *arg, bool want_animation, Monitor *m) {
         ;
         m->pertag->curtag = i + 1;
     }
+
+    m->pertag->prevtag = tmptag == m->pertag->curtag? m->pertag->prevtag:tmptag;
   } else {
     tmptag = m->pertag->prevtag;
     m->pertag->prevtag = m->pertag->curtag;
