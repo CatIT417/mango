@@ -106,7 +106,8 @@
     wl_signal_add((E), _l);                                                    \
   } while (0)
 
-/* enums */
+#define BAKED_POINTS_COUNT 256
+
 /* enums */
 enum { SWIPE_UP, SWIPE_DOWN, SWIPE_LEFT, SWIPE_RIGHT };
 enum { CurNormal, CurPressed, CurMove, CurResize }; /* cursor */
@@ -139,6 +140,13 @@ enum {
 enum { UP, DOWN, LEFT, RIGHT, UNDIR }; /* movewin */
 enum { NONE, OPEN, MOVE, CLOSE, TAG };
 
+struct vec2 {
+  double x, y;
+};
+
+struct uvec2 {
+  int x, y;
+};
 typedef struct {
   int i;
   float f;
@@ -256,7 +264,6 @@ struct Client {
   bool need_output_flush;
   struct dwl_animation animation;
   int isterm, noswallow;
-  // struct wl_event_source *timer_tick;
   pid_t pid;
   Client *swallowing, *swallowedby;
   bool is_clip_to_hide;
@@ -622,13 +629,10 @@ void snap_scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx,
 void client_set_pending_state(Client *c);
 void set_rect_size(struct wlr_scene_rect *rect, int width, int height);
 
-// int timer_tick_action(void *data);
-
 #include "dispatch.h"
 
 /* variables */
 static const char broken[] = "broken";
-// static const char *cursor_image = "left_ptr";
 static pid_t child_pid = -1;
 static int locked;
 static uint32_t locked_mods = 0;
@@ -650,10 +654,8 @@ static struct wlr_xdg_decoration_manager_v1 *xdg_decoration_mgr;
 static struct wl_list clients; /* tiling order */
 static struct wl_list fstack;  /* focus order */
 static struct wl_list fadeout_clients;
-// static struct wlr_idle *idle;
 static struct wlr_idle_notifier_v1 *idle_notifier;
 static struct wlr_idle_inhibit_manager_v1 *idle_inhibit_mgr;
-// static struct wlr_input_inhibit_manager *input_inhibit_mgr;
 static struct wlr_layer_shell_v1 *layer_shell;
 static struct wlr_output_manager_v1 *output_mgr;
 static struct wlr_virtual_keyboard_manager_v1 *virtual_keyboard_mgr;
@@ -671,8 +673,7 @@ static struct wlr_scene_rect *locked_bg;
 static struct wlr_session_lock_v1 *cur_lock;
 static const int layermap[] = {LyrBg, LyrBottom, LyrTop, LyrOverlay};
 static struct wlr_scene_tree *drag_icon;
-static struct wlr_cursor_shape_manager_v1
-    *cursor_shape_mgr; // 这个跟steup obs影响对应
+static struct wlr_cursor_shape_manager_v1 *cursor_shape_mgr;
 static struct wlr_pointer_constraints_v1 *pointer_constraints;
 static struct wlr_relative_pointer_manager_v1 *relative_pointer_mgr;
 static struct wlr_pointer_constraint_v1 *active_constraint;
@@ -750,7 +751,6 @@ static void sethints(struct wl_listener *listener, void *data);
 static void xwaylandready(struct wl_listener *listener, void *data);
 static struct wl_listener new_xwayland_surface = {.notify = createnotifyx11};
 static struct wl_listener xwayland_ready = {.notify = xwaylandready};
-void free_config(void);
 // static struct wl_listener new_xwayland_surface = {.notify = createnotifyx11};
 // static struct wl_listener xwayland_ready = {.notify = xwaylandready};
 static struct wlr_xwayland *xwayland;
@@ -781,22 +781,13 @@ struct Pertag {
 static pid_t *autostart_pids;
 static size_t autostart_len;
 
-#include "parse_config.h"
-
-struct vec2 {
-  double x, y;
-};
-
-struct uvec2 {
-  int x, y;
-};
-
-#define BAKED_POINTS_COUNT 256
-
 struct vec2 *baked_points_move;
 struct vec2 *baked_points_open;
 struct vec2 *baked_points_tag;
 struct vec2 *baked_points_close;
+
+// update global variables from config file
+#include "parse_config.h"
 
 struct vec2 calculate_animation_curve_at(double t, int type) {
   struct vec2 point;
@@ -809,6 +800,8 @@ struct vec2 calculate_animation_curve_at(double t, int type) {
     animation_curve = animation_curve_tag;
   } else if (type == CLOSE) {
     animation_curve = animation_curve_close;
+  } else {
+    animation_curve = animation_curve_move;
   }
 
   point.x = 3 * t * (1 - t) * (1 - t) * animation_curve[0] +
@@ -858,6 +851,8 @@ double find_animation_curve_at(double t, int type) {
     baked_points = baked_points_tag;
   } else if (type == CLOSE) {
     baked_points = baked_points_close;
+  } else {
+    baked_points = baked_points_move;
   }
 
   while (up - down != 1) {
@@ -1219,7 +1214,6 @@ bool client_draw_frame(Client *c) {
     client_apply_clip(c);
     c->need_output_flush = false;
   }
-  // c->resize = 1;
   return true;
 }
 
@@ -4032,8 +4026,6 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->scene->node.data = c->scene_surface->node.data = c;
 
   client_get_geometry(c, &c->geom);
-  // c->timer_tick = wl_event_loop_add_timer(wl_display_get_event_loop(dpy),
-  // timer_tick_action, c); wl_event_source_timer_update(c->timer_tick, 0);
 
   /* Handle unmanaged clients first so we can return prior create borders */
   if (client_is_unmanaged(c)) {
@@ -4835,7 +4827,6 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   if (!c->mon)
     return;
 
-  // wl_event_source_timer_update(c->timer_tick, 10);
   c->need_output_flush = true;
 
   // oldgeom = c->geom;
@@ -5365,71 +5356,6 @@ void handle_foreign_destroy(struct wl_listener *listener, void *data) {
     wl_list_remove(&c->foreign_destroy.link);
   }
 }
-
-// void signalhandler(int signalnumber) {
-//   void *array[64];
-//   size_t size;
-//   char **strings;
-//   size_t i;
-//   char filename[1024];
-
-//   // 获取 MAOMAOCONFIG 环境变量
-//   const char *maomaoconfig = getenv("MAOMAOCONFIG");
-
-//   // 如果 MAOMAOCONFIG 环境变量不存在或为空，则使用 HOME 环境变量
-//   if (!maomaoconfig || maomaoconfig[0] == '\0') {
-//     // 获取当前用户家目录
-//     const char *homedir = getenv("HOME");
-//     if (!homedir) {
-//       // 如果获取失败，则无法继续
-//       return;
-//     }
-//     // 构建日志文件路径
-//     snprintf(filename, sizeof(filename), "%s/.config/maomao/crash.log",
-//              homedir);
-//   } else {
-//     // 使用 MAOMAOCONFIG 环境变量作为配置文件夹路径
-//     snprintf(filename, sizeof(filename), "%s/crash.log", maomaoconfig);
-//   }
-
-//   // 打开日志文件
-//   FILE *fp = fopen(filename, "w");
-//   if (!fp) {
-//     // 如果无法打开日志文件，则不处理
-//     return;
-//   }
-
-//   // 获取堆栈跟踪
-//   size = backtrace(array, 64);
-//   strings = backtrace_symbols(array, size);
-
-//   // 写入错误信息和堆栈跟踪到文件
-//   fprintf(fp, "Received signal %d:\n", signalnumber);
-//   for (i = 0; i < size; ++i) {
-//     fprintf(fp, "%zu %s\n", i, strings[i]);
-//   }
-
-//   // 关闭文件
-//   fclose(fp);
-
-//   // 释放分配的内存
-//   free(strings);
-
-//   // 不调用 exit 以允许生成核心转储文件
-// }
-
-// int timer_tick_action(void *data) {
-//   Client *c = (Client *)data;
-
-//   if (c->animation.running) {
-//     wlr_output_schedule_frame(c->mon->wlr_output);
-//     wl_event_source_timer_update(c->timer_tick, 10);
-//   } else {
-//     wl_event_source_timer_update(c->timer_tick, 0);
-//   }
-
-//   return 0;
-// }
 
 void setup(void) {
 
@@ -6654,7 +6580,6 @@ void unmapnotify(struct wl_listener *listener, void *data) {
     c->swallowing = NULL;
   }
 
-  // wl_event_source_remove(c->timer_tick);
   wlr_scene_node_destroy(&c->scene->node);
   printstatus();
   motionnotify(0, NULL, 0, 0, 0, 0);
