@@ -1725,7 +1725,7 @@ arrange(Monitor *m, bool want_animation) {
 
       } else {
         if ((c->tags & (1 << (selmon->pertag->prevtag - 1))) &&
-            want_animation && m->pertag->prevtag != 0 &&
+            m->pertag->prevtag != 0 &&
             m->pertag->curtag != 0 && animations) {
           c->animation.tagouting = true;
           c->animation.tagining = false;
@@ -6745,9 +6745,9 @@ void view_in_mon(const Arg *arg, bool want_animation, Monitor *m) {
   if (arg->ui == 0)
     return;
 
-  // if ((m->tagset[m->seltags] & arg->ui & TAGMASK) != 0) {
-  //   want_animation = false;
-  // }
+  if ((m->tagset[m->seltags] & arg->ui & TAGMASK) != 0) {
+    want_animation = false;
+  }
 
   m->seltags ^= 1; /* toggle sel tagset */
   if (arg->ui & TAGMASK) {
