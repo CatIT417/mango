@@ -503,9 +503,9 @@ void parse_config_line(Config *config, const char *line) {
   if (strcmp(key, "animations") == 0) {
     config->animations = atoi(value);
   } else if (strcmp(key, "animation_type_open") == 0) {
-    strncpy(config->animation_type_open, value, sizeof(config->animation_type_open));
+    snprintf(config->animation_type_open, sizeof(config->animation_type_open), "%.9s", value); // string limit to 9 char
   } else if (strcmp(key, "animation_type_close") == 0) {
-    strncpy(config->animation_type_close, value, sizeof(config->animation_type_close));
+    snprintf(config->animation_type_close, sizeof(config->animation_type_close), "%.9s", value); // string limit to 9 char
   } else if (strcmp(key, "animation_fade_in") == 0) {
     config->animation_fade_in = atoi(value);
   } else if (strcmp(key, "zoom_initial_ratio") == 0) {
