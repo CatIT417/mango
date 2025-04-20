@@ -5770,6 +5770,7 @@ void tagmon(const Arg *arg) {
       selmon = c->mon;
       c->geom = setclient_coordinate_center(c->geom, 0, 0);
       focusclient(c, 1);
+      c->oldgeom = c->geom;
       resize(c, c->geom, 1);
     } else {
       selmon = c->mon;
