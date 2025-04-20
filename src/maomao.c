@@ -1383,6 +1383,9 @@ swallow(Client *c, Client *w)
 	c->isurgent = w->isurgent;
 	c->isfullscreen = w->isfullscreen;
   c->ismaxmizescreen = w->ismaxmizescreen;
+  c->isminied = w->isminied;
+  c->is_in_scratchpad = w->is_in_scratchpad;
+  c->is_scratchpad_show = w->is_scratchpad_show;
 	c->tags = w->tags;
 	c->geom = w->geom;
   c->scroller_proportion = w->scroller_proportion;
@@ -1397,6 +1400,11 @@ swallow(Client *c, Client *w)
 
   if(!c->foreign_toplevel && c->mon)
     add_foreign_toplevel(c);
+  
+  if(c->isminied) {
+    wlr_foreign_toplevel_handle_v1_set_activated(c->foreign_toplevel, false);
+    wlr_foreign_toplevel_handle_v1_set_minimized(c->foreign_toplevel, true);
+  }
   
 }
 
@@ -5314,6 +5322,11 @@ setsel(struct wl_listener *listener, void *data)
 unsigned int get_tags_first_tag(unsigned int source_tags) {
   unsigned int i, target, tag;
   tag = 0;
+
+  if(!source_tags) {
+    return selmon->pertag->curtag;
+  }
+
   for (i = 0; !(tag & 1); i++) {
     tag = source_tags >> i;
   }
