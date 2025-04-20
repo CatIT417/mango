@@ -2295,6 +2295,9 @@ buttonpress(struct wl_listener *listener, void *data) {
       wlr_seat_pointer_clear_focus(seat);
       motionnotify(0, NULL, 0, 0, 0, 0);
       /* Drop the window off on its new monitor */
+      if(grabc == selmon->sel){
+        selmon->sel = NULL;
+      }
       selmon = xytomon(cursor->x, cursor->y);
       setmon(grabc, selmon, 0, true);
       reset_foreign_tolevel(grabc);
@@ -5251,6 +5254,15 @@ void setmon(Client *c, Monitor *m, uint32_t newtags, bool focus) {
 
   if (oldmon == m)
     return;
+
+  if (oldmon && oldmon->sel == c) {
+    oldmon->sel = NULL;
+  }
+
+  if (oldmon && oldmon->prevsel == c) {
+    oldmon->prevsel = NULL;
+  }
+
   c->mon = m;
   c->prev = c->geom;
 
@@ -6523,6 +6535,7 @@ void init_fadeout_client(Client *c) {
 void unmapnotify(struct wl_listener *listener, void *data) {
   /* Called when the surface is unmapped, and should no longer be shown. */
   Client *c = wl_container_of(listener, c, unmap);
+  Monitor *m;
   c->iskilling = 1;
 
   if (animations && !c->isminied && (!c->mon || VISIBLEON(c, c->mon)))
@@ -6538,18 +6551,26 @@ void unmapnotify(struct wl_listener *listener, void *data) {
     grabc = NULL;
   }
 
-  if (c->mon && c == c->mon->prevsel)
-    c->mon->prevsel = NULL;
+  wl_list_for_each(m, &mons, link) {
+    if (!m->wlr_output->enabled) {
+      continue;
+    }
+    if(c == m->sel){
+      m->sel = NULL;
+    }
+    if(c == m->prevsel){
+      m->prevsel = NULL;
+    }
+  }
 
-  if (c->mon && c == c->mon->sel) {
-    c->mon->sel = NULL;
-    Client *nextfocus = focustop(c->mon);
+  if (c->mon && c->mon == selmon) {
+    Client *nextfocus = focustop(selmon);
 
-    if (nextfocus && c->mon && c->mon == selmon) {
+    if (nextfocus) {
       focusclient(nextfocus, 0);
     }
 
-    if (!nextfocus && selmon->isoverview && c->mon && c->mon == selmon) {
+    if (!nextfocus && selmon->isoverview) {
       Arg arg = {0};
       toggleoverview(&arg);
     }
