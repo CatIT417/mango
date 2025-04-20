@@ -5327,7 +5327,7 @@ unsigned int get_tags_first_tag(unsigned int source_tags) {
     return selmon->pertag->curtag;
   }
 
-  for (i = 0; !(tag & 1); i++) {
+  for (i = 0; !(tag & 1) && source_tags != 0; i++) {
     tag = source_tags >> i;
   }
   target = 1 << (i - 1);
@@ -6820,6 +6820,10 @@ void view_in_mon(const Arg *arg, bool want_animation, Monitor *m) {
   if (!m || (arg->ui != ~0 && m->isoverview)) {
     return;
   }
+
+  if (arg->ui == 0)
+    return;
+
   // if ((m->tagset[m->seltags] & arg->ui & TAGMASK) != 0) {
   //   want_animation = false;
   // }
@@ -6832,7 +6836,7 @@ void view_in_mon(const Arg *arg, bool want_animation, Monitor *m) {
     if (arg->ui == ~0)
     m->pertag->curtag = 0;
     else {
-      for (i = 0; !(arg->ui & 1 << i); i++)
+      for (i = 0; !(arg->ui & 1 << i) && arg->ui != 0; i++)
         ;
         m->pertag->curtag = i + 1;
     }
