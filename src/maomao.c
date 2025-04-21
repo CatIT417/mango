@@ -2584,6 +2584,9 @@ void client_commit(Client *c) {
 
 void commitnotify(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, commit);
+
+  if(!c->surface.xdg->initialized) return;
+
   if (c->surface.xdg->initial_commit) {
     // xdg client will first enter this before mapnotify
     applyrules(c);
@@ -2594,6 +2597,8 @@ void commitnotify(struct wl_listener *listener, void *data) {
     wlr_xdg_toplevel_set_wm_capabilities(
         c->surface.xdg->toplevel, WLR_XDG_TOPLEVEL_WM_CAPABILITIES_FULLSCREEN);
     wlr_xdg_toplevel_set_size(c->surface.xdg->toplevel, 0, 0);
+    client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT |
+      WLR_EDGE_RIGHT);
     if (c->decoration)
       requestdecorationmode(&c->set_decoration_mode, c->decoration);
     return;
@@ -2606,24 +2611,26 @@ void commitnotify(struct wl_listener *listener, void *data) {
   if (c == grabc)
     return;
 
-  if (!c->dirty || client_is_unmanaged(c))
+  if (client_is_unmanaged(c))
     return;
+
+  uint32_t serial = c->surface.xdg->current.configure_serial;
+  if(!c->dirty || serial < c->configure_serial) return;
 
   struct wlr_box geometry;
   client_get_geometry(c, &geometry);
   if (geometry.width == c->animation.current.width - 2 * c->bw &&
       geometry.height == c->animation.current.height - 2 * c->bw) {
-    c->dirty = false;
     return;
   }
 
-  wlr_log(WLR_DEBUG, "app commit event handle:%s,%d,%d", client_get_appid(c),
-          geometry.width - c->animation.current.width,
-          geometry.height - c->animation.current.height);
-  resize(c, c->geom, (c->isfloating && !c->isfullscreen));
+  if (geometry.width == c->geom.width - 2 * c->bw &&
+    geometry.height == c->geom.height - 2 * c->bw) {
+    c->dirty = false;
+    return;
+ }
 
-  // if (c->configure_serial && c->configure_serial <=
-  // c->surface.xdg->current.configure_serial) 	c->configure_serial = 0;
+ resize(c, c->geom, (c->isfloating && !c->isfullscreen));
 }
 
 void destroydecoration(struct wl_listener *listener, void *data) {
