@@ -4840,7 +4840,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   bbox = interact ? &sgeom : &c->mon->w;
 
   if (strcmp(c->mon->pertag->ltidxs[c->mon->pertag->curtag]->name,
-             "scroller") == 0) {
+             "scroller") == 0 && !c->isfloating) {
     c->geom = geo;
     c->geom.width = MAX(1 + 2 * (int)c->bw, c->geom.width);
     c->geom.height = MAX(1 + 2 * (int)c->bw, c->geom.height);
@@ -5036,11 +5036,14 @@ setfloating(Client *c, int floating) {
     hit = applyrulesgeom(c);
     target_box = hit == 1 ? c->geom : target_box;
     c->geom = backup_box;
+
+    // restore to the memeroy geom
     if (c->oldgeom.width > 0 && c->oldgeom.height > 0) {
       resize(c, c->oldgeom, 0);
     } else {
       resize(c, target_box, 0);
     }
+
     c->need_float_size_reduce = 0;
   } else if (c->isfloating && c == grabc) {
     c->need_float_size_reduce = 0;
