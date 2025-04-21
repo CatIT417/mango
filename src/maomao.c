@@ -220,7 +220,6 @@ struct Client {
   struct wl_listener destroy;
   struct wl_listener set_title;
   struct wl_listener fullscreen;
-  struct wlr_box prev; /* layout-relative, includes border */
 #ifdef XWAYLAND
   struct wl_listener activate;
   struct wl_listener associate;
@@ -5082,7 +5081,6 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
       toggleoverview(&arg);
     }
 
-    c->prev = c->geom;
     maxmizescreen_box.x = c->mon->w.x + gappov;
     maxmizescreen_box.y = c->mon->w.y + gappoh;
     maxmizescreen_box.width = c->mon->w.width - 2 * gappov;
@@ -5090,11 +5088,7 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
     wlr_scene_node_raise_to_top(&c->scene->node); // 将视图提升到顶层
     resize(c, maxmizescreen_box, 0);
     c->ismaxmizescreen = 1;
-    // c->isfloating = 0;
   } else {
-    /* restore previous size instead of arrange for floating windows since
-     * client positions are set by the user and cannot be recalculated */
-    // resize(c, c->prev, 0);
     c->bw = borderpx;
     c->ismaxmizescreen = 0;
     c->isfullscreen = 0;
@@ -5131,9 +5125,6 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
     c->isfullscreen = 1;
     // c->isfloating = 0;
   } else {
-    /* restore previous size instead of arrange for floating windows since
-     * client positions are set by the user and cannot be recalculated */
-    // resize(c, c->prev, 0);
     c->bw = borderpx;
     c->isfullscreen = 0;
     c->isfullscreen = 0;
@@ -5264,7 +5255,6 @@ void setmon(Client *c, Monitor *m, uint32_t newtags, bool focus) {
   }
 
   c->mon = m;
-  c->prev = c->geom;
 
   /* Scene graph sends surface leave/enter events on move and resize */
   if (oldmon)
@@ -6595,7 +6585,6 @@ void unmapnotify(struct wl_listener *listener, void *data) {
   }
 
   if (c->swallowedby) {
-    c->swallowedby->prev = c->geom;
     setfullscreen(c->swallowedby, c->isfullscreen);
     setmaxmizescreen(c->swallowedby, c->ismaxmizescreen);
     c->swallowedby->swallowing = NULL;
