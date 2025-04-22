@@ -1572,8 +1572,9 @@ applyrulesgeom(Client *c) {
     if (config.window_rules_count < 1)
       break;
     r = &config.window_rules[ji];
-    if ((r->title && strstr(title, r->title)) ||
-        (r->id && strstr(appid, r->id))) {
+    if ((r->title && strstr(title, r->title) && !r->id) ||
+        (r->id && strstr(appid, r->id) && !r->title) || 
+        (r->id && strstr(appid, r->id) && r->title && strstr(title, r->title))) {
       c->geom.width = r->width > 0 ? r->width : c->geom.width;
       c->geom.height = r->height > 0 ? r->height : c->geom.height;
       // 重新计算居中的坐标
@@ -1608,8 +1609,9 @@ applyrules(Client *c) {
       break;
     r = &config.window_rules[ji];
 
-    if ((r->title && strstr(title, r->title)) ||
-        (r->id && strstr(appid, r->id))) {
+    if ((r->title && strstr(title, r->title) && !r->id) ||
+        (r->id && strstr(appid, r->id) && !r->title) || 
+        (r->id && strstr(appid, r->id) && r->title && strstr(title, r->title))) {
       c->isterm = r->isterm > 0 ? r->isterm : c->isterm;
       c->noswallow = r->noswallow > 0 ? r->noswallow : c->noswallow;
       c->isfloating = r->isfloating > 0 ? r->isfloating : c->isfloating;
@@ -3707,7 +3709,7 @@ bool keypressglobal(struct wlr_surface *last_surface,
   int reset = false;
   const char *appid = NULL;
   const char *title = NULL;
-  int appid_len, title_len, ji;
+  int ji;
   const ConfigWinRule *r;
 
   for (ji = 0; ji < config.window_rules_count; ji++) {
@@ -3725,28 +3727,16 @@ bool keypressglobal(struct wlr_surface *last_surface,
         if (c && c != lastc) {
           appid = client_get_appid(c);
           title = client_get_title(c);
-          if (appid && r->id) {
-            appid_len = strlen(appid);
-            if (strncmp(appid, r->id, appid_len) == 0) {
-              reset = true;
-              wlr_seat_keyboard_enter(seat, client_surface(c), keycodes, 0,
-                                      &keyboard->modifiers);
-              wlr_seat_keyboard_send_key(seat, event->time_msec, event->keycode,
-                                         event->state);
-              goto done;
-            }
-          }
 
-          if (title && r->title) {
-            title_len = strlen(title);
-            if (strncmp(title, r->title, title_len) == 0) {
-              reset = true;
-              wlr_seat_keyboard_enter(seat, client_surface(c), keycodes, 0,
-                                      &keyboard->modifiers);
-              wlr_seat_keyboard_send_key(seat, event->time_msec, event->keycode,
-                                         event->state);
-              goto done;
-            }
+          if ((r->title && strstr(title, r->title) && !r->id) ||
+          (r->id && strstr(appid, r->id) && !r->title) || 
+          (r->id && strstr(appid, r->id) && r->title && strstr(title, r->title))) {
+            reset = true;
+            wlr_seat_keyboard_enter(seat, client_surface(c), keycodes, 0,
+                                    &keyboard->modifiers);
+            wlr_seat_keyboard_send_key(seat, event->time_msec, event->keycode,
+                                       event->state);
+            goto done;
           }
         }
       }
