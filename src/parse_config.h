@@ -254,6 +254,26 @@ long int parse_color(const char *hex_str) {
   return hex_num;
 }
 
+xkb_keysym_t normalize_keysym(xkb_keysym_t sym) {
+  // 首先转换为小写
+  sym = xkb_keysym_to_lower(sym);
+  
+  // 将数字小键盘键转换为普通数字键
+  switch (sym) {
+      case XKB_KEY_KP_0: return XKB_KEY_0;
+      case XKB_KEY_KP_1: return XKB_KEY_1;
+      case XKB_KEY_KP_2: return XKB_KEY_2;
+      case XKB_KEY_KP_3: return XKB_KEY_3;
+      case XKB_KEY_KP_4: return XKB_KEY_4;
+      case XKB_KEY_KP_5: return XKB_KEY_5;
+      case XKB_KEY_KP_6: return XKB_KEY_6;
+      case XKB_KEY_KP_7: return XKB_KEY_7;
+      case XKB_KEY_KP_8: return XKB_KEY_8;
+      case XKB_KEY_KP_9: return XKB_KEY_9;
+      default: return sym;
+  }
+}
+
 // 辅助函数：检查字符串是否以指定的前缀开头（忽略大小写）
 static bool starts_with_ignore_case(const char *str, const char *prefix) {
   while (*prefix) {
@@ -299,7 +319,7 @@ uint32_t parse_mod(const char *mod_str) {
 }
 
 xkb_keysym_t parse_keysym(const char *keysym_str) {
-  return  xkb_keysym_to_lower(xkb_keysym_from_name(keysym_str, XKB_KEYSYM_NO_FLAGS));
+  return xkb_keysym_from_name(keysym_str, XKB_KEYSYM_NO_FLAGS);
 }
 
 int parse_button(const char *str) {

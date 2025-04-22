@@ -3690,7 +3690,7 @@ keybinding(uint32_t mods, xkb_keysym_t sym) {
       break;
     k = &config.key_bindings[ji];
     if (CLEANMASK(mods) == CLEANMASK(k->mod) &&
-        xkb_keysym_to_lower(sym) == k->keysym && k->func) {
+    normalize_keysym(sym) == normalize_keysym(k->keysym) && k->func) {
       k->func(&k->arg);
       handled = 1;
     }
