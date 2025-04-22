@@ -5692,7 +5692,7 @@ void spawn_on_empty(const Arg *arg) {
   Client *c;
 
   wl_list_for_each(c, &clients, link) {
-    if (arg->ui & c->tags) {
+    if (arg->ui & c->tags && c->mon == selmon) {
       is_empty = false;
       break;
     }
