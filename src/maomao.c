@@ -2621,16 +2621,17 @@ void commitnotify(struct wl_listener *listener, void *data) {
 
   struct wlr_box geometry;
   client_get_geometry(c, &geometry);
-  if (geometry.width == c->animation.current.width - 2 * c->bw &&
-      geometry.height == c->animation.current.height - 2 * c->bw) {
-    return;
-  }
 
   if (geometry.width == c->geom.width - 2 * c->bw &&
     geometry.height == c->geom.height - 2 * c->bw) {
     c->dirty = false;
     return;
  }
+
+  if (geometry.width == c->animation.current.width - 2 * c->bw &&
+      geometry.height == c->animation.current.height - 2 * c->bw) {
+    return;
+  }
 
  resize(c, c->geom, (c->isfloating && !c->isfullscreen));
 }
