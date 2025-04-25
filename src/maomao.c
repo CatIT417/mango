@@ -4930,6 +4930,8 @@ run(char *startup_cmd) {
   if (!wlr_backend_start(backend))
     die("startup: backend_start");
 
+  setenv("XDG_CURRENT_DESKTOP", "maomao", 1);
+
   /* Now that the socket exists and the backend is started, run the startup
    * command */
   if (startup_cmd) {
