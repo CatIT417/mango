@@ -610,18 +610,8 @@ void scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer, int sx, int sy,
                                 void *data);
 
 Client *direction_select(const Arg *arg);
-void bind_to_view(const Arg *arg);
 void view_in_mon(const Arg *arg, bool want_animation, Monitor *m);
-void toggletag(const Arg *arg);
-void toggleview(const Arg *arg);
-void tag(const Arg *arg);
-void incihgaps(const Arg *arg);
-void incivgaps(const Arg *arg);
-void incogaps(const Arg *arg);
-void incohgaps(const Arg *arg);
-void incovgaps(const Arg *arg);
-void incigaps(const Arg *arg);
-void defaultgaps(const Arg *arg);
+
 void buffer_set_size(Client *c, animationScale scale_data);
 void snap_scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx,
                                   int sy, void *data);
@@ -4649,29 +4639,22 @@ void requeststartdrag(struct wl_listener *listener, void *data) {
 }
 
 void setborder_color(Client *c) {
-  unsigned int i;
   if (!c || !c->mon)
     return;
   if (c->isurgent) {
-    for (i = 0; i < 4; i++)
-      wlr_scene_rect_set_color(c->border[i], urgentcolor);
+    client_set_border_color(c, urgentcolor);
     return;
   }
   if (c->is_in_scratchpad && selmon && c == selmon->sel) {
-    for (i = 0; i < 4; i++)
-      wlr_scene_rect_set_color(c->border[i], scratchpadcolor);
+    client_set_border_color(c, scratchpadcolor);
   } else if (c->isglobal && selmon && c == selmon->sel) {
-    for (i = 0; i < 4; i++)
-      wlr_scene_rect_set_color(c->border[i], globalcolor);
+    client_set_border_color(c, globalcolor);
   } else if (c->ismaxmizescreen && selmon && c == selmon->sel) {
-    for (i = 0; i < 4; i++)
-      wlr_scene_rect_set_color(c->border[i], maxmizescreencolor);
+    client_set_border_color(c, maxmizescreencolor);
   } else if (selmon && c == selmon->sel) {
-    for (i = 0; i < 4; i++)
-      wlr_scene_rect_set_color(c->border[i], focuscolor);
+    client_set_border_color(c, focuscolor);
   } else {
-    for (i = 0; i < 4; i++)
-      wlr_scene_rect_set_color(c->border[i], bordercolor);
+    client_set_border_color(c, bordercolor);
   }
 }
 
@@ -7365,7 +7348,7 @@ void sethints(struct wl_listener *listener, void *data) {
   c->isurgent = xcb_icccm_wm_hints_get_urgency(c->surface.xwayland->hints);
   printstatus();
 
-  if (c->isurgent && surface && surface->mapped)
+  if (c->isurgent && surface && surface->mapped) 
     client_set_border_color(c, urgentcolor);
 }
 
