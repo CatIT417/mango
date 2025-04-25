@@ -761,7 +761,7 @@ static struct wlr_xwayland *xwayland;
 /* attempt to encapsulate suck into one file */
 #include "client.h"
 #ifdef IM
-#include "IM.h"
+#include "text_input.h"
 #endif
 
 struct NumTags {
