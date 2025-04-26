@@ -88,6 +88,7 @@ typedef struct {
   char animation_type_open[10];
   char animation_type_close[10];
   char animation_fade_in;
+  int tag_animation_direction;
   float zoom_initial_ratio;
   float fadein_begin_opacity;
   float fadeout_begin_opacity;
@@ -528,6 +529,8 @@ void parse_config_line(Config *config, const char *line) {
     snprintf(config->animation_type_close, sizeof(config->animation_type_close), "%.9s", value); // string limit to 9 char
   } else if (strcmp(key, "animation_fade_in") == 0) {
     config->animation_fade_in = atoi(value);
+  } else if (strcmp(key, "tag_animation_direction") == 0) {
+    config->tag_animation_direction = atoi(value);
   } else if (strcmp(key, "zoom_initial_ratio") == 0) {
     config->zoom_initial_ratio = atof(value);
   } else if (strcmp(key, "fadein_begin_opacity") == 0) {
@@ -1171,6 +1174,7 @@ void override_config(void) {
   animation_type_open = config.animation_type_open;
   animation_type_close = config.animation_type_close;
   animation_fade_in = config.animation_fade_in;
+  tag_animation_direction = config.tag_animation_direction;
   zoom_initial_ratio = config.zoom_initial_ratio;
   fadein_begin_opacity = config.fadein_begin_opacity;
   fadeout_begin_opacity = config.fadeout_begin_opacity;
@@ -1245,6 +1249,7 @@ void set_value_default() {
   /* animaion */
   config.animations = animations;             // 是否启用动画
   config.animation_fade_in = animation_fade_in;      // Enable animation fade in
+  config.tag_animation_direction = tag_animation_direction; // 标签动画方向
   config.zoom_initial_ratio = zoom_initial_ratio;   // 动画起始窗口比例
   config.fadein_begin_opacity = fadein_begin_opacity; // Begin opac window ratio for animations
   config.fadeout_begin_opacity = fadeout_begin_opacity;

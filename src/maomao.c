@@ -109,6 +109,7 @@
 #define BAKED_POINTS_COUNT 256
 
 /* enums */
+enum { VERTICAL, HORIZONTAL};
 enum { SWIPE_UP, SWIPE_DOWN, SWIPE_LEFT, SWIPE_RIGHT };
 enum { CurNormal, CurPressed, CurMove, CurResize }; /* cursor */
 enum { XDGShell, LayerShell, X11 };                 /* client types */
@@ -1694,19 +1695,31 @@ arrange(Monitor *m, bool want_animation) {
           wlr_scene_node_set_enabled(&c->scene->node, true);
         }
         client_set_suspended(c, false);
-        if (!c->animation.from_rule && want_animation &&
-            m->pertag->prevtag != 0 && m->pertag->curtag != 0 && animations) {
+        if (!c->animation.from_rule && 
+            want_animation &&
+            m->pertag->prevtag != 0 && 
+            m->pertag->curtag != 0 && 
+            animations && !c->animation.running) {
           c->animation.tagining = true;
           if (m->pertag->curtag > m->pertag->prevtag) {
-            c->animainit_geom.x = c->animation.running
+            c->animainit_geom.x = tag_animation_direction == VERTICAL
                                       ? c->animation.current.x
                                       : c->mon->m.x + c->mon->m.width;
+            c->animainit_geom.y = tag_animation_direction == VERTICAL
+                                      ? c->mon->m.y + c->mon->m.height
+                                      : c->animation.current.y;
+
           } else {
-            c->animainit_geom.x = c->animation.running ? c->animation.current.x
-                                                       : m->m.x - c->geom.width;
+            c->animainit_geom.x = tag_animation_direction == VERTICAL 
+                                        ? c->animation.current.x
+                                        : m->m.x - c->geom.width;
+            c->animainit_geom.y = tag_animation_direction == VERTICAL 
+                                        ? m->m.y - c->geom.height
+                                        : c->animation.current.y;
           }
         } else {
           c->animainit_geom.x = c->animation.current.x;
+          c->animainit_geom.y = c->animation.current.y;
         }
 
         c->animation.from_rule = false;
@@ -1722,11 +1735,22 @@ arrange(Monitor *m, bool want_animation) {
           c->animation.tagining = false;
           if (m->pertag->curtag > m->pertag->prevtag) {
             c->pending = c->geom;
-            c->pending.x = c->mon->m.x - c->geom.width;
+            c->pending.x = tag_animation_direction == VERTICAL
+                                ? c->animation.current.x
+                                : c->mon->m.x - c->geom.width;
+            c->pending.y = tag_animation_direction == VERTICAL
+                                ? c->mon->m.y - c->geom.height
+                                : c->animation.current.y;
+            
             resize(c, c->geom, 0);
           } else {
             c->pending = c->geom;
-            c->pending.x = c->mon->m.x + c->mon->m.width;
+            c->pending.x = tag_animation_direction == VERTICAL
+                                ? c->animation.current.x
+                                : c->mon->m.x + c->mon->m.width;
+            c->pending.y = tag_animation_direction == VERTICAL
+                                ? c->mon->m.y + c->mon->m.height
+                                : c->animation.current.y;
             resize(c, c->geom, 0);
           }
         } else {
@@ -4861,7 +4885,6 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   } else if (c->animation.tagining) {
     c->animainit_geom.height = c->animation.current.height;
     c->animainit_geom.width = c->animation.current.width;
-    c->animainit_geom.y = c->animation.current.y;
   } else if (c->is_open_animation) {
     set_open_animaiton(c, c->geom);
   } else {

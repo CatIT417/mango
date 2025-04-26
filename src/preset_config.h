@@ -8,6 +8,7 @@
 char *animation_type_open = "slide";    // 是否启用动画 //slide,zoom
 char *animation_type_close = "slide";    // 是否启用动画 //slide,zoom
 int animations = 1;                // 是否启用动画
+int tag_animation_direction = HORIZONTAL; // 标签动画方向
 char animation_fade_in = 1;        // Enable animation fade in
 float zoom_initial_ratio = 0.5;    // 动画起始窗口比例
 float fadein_begin_opacity = 0.5;  // Begin opac window ratio for animations
