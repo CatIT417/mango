@@ -2397,8 +2397,6 @@ void cleanup(void) {
   xwayland = NULL;
 #endif
 
-  input_method_relay_finish(input_method_relay);
-
   wl_display_destroy_clients(dpy);
   if (child_pid > 0) {
     kill(-child_pid, SIGTERM);
@@ -2407,6 +2405,8 @@ void cleanup(void) {
   wlr_xcursor_manager_destroy(cursor_mgr);
 
   destroykeyboardgroup(&kb_group->destroy, NULL);
+
+  input_method_relay_finish(input_method_relay);
 
   /* If it's not destroyed manually it will cause a use-after-free of wlr_seat.
    * Destroy it until it's fixed in the wlroots side */
