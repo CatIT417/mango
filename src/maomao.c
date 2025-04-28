@@ -752,7 +752,7 @@ static struct wlr_xwayland *xwayland;
 /* attempt to encapsulate suck into one file */
 #include "client.h"
 #ifdef IM
-#include "text_input.h"
+#include "ime.h"
 #endif
 
 struct NumTags {
@@ -1772,10 +1772,6 @@ arrange(Monitor *m, bool want_animation) {
     m->pertag->ltidxs[m->pertag->curtag]->arrange(m, gappoh, 0);
   }
 
-#ifdef IM
-  if (input_relay && input_relay->popup)
-    input_popup_update(input_relay->popup);
-#endif
   motionnotify(0, NULL, 0, 0, 0, 0);
   checkidleinhibitor(NULL);
 }
@@ -2407,8 +2403,7 @@ void cleanup(void) {
 #endif
 
 #ifdef IM
-  wl_list_remove(&input_relay->input_method_new.link);
-  wl_list_remove(&input_relay->text_input_new.link);
+  input_method_relay_finish(input_method_relay);
 #endif
 
   wl_display_destroy_clients(dpy);
@@ -3511,7 +3506,7 @@ void focusclient(Client *c, int lift) {
       selmon->sel =
           NULL; // 这个很关键,因为很多地方用到当前窗口做计算,不重置成NULL就会到处有野指针
 #ifdef IM
-    dwl_input_method_relay_set_focus(input_relay, NULL);
+  input_method_relay_set_focus(input_method_relay, NULL);
 #endif
     wlr_seat_keyboard_notify_clear_focus(seat);
     return;
@@ -3524,11 +3519,7 @@ void focusclient(Client *c, int lift) {
   client_notify_enter(client_surface(c), wlr_seat_get_keyboard(seat));
 
 #ifdef IM
-  struct wlr_keyboard *keyboard;
-  keyboard = wlr_seat_get_keyboard(seat);
-  uint32_t mods = keyboard ? wlr_keyboard_get_modifiers(keyboard) : 0;
-  if (mods == 0)
-    dwl_input_method_relay_set_focus(input_relay, client_surface(c));
+  input_method_relay_set_focus(input_method_relay, client_surface(c));
 #endif
   /* Activate the new client */
   client_activate_surface(client_surface(c), 1);
@@ -3805,15 +3796,6 @@ void keypress(struct wl_listener *listener, void *data) {
     }
   }
 
-#ifdef IM
-  if (!locked && event->state == WL_KEYBOARD_KEY_STATE_RELEASED &&
-      (keycode == 133 || keycode == 37 || keycode == 64 || keycode == 50 ||
-       keycode == 134 || keycode == 105 || keycode == 108 || keycode == 62) &&
-      selmon && selmon->sel) {
-    dwl_input_method_relay_set_focus(input_relay, client_surface(selmon->sel));
-  }
-#endif
-
   /* On _press_ if there is no active screen locker,
    * attempt to process a compositor keybinding. */
   if (!locked && event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
@@ -3852,26 +3834,12 @@ void keypress(struct wl_listener *listener, void *data) {
   if (hit_global) {
     return;
   }
-
-#ifdef IM
-  /* if there is a keyboard grab, we send the key there */
-  struct wlr_input_method_keyboard_grab_v2 *kb_grab =
-      keyboard_get_im_grab(group);
-  if (kb_grab) {
-    wlr_input_method_keyboard_grab_v2_set_keyboard(
-        kb_grab, &(group->wlr_group->keyboard));
-    wlr_input_method_keyboard_grab_v2_send_key(kb_grab, event->time_msec,
-                                               event->keycode, event->state);
-    wlr_log(WLR_DEBUG, "keypress send to IM:%u mods %u state %u",
-            event->keycode, mods, event->state);
-    return;
-  }
-#endif
-
-  wlr_seat_set_keyboard(seat, &group->wlr_group->keyboard);
-  /* Pass unhandled keycodes along to the client. */
-  wlr_seat_keyboard_notify_key(seat, event->time_msec, event->keycode,
+  if (!input_method_keyboard_grab_forward_key(group, event)) {
+    wlr_seat_set_keyboard(seat, &group->wlr_group->keyboard);
+    /* Pass unhandled keycodes along to the client. */
+    wlr_seat_keyboard_notify_key(seat, event->time_msec, event->keycode,
                                event->state);
+    }
 }
 
 void keypressmod(struct wl_listener *listener, void *data) {
@@ -3879,20 +3847,12 @@ void keypressmod(struct wl_listener *listener, void *data) {
    * pressed. We simply communicate this to the client. */
   KeyboardGroup *group = wl_container_of(listener, group, modifiers);
 
-#ifdef IM
-  struct wlr_input_method_keyboard_grab_v2 *kb_grab =
-      keyboard_get_im_grab(group);
-  if (kb_grab) {
-    wlr_input_method_keyboard_grab_v2_send_modifiers(
-        kb_grab, &group->wlr_group->keyboard.modifiers);
-    wlr_log(WLR_DEBUG, "keypressmod send to IM");
-    return;
-  }
-#endif
-  wlr_seat_set_keyboard(seat, &group->wlr_group->keyboard);
-  /* Send modifiers to the client. */
-  wlr_seat_keyboard_notify_modifiers(seat,
-                                     &group->wlr_group->keyboard.modifiers);
+  if (!input_method_keyboard_grab_forward_modifiers(group)) {
+    wlr_seat_set_keyboard(seat, &group->wlr_group->keyboard);
+    /* Send modifiers to the client. */
+    wlr_seat_keyboard_notify_modifiers(seat,
+                                       &group->wlr_group->keyboard.modifiers);
+    }
 }
 
 static bool scene_node_snapshot(struct wlr_scene_node *node, int lx, int ly,
@@ -5606,8 +5566,8 @@ void setup(void) {
   input_method_manager = wlr_input_method_manager_v2_create(dpy);
   text_input_manager = wlr_text_input_manager_v3_create(dpy);
 
-  input_relay = calloc(1, sizeof(*input_relay));
-  dwl_input_method_relay_init(input_relay);
+  input_method_relay = calloc(1, sizeof(*input_method_relay));
+  input_method_relay = input_method_relay_create();
 #endif
   wl_global_create(dpy, &zdwl_ipc_manager_v2_interface, 2, NULL,
                    dwl_ipc_manager_bind);
