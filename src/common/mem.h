@@ -1,8 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Based on labwc (https://github.com/labwc/labwc) */
-#ifndef LABWC_MEM_H
-#define LABWC_MEM_H
-
 #include <stdlib.h>
 
 /*
@@ -65,4 +62,3 @@ char *xstrdup(const char *str);
     (ptr) = NULL;                                                              \
   } while (0)
 
-#endif /* LABWC_MEM_H */

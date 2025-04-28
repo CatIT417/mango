@@ -1,22 +1,19 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Based on labwc (https://github.com/labwc/labwc) */
 
-#ifndef LABWC_IME_H
-#define LABWC_IME_H
-
 #include "../common/mem.h"
 #include <assert.h>
 #include <wlr/types/wlr_input_method_v2.h>
 #include <wlr/types/wlr_text_input_v3.h>
 
-#define LAB_SET_MAX_SIZE 16
+#define DWL_SET_MAX_SIZE 16
 
 #define SAME_CLIENT(wlr_obj1, wlr_obj2)                                        \
   (wl_resource_get_client((wlr_obj1)->resource) ==                             \
    wl_resource_get_client((wlr_obj2)->resource))
 
-struct lab_set {
-  uint32_t values[LAB_SET_MAX_SIZE];
+struct dwl_set {
+  uint32_t values[DWL_SET_MAX_SIZE];
   int size;
 };
 
@@ -32,7 +29,7 @@ struct input_method_relay {
   struct wlr_input_method_v2 *input_method;
   struct wlr_surface *focused_surface;
 
-  struct lab_set forwarded_pressed_keys;
+  struct dwl_set forwarded_pressed_keys;
   struct wlr_keyboard_modifiers forwarded_modifiers;
 
   /*
@@ -107,7 +104,7 @@ void input_method_relay_finish(struct input_method_relay *relay);
 void input_method_relay_set_focus(struct input_method_relay *relay,
                                   struct wlr_surface *surface);
 
-bool lab_set_contains(struct lab_set *set, uint32_t value) {
+bool dwl_set_contains(struct dwl_set *set, uint32_t value) {
   for (int i = 0; i < set->size; ++i) {
     if (set->values[i] == value) {
       return true;
@@ -116,18 +113,18 @@ bool lab_set_contains(struct lab_set *set, uint32_t value) {
   return false;
 }
 
-void lab_set_add(struct lab_set *set, uint32_t value) {
-  if (lab_set_contains(set, value)) {
+void dwl_set_add(struct dwl_set *set, uint32_t value) {
+  if (dwl_set_contains(set, value)) {
     return;
   }
-  if (set->size >= LAB_SET_MAX_SIZE) {
-    wlr_log(WLR_ERROR, "lab_set size exceeded");
+  if (set->size >= DWL_SET_MAX_SIZE) {
+    wlr_log(WLR_ERROR, "dwl_set size exceeded");
     return;
   }
   set->values[set->size++] = value;
 }
 
-void lab_set_remove(struct lab_set *set, uint32_t value) {
+void dwl_set_remove(struct dwl_set *set, uint32_t value) {
   for (int i = 0; i < set->size; ++i) {
     if (set->values[i] == value) {
       --set->size;
@@ -237,9 +234,9 @@ bool input_method_keyboard_grab_forward_key(
    * We should not forward key-release events without corresponding
    * key-press events forwarded
    */
-  struct lab_set *pressed_keys = &input_method_relay->forwarded_pressed_keys;
+  struct dwl_set *pressed_keys = &input_method_relay->forwarded_pressed_keys;
   if (event->state == WL_KEYBOARD_KEY_STATE_RELEASED &&
-      !lab_set_contains(pressed_keys, event->keycode)) {
+      !dwl_set_contains(pressed_keys, event->keycode)) {
     return false;
   }
 
@@ -247,9 +244,9 @@ bool input_method_keyboard_grab_forward_key(
       get_keyboard_grab(keyboard);
   if (keyboard_grab) {
     if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
-      lab_set_add(pressed_keys, event->keycode);
+      dwl_set_add(pressed_keys, event->keycode);
     } else {
-      lab_set_remove(pressed_keys, event->keycode);
+      dwl_set_remove(pressed_keys, event->keycode);
     }
     wlr_input_method_keyboard_grab_v2_set_keyboard(
         keyboard_grab, &keyboard->wlr_group->keyboard);
@@ -356,8 +353,8 @@ static void update_popup_position(struct input_method_popup *popup) {
     /*
      * wlr_surface->data is:
      * - for XDG surfaces: view->content_tree
-     * - for layer surfaces: lab_layer_surface->scene_layer_surface->tree
-     * - for layer popups: lab_layer_popup->scene_tree
+     * - for layer surfaces: dwl_layer_surface->scene_layer_surface->tree
+     * - for layer popups: dwl_layer_popup->scene_tree
      */
     struct wlr_scene_tree *tree = relay->focused_surface->data;
     int lx, ly;
@@ -480,7 +477,7 @@ static void handle_input_method_grab_keyboard(struct wl_listener *listener,
                                                    active_keyboard);
   }
 
-  relay->forwarded_pressed_keys = (struct lab_set){0};
+  relay->forwarded_pressed_keys = (struct dwl_set){0};
   relay->forwarded_modifiers = (struct wlr_keyboard_modifiers){0};
 
   relay->keyboard_grab_destroy.notify = handle_keyboard_grab_destroy;
@@ -535,14 +532,11 @@ static void handle_input_method_new_popup_surface(struct wl_listener *listener,
 
   // popup->tree = wlr_scene_subsurface_tree_create(
   // 	relay->popup_tree, popup->popup_surface->surface);
-  // node_descriptor_create(&popup->tree->node, LAB_NODE_DESC_IME_POPUP, NULL);
+  // node_descriptor_create(&popup->tree->node, dwl_NODE_DESC_IME_POPUP, NULL);
 
   popup->tree = wlr_scene_tree_create(layers[LyrIMPopup]);
   popup->scene_surface = wlr_scene_subsurface_tree_create(
       popup->tree, popup->popup_surface->surface);
-  // popup->scene_surface =
-  // &wlr_scene_subsurface_tree_create(popup->scene->parent,popup->popup_surface->surface)->node;
-  // popup->scene_surface->data = popup;
   popup->scene_surface->node.data = popup;
 
   wl_list_insert(&relay->popups, &popup->link);
@@ -740,5 +734,3 @@ void input_method_relay_set_focus(struct input_method_relay *relay,
   update_text_inputs_focused_surface(relay);
   update_active_text_input(relay);
 }
-
-#endif
