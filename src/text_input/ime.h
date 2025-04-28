@@ -206,6 +206,10 @@ get_keyboard_grab(KeyboardGroup *keyboard)
 		return NULL;
 	}
 
+	// labwc not need this , but maomao need
+	if(keyboard != kb_group)
+		return NULL;
+
 	/*
 	 * Input-methods often use virtual keyboard to send raw key signals
 	 * instead of sending encoded text via set_preedit_string and

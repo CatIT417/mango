@@ -122,9 +122,7 @@ enum {
   LyrFS,
   LyrTop,
   LyrOverlay,
-#ifdef IM
-  LyrIMPopup,
-#endif
+  LyrIMPopup, // text-input layer
   LyrFadeOut,
   LyrBlock,
   NUM_LAYERS
@@ -751,9 +749,7 @@ static struct wlr_xwayland *xwayland;
 
 /* attempt to encapsulate suck into one file */
 #include "client/client.h"
-#ifdef IM
 #include "text_input/ime.h"
-#endif
 
 struct NumTags {
   char limitexceeded[LENGTH(tags) > 31 ? -1 : 1];
@@ -2402,9 +2398,7 @@ void cleanup(void) {
   xwayland = NULL;
 #endif
 
-#ifdef IM
   input_method_relay_finish(input_method_relay);
-#endif
 
   wl_display_destroy_clients(dpy);
   if (child_pid > 0) {
@@ -3505,9 +3499,9 @@ void focusclient(Client *c, int lift) {
     if (selmon && selmon->sel)
       selmon->sel =
           NULL; // 这个很关键,因为很多地方用到当前窗口做计算,不重置成NULL就会到处有野指针
-#ifdef IM
-  input_method_relay_set_focus(input_method_relay, NULL);
-#endif
+
+    // clear text input focus state
+    input_method_relay_set_focus(input_method_relay, NULL);
     wlr_seat_keyboard_notify_clear_focus(seat);
     return;
   }
@@ -3518,9 +3512,8 @@ void focusclient(Client *c, int lift) {
   /* Have a client, so focus its top-level wlr_surface */
   client_notify_enter(client_surface(c), wlr_seat_get_keyboard(seat));
 
-#ifdef IM
+  // set text input focus
   input_method_relay_set_focus(input_method_relay, client_surface(c));
-#endif
   /* Activate the new client */
   client_activate_surface(client_surface(c), 1);
 }
@@ -3839,7 +3832,7 @@ void keypress(struct wl_listener *listener, void *data) {
     /* Pass unhandled keycodes along to the client. */
     wlr_seat_keyboard_notify_key(seat, event->time_msec, event->keycode,
                                event->state);
-    }
+  }
 }
 
 void keypressmod(struct wl_listener *listener, void *data) {
@@ -5561,14 +5554,13 @@ void setup(void) {
   wl_signal_add(&output_mgr->events.apply, &output_mgr_apply);
   wl_signal_add(&output_mgr->events.test, &output_mgr_test);
 
-#ifdef IM
   /* create text_input-, and input_method-protocol relevant globals */
   input_method_manager = wlr_input_method_manager_v2_create(dpy);
   text_input_manager = wlr_text_input_manager_v3_create(dpy);
 
   input_method_relay = calloc(1, sizeof(*input_method_relay));
   input_method_relay = input_method_relay_create();
-#endif
+
   wl_global_create(dpy, &zdwl_ipc_manager_v2_interface, 2, NULL,
                    dwl_ipc_manager_bind);
 
@@ -6977,10 +6969,11 @@ void xytonode(double x, double y, struct wlr_surface **psurface, Client **pc,
   int layer;
 
   for (layer = NUM_LAYERS - 1; !surface && layer >= 0; layer--) {
-#ifdef IM
+
+    // ignore text-input layer
     if (layer == LyrIMPopup)
       continue;
-#endif
+
     if (layer == LyrFadeOut)
       continue;
 
