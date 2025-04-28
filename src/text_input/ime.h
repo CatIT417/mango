@@ -8,7 +8,7 @@
 #include <wlr/types/wlr_text_input_v3.h>
 #include <wlr/types/wlr_input_method_v2.h>
 #include <assert.h>
-#include "mem.h"
+#include "../common/mem.h"
 
 #define LAB_SET_MAX_SIZE 16
 

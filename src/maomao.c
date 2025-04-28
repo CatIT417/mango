@@ -79,7 +79,7 @@
 #endif
 
 #include "dwl-ipc-unstable-v2-protocol.h"
-#include "util.h"
+#include "common/util.h"
 #include <wlr/types/wlr_foreign_toplevel_management_v1.h>
 
 /* macros */
@@ -619,7 +619,7 @@ void snap_scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx,
 void client_set_pending_state(Client *c);
 void set_rect_size(struct wlr_scene_rect *rect, int width, int height);
 
-#include "dispatch.h"
+#include "dispatch/dispatch.h"
 
 /* variables */
 static const char broken[] = "broken";
@@ -747,12 +747,12 @@ static struct wlr_xwayland *xwayland;
 #endif
 
 /* configuration, allows nested code to access above variables */
-#include "preset_config.h"
+#include "config/preset_config.h"
 
 /* attempt to encapsulate suck into one file */
-#include "client.h"
+#include "client/client.h"
 #ifdef IM
-#include "ime.h"
+#include "text_input/ime.h"
 #endif
 
 struct NumTags {
@@ -777,7 +777,7 @@ struct vec2 *baked_points_tag;
 struct vec2 *baked_points_close;
 
 // update global variables from config file
-#include "parse_config.h"
+#include "config/parse_config.h"
 
 struct vec2 calculate_animation_curve_at(double t, int type) {
   struct vec2 point;
