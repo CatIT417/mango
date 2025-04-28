@@ -1,5 +1,3 @@
-#
-
 Master-Stack Layout
 
 https://github.com/user-attachments/assets/a9d4776e-b50b-48fb-94ce-651d8a749b8a
@@ -26,26 +24,6 @@ See below for more features.
 - grid
 - dwindle
 - spiral
-
-# window open rules
-
-## options
-
-- appid: type-string if match it or title, the rule match
-- title: type-string if match it or appid, the rule match
-- tags: type-num(1-9) which tags to open the window
-- isfloating: type-num(0 or 1)
-- isfullscreen: type-num(0 or 1)
-- scroller_proportion: type-float(0.1-1.0)
-- animation_type_open : type-string(zoom,slide)
-- animation_type_close : type-string(zoom,slide)
-- isnoborder : type-num(0 or 1)
-- monitor : type-num(0-99999)
-- width : type-num(0-9999)
-- height : type-num(0-9999)
-- isterm : type-num(0 or 1) it will be swallowed by the sub window
-- noswallow: type-num(0 or 1) don't swallow the isterm window
-- globalkeybinding: type-string(for example-- alt-l or alt+super-l)
 
 # some special feature
 
@@ -91,117 +69,20 @@ yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist w
 
 ```
 
-# config
+## Some common default key bindings
+- alt+return: open foot terminal
+- alt+q: kill client
+- alt+left/right/up/down: focus direction
+- super+m: quit maomao
 
-```
-cp /etc/maomao/config.conf ~/.config/maomao/config.conf
-touch ~/.config/maomao/autostart.sh
-chmod +x ~/.config/maomao/autostart.sh
-```
+## My dotfile
 
-you can use `MAOMAOCONFIG` env to set the config-folder-path and the autostart-folder-patch
-like `MAOMAOCONFIG=/home/xxx/maomao`
+[maomao-config](https://github.com/DreamMaoMao/dotfile/tree/main/maomao)
 
-- the only default keybinds is ctrl+alt+[F1-F12] to change tty
 
-- the default config path is `~/.config/maomao/config.conf`
+## Config document
+refer to [wiki](https://github.com/DreamMaoMao/maomaowm/wiki/)
 
-- the default autostart path is `~/.config/maomao/autostart.sh`
-
-- the fallback config path is in `/etc/maomao/config.conf`, you can find the default config here
-
-# custom animation
-
-```
-animation_curve_open=0.46,1.0,0.29,1.1
-animation_curve_move=0.46,1.0,0.29,1
-animation_curve_tag=0.46,1.0,0.29,1
-animation_curve_close=0.46,1.0,0.29,1
-
-```
-
-You can design your animaition curve in:
-[here, on cssportal.com](https://www.cssportal.com/css-cubic-bezier-generator/),
-
-or you can just choice a curve in:
-[easings.net](https://easings.net).
-
-# overview mode
-
-```
-hotarea_size=10
-enable_hotarea=1
-ov_tab_mode=0
-```
-
-- enable_hotarea: when your cursor enter the bottom left corner of monitor, it will toggle overview.
-- hotarea_size: the size of hotarea, 10x10 default.
-- ov_tab_mode:
-  - it will circle switch focus when you toggle overview.
-  - and will leave ov mode when you release your mod key.
-
-### notice
-
-when you in ov mode, you can use right mouse button to close window, and left mouse button to jump to a window.
-
-# About waybar
-
-- you can also use the dwl moudle in waybar to show tags and window title
-  refer to waybar wiki: [dwl-module](https://github.com/Alexays/Waybar/wiki/Module:-Dwl)
-
-```json
-"modules-left": ["dwl/tags","dwl/window"],
-"dwl/tags": {
-    "num-tags":9,
-},
-
-```
-
-```css
-#tags {
-  background-color: transparent;
-}
-
-#tags button {
-  background-color: #fff;
-  color: #a585cd;
-}
-
-#tags button.occupied {
-  background-color: #fff;
-  color: #cdc885;
-}
-
-#tags button.focused {
-  background-color: rgb(186, 142, 213);
-  color: #fff;
-}
-
-#tags button.urgent {
-  background: rgb(171, 101, 101);
-  color: #fff;
-}
-
-#window {
-  background-color: rgb(237, 196, 147);
-  color: rgb(63, 37, 5);
-}
-
-window#waybar.empty #window {
-  background-color: transparent;
-  color: transparent;
-  border-bottom: none;
-  box-shadow: none;
-  padding-right: 0px;
-  padding-left: 0px;
-  margin-left: 0px;
-  margin-right: 0px;
-}
-```
-
-# ipc
-
-refer to [ipc](https://github.com/DreamMaoMao/mmsg)
 
 # NixOS+Home-manager
 
@@ -275,10 +156,6 @@ Here's an example of using the modules in a flake:
     };
 }
 ```
-
-# my dotfile
-
-[maomao-config](https://github.com/DreamMaoMao/dotfile/tree/main/maomao)
 
 # thanks for some refer repo
 
