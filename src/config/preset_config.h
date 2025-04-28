@@ -5,22 +5,22 @@
    ((hex >> 8) & 0xFF) / 255.0f, (hex & 0xFF) / 255.0f}
 
 /* animaion */
-char *animation_type_open = "slide";    // 是否启用动画 //slide,zoom
-char *animation_type_close = "slide";    // 是否启用动画 //slide,zoom
-int animations = 1;                // 是否启用动画
+char *animation_type_open = "slide";      // 是否启用动画 //slide,zoom
+char *animation_type_close = "slide";     // 是否启用动画 //slide,zoom
+int animations = 1;                       // 是否启用动画
 int tag_animation_direction = HORIZONTAL; // 标签动画方向
-char animation_fade_in = 1;        // Enable animation fade in
-float zoom_initial_ratio = 0.5;    // 动画起始窗口比例
+char animation_fade_in = 1;               // Enable animation fade in
+float zoom_initial_ratio = 0.5;           // 动画起始窗口比例
 float fadein_begin_opacity = 0.5;  // Begin opac window ratio for animations
 float fadeout_begin_opacity = 0.5; // Begin opac window ratio for animations
 uint32_t animation_duration_move = 500;  // Animation move speed
 uint32_t animation_duration_open = 400;  // Animation open speed
 uint32_t animation_duration_tag = 300;   // Animation tag speed
 uint32_t animation_duration_close = 300; // Animation close speed
-double animation_curve_move[4] = {0.46, 1.0, 0.29, 0.99}; // 动画曲线
-double animation_curve_open[4] = {0.46, 1.0, 0.29, 0.99}; // 动画曲线
-double animation_curve_tag[4] = {0.46, 1.0, 0.29, 0.99};  // 动画曲线
-double animation_curve_close[4] = {0.46, 1.0, 0.29, 0.99};  // 动画曲线
+double animation_curve_move[4] = {0.46, 1.0, 0.29, 0.99};  // 动画曲线
+double animation_curve_open[4] = {0.46, 1.0, 0.29, 0.99};  // 动画曲线
+double animation_curve_tag[4] = {0.46, 1.0, 0.29, 0.99};   // 动画曲线
+double animation_curve_close[4] = {0.46, 1.0, 0.29, 0.99}; // 动画曲线
 
 /* appearance */
 unsigned int axis_bind_apply_timeout = 100; // 滚轮绑定动作的触发的时间间隔
@@ -32,7 +32,7 @@ unsigned int default_nmaster = 1;           // 默认master数量
 /* logging */
 int log_level = WLR_ERROR;
 unsigned int numlockon = 1; // 是否打开右边小键盘
-unsigned int capslock = 0; // 是否启用快捷键
+unsigned int capslock = 0;  // 是否启用快捷键
 
 unsigned int ov_tab_mode = 0;    // alt tab切换模式
 unsigned int hotarea_size = 10;  // 热区大小,10x10
@@ -53,7 +53,6 @@ int focus_cross_monitor = 0;
 int focus_cross_tag = 0;
 
 unsigned int swipe_min_threshold = 20;
-
 
 int bypass_surface_visibility =
     0; /* 1 means idle inhibitors will disable idle tracking even if it's

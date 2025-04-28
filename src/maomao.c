@@ -78,8 +78,8 @@
 #include <xcb/xcb_icccm.h>
 #endif
 
-#include "dwl-ipc-unstable-v2-protocol.h"
 #include "common/util.h"
+#include "dwl-ipc-unstable-v2-protocol.h"
 #include <wlr/types/wlr_foreign_toplevel_management_v1.h>
 
 /* macros */
@@ -109,7 +109,7 @@
 #define BAKED_POINTS_COUNT 256
 
 /* enums */
-enum { VERTICAL, HORIZONTAL};
+enum { VERTICAL, HORIZONTAL };
 enum { SWIPE_UP, SWIPE_DOWN, SWIPE_LEFT, SWIPE_RIGHT };
 enum { CurNormal, CurPressed, CurMove, CurResize }; /* cursor */
 enum { XDGShell, LayerShell, X11 };                 /* client types */
@@ -1341,10 +1341,10 @@ pid_t getparentprocess(pid_t p) {
 
   // 检查fscanf返回值，确保成功读取了1个参数
   if (fscanf(f, "%*u %*s %*c %u", &v) != 1) {
-      fclose(f);
-      return 0;
+    fclose(f);
+    return 0;
   }
-  
+
   fclose(f);
 
   return (pid_t)v;
@@ -1560,8 +1560,9 @@ applyrulesgeom(Client *c) {
       break;
     r = &config.window_rules[ji];
     if ((r->title && strstr(title, r->title) && !r->id) ||
-        (r->id && strstr(appid, r->id) && !r->title) || 
-        (r->id && strstr(appid, r->id) && r->title && strstr(title, r->title))) {
+        (r->id && strstr(appid, r->id) && !r->title) ||
+        (r->id && strstr(appid, r->id) && r->title &&
+         strstr(title, r->title))) {
       c->geom.width = r->width > 0 ? r->width : c->geom.width;
       c->geom.height = r->height > 0 ? r->height : c->geom.height;
       // 重新计算居中的坐标
@@ -1597,8 +1598,9 @@ applyrules(Client *c) {
     r = &config.window_rules[ji];
 
     if ((r->title && strstr(title, r->title) && !r->id) ||
-        (r->id && strstr(appid, r->id) && !r->title) || 
-        (r->id && strstr(appid, r->id) && r->title && strstr(title, r->title))) {
+        (r->id && strstr(appid, r->id) && !r->title) ||
+        (r->id && strstr(appid, r->id) && r->title &&
+         strstr(title, r->title))) {
       c->isterm = r->isterm > 0 ? r->isterm : c->isterm;
       c->noswallow = r->noswallow > 0 ? r->noswallow : c->noswallow;
       c->isfloating = r->isfloating > 0 ? r->isfloating : c->isfloating;
@@ -1691,11 +1693,9 @@ arrange(Monitor *m, bool want_animation) {
           wlr_scene_node_set_enabled(&c->scene->node, true);
         }
         client_set_suspended(c, false);
-        if (!c->animation.from_rule && 
-            want_animation &&
-            m->pertag->prevtag != 0 && 
-            m->pertag->curtag != 0 && 
-            animations && !c->animation.running) {
+        if (!c->animation.from_rule && want_animation &&
+            m->pertag->prevtag != 0 && m->pertag->curtag != 0 && animations &&
+            !c->animation.running) {
           c->animation.tagining = true;
           if (m->pertag->curtag > m->pertag->prevtag) {
             c->animainit_geom.x = tag_animation_direction == VERTICAL
@@ -1706,12 +1706,12 @@ arrange(Monitor *m, bool want_animation) {
                                       : c->animation.current.y;
 
           } else {
-            c->animainit_geom.x = tag_animation_direction == VERTICAL 
-                                        ? c->animation.current.x
-                                        : m->m.x - c->geom.width;
-            c->animainit_geom.y = tag_animation_direction == VERTICAL 
-                                        ? m->m.y - c->geom.height
-                                        : c->animation.current.y;
+            c->animainit_geom.x = tag_animation_direction == VERTICAL
+                                      ? c->animation.current.x
+                                      : m->m.x - c->geom.width;
+            c->animainit_geom.y = tag_animation_direction == VERTICAL
+                                      ? m->m.y - c->geom.height
+                                      : c->animation.current.y;
           }
         } else {
           c->animainit_geom.x = c->animation.current.x;
@@ -1725,28 +1725,27 @@ arrange(Monitor *m, bool want_animation) {
 
       } else {
         if ((c->tags & (1 << (selmon->pertag->prevtag - 1))) &&
-            m->pertag->prevtag != 0 &&
-            m->pertag->curtag != 0 && animations) {
+            m->pertag->prevtag != 0 && m->pertag->curtag != 0 && animations) {
           c->animation.tagouting = true;
           c->animation.tagining = false;
           if (m->pertag->curtag > m->pertag->prevtag) {
             c->pending = c->geom;
             c->pending.x = tag_animation_direction == VERTICAL
-                                ? c->animation.current.x
-                                : c->mon->m.x - c->geom.width;
+                               ? c->animation.current.x
+                               : c->mon->m.x - c->geom.width;
             c->pending.y = tag_animation_direction == VERTICAL
-                                ? c->mon->m.y - c->geom.height
-                                : c->animation.current.y;
-            
+                               ? c->mon->m.y - c->geom.height
+                               : c->animation.current.y;
+
             resize(c, c->geom, 0);
           } else {
             c->pending = c->geom;
             c->pending.x = tag_animation_direction == VERTICAL
-                                ? c->animation.current.x
-                                : c->mon->m.x + c->mon->m.width;
+                               ? c->animation.current.x
+                               : c->mon->m.x + c->mon->m.width;
             c->pending.y = tag_animation_direction == VERTICAL
-                                ? c->mon->m.y + c->mon->m.height
-                                : c->animation.current.y;
+                               ? c->mon->m.y + c->mon->m.height
+                               : c->animation.current.y;
             resize(c, c->geom, 0);
           }
         } else {
@@ -2302,7 +2301,7 @@ buttonpress(struct wl_listener *listener, void *data) {
       wlr_seat_pointer_clear_focus(seat);
       motionnotify(0, NULL, 0, 0, 0, 0);
       /* Drop the window off on its new monitor */
-      if(grabc == selmon->sel){
+      if (grabc == selmon->sel) {
         selmon->sel = NULL;
       }
       selmon = xytomon(cursor->x, cursor->y);
@@ -2590,7 +2589,8 @@ void client_commit(Client *c) {
 void commitnotify(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, commit);
 
-  if(!c->surface.xdg->initialized) return;
+  if (!c->surface.xdg->initialized)
+    return;
 
   if (c->surface.xdg->initial_commit) {
     // xdg client will first enter this before mapnotify
@@ -2603,7 +2603,7 @@ void commitnotify(struct wl_listener *listener, void *data) {
         c->surface.xdg->toplevel, WLR_XDG_TOPLEVEL_WM_CAPABILITIES_FULLSCREEN);
     wlr_xdg_toplevel_set_size(c->surface.xdg->toplevel, 0, 0);
     client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT |
-      WLR_EDGE_RIGHT);
+                            WLR_EDGE_RIGHT);
     if (c->decoration)
       requestdecorationmode(&c->set_decoration_mode, c->decoration);
     return;
@@ -2620,23 +2620,24 @@ void commitnotify(struct wl_listener *listener, void *data) {
     return;
 
   uint32_t serial = c->surface.xdg->current.configure_serial;
-  if(!c->dirty || serial < c->configure_serial) return;
+  if (!c->dirty || serial < c->configure_serial)
+    return;
 
   struct wlr_box geometry;
   client_get_geometry(c, &geometry);
 
   if (geometry.width == c->geom.width - 2 * c->bw &&
-    geometry.height == c->geom.height - 2 * c->bw) {
+      geometry.height == c->geom.height - 2 * c->bw) {
     c->dirty = false;
     return;
- }
+  }
 
   if (geometry.width == c->animation.current.width - 2 * c->bw &&
       geometry.height == c->animation.current.height - 2 * c->bw) {
     return;
   }
 
- resize(c, c->geom, (c->isfloating && !c->isfullscreen));
+  resize(c, c->geom, (c->isfloating && !c->isfullscreen));
 }
 
 void destroydecoration(struct wl_listener *listener, void *data) {
@@ -3691,7 +3692,7 @@ keybinding(uint32_t mods, xkb_keysym_t sym) {
       break;
     k = &config.key_bindings[ji];
     if (CLEANMASK(mods) == CLEANMASK(k->mod) &&
-    normalize_keysym(sym) == normalize_keysym(k->keysym) && k->func) {
+        normalize_keysym(sym) == normalize_keysym(k->keysym) && k->func) {
       k->func(&k->arg);
       handled = 1;
     }
@@ -3728,8 +3729,9 @@ bool keypressglobal(struct wlr_surface *last_surface,
           title = client_get_title(c);
 
           if ((r->title && strstr(title, r->title) && !r->id) ||
-          (r->id && strstr(appid, r->id) && !r->title) || 
-          (r->id && strstr(appid, r->id) && r->title && strstr(title, r->title))) {
+              (r->id && strstr(appid, r->id) && !r->title) ||
+              (r->id && strstr(appid, r->id) && r->title &&
+               strstr(title, r->title))) {
             reset = true;
             wlr_seat_keyboard_enter(seat, client_surface(c), keycodes, 0,
                                     &keyboard->modifiers);
@@ -3831,7 +3833,7 @@ void keypress(struct wl_listener *listener, void *data) {
     wlr_seat_set_keyboard(seat, &group->wlr_group->keyboard);
     /* Pass unhandled keycodes along to the client. */
     wlr_seat_keyboard_notify_key(seat, event->time_msec, event->keycode,
-                               event->state);
+                                 event->state);
   }
 }
 
@@ -3845,7 +3847,7 @@ void keypressmod(struct wl_listener *listener, void *data) {
     /* Send modifiers to the client. */
     wlr_seat_keyboard_notify_modifiers(seat,
                                        &group->wlr_group->keyboard.modifiers);
-    }
+  }
 }
 
 static bool scene_node_snapshot(struct wlr_scene_node *node, int lx, int ly,
@@ -4798,7 +4800,8 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   bbox = interact ? &sgeom : &c->mon->w;
 
   if (strcmp(c->mon->pertag->ltidxs[c->mon->pertag->curtag]->name,
-             "scroller") == 0 && !c->isfloating) {
+             "scroller") == 0 &&
+      !c->isfloating) {
     c->geom = geo;
     c->geom.width = MAX(1 + 2 * (int)c->bw, c->geom.width);
     c->geom.height = MAX(1 + 2 * (int)c->bw, c->geom.height);
@@ -6506,10 +6509,10 @@ void unmapnotify(struct wl_listener *listener, void *data) {
     if (!m->wlr_output->enabled) {
       continue;
     }
-    if(c == m->sel){
+    if (c == m->sel) {
       m->sel = NULL;
     }
-    if(c == m->prevsel){
+    if (c == m->prevsel) {
       m->prevsel = NULL;
     }
   }
@@ -7326,7 +7329,7 @@ void sethints(struct wl_listener *listener, void *data) {
   c->isurgent = xcb_icccm_wm_hints_get_urgency(c->surface.xwayland->hints);
   printstatus();
 
-  if (c->isurgent && surface && surface->mapped) 
+  if (c->isurgent && surface && surface->mapped)
     client_set_border_color(c, urgentcolor);
 }
 

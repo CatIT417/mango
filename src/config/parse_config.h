@@ -77,11 +77,11 @@ typedef struct {
 } AxisBinding;
 
 typedef struct {
-	unsigned int mod;
-	unsigned int motion;
-	unsigned int fingers_count;
-	void (*func)(const Arg *);
-	Arg arg;
+  unsigned int mod;
+  unsigned int motion;
+  unsigned int fingers_count;
+  void (*func)(const Arg *);
+  Arg arg;
 } GestureBinding;
 typedef struct {
   int animations;
@@ -258,20 +258,31 @@ long int parse_color(const char *hex_str) {
 xkb_keysym_t normalize_keysym(xkb_keysym_t sym) {
   // 首先转换为小写
   sym = xkb_keysym_to_lower(sym);
-  
+
   // 将数字小键盘键转换为普通数字键
   switch (sym) {
-      case XKB_KEY_KP_0: return XKB_KEY_0;
-      case XKB_KEY_KP_1: return XKB_KEY_1;
-      case XKB_KEY_KP_2: return XKB_KEY_2;
-      case XKB_KEY_KP_3: return XKB_KEY_3;
-      case XKB_KEY_KP_4: return XKB_KEY_4;
-      case XKB_KEY_KP_5: return XKB_KEY_5;
-      case XKB_KEY_KP_6: return XKB_KEY_6;
-      case XKB_KEY_KP_7: return XKB_KEY_7;
-      case XKB_KEY_KP_8: return XKB_KEY_8;
-      case XKB_KEY_KP_9: return XKB_KEY_9;
-      default: return sym;
+  case XKB_KEY_KP_0:
+    return XKB_KEY_0;
+  case XKB_KEY_KP_1:
+    return XKB_KEY_1;
+  case XKB_KEY_KP_2:
+    return XKB_KEY_2;
+  case XKB_KEY_KP_3:
+    return XKB_KEY_3;
+  case XKB_KEY_KP_4:
+    return XKB_KEY_4;
+  case XKB_KEY_KP_5:
+    return XKB_KEY_5;
+  case XKB_KEY_KP_6:
+    return XKB_KEY_6;
+  case XKB_KEY_KP_7:
+    return XKB_KEY_7;
+  case XKB_KEY_KP_8:
+    return XKB_KEY_8;
+  case XKB_KEY_KP_9:
+    return XKB_KEY_9;
+  default:
+    return sym;
   }
 }
 
@@ -469,13 +480,13 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value) {
     func = spawn;
     (*arg).v = strdup(arg_value);
   } else if (strcmp(func_name, "spawn_on_empty") == 0) {
-    char cmd[256],tag_num[256];
+    char cmd[256], tag_num[256];
     if (sscanf(arg_value, "%255[^,],%255s", cmd, tag_num) == 2) {
       func = spawn_on_empty;
       (*arg).v = strdup(cmd); // 注意：之后需要释放这个内存
       (*arg).ui = 1 << (atoi(tag_num) - 1);
     } else {
-      fprintf(stderr, "Error: Invalid value format: %s\n", arg_value);      
+      fprintf(stderr, "Error: Invalid value format: %s\n", arg_value);
     }
   } else if (strcmp(func_name, "quit") == 0) {
     func = quit;
@@ -524,9 +535,11 @@ void parse_config_line(Config *config, const char *line) {
   if (strcmp(key, "animations") == 0) {
     config->animations = atoi(value);
   } else if (strcmp(key, "animation_type_open") == 0) {
-    snprintf(config->animation_type_open, sizeof(config->animation_type_open), "%.9s", value); // string limit to 9 char
+    snprintf(config->animation_type_open, sizeof(config->animation_type_open),
+             "%.9s", value); // string limit to 9 char
   } else if (strcmp(key, "animation_type_close") == 0) {
-    snprintf(config->animation_type_close, sizeof(config->animation_type_close), "%.9s", value); // string limit to 9 char
+    snprintf(config->animation_type_close, sizeof(config->animation_type_close),
+             "%.9s", value); // string limit to 9 char
   } else if (strcmp(key, "animation_fade_in") == 0) {
     config->animation_fade_in = atoi(value);
   } else if (strcmp(key, "tag_animation_direction") == 0) {
@@ -569,9 +582,11 @@ void parse_config_line(Config *config, const char *line) {
     }
   } else if (strcmp(key, "animation_curve_close") == 0) {
     if (sscanf(value, "%lf,%lf,%lf,%lf", &config->animation_curve_close[0],
-               &config->animation_curve_close[1], &config->animation_curve_close[2],
+               &config->animation_curve_close[1],
+               &config->animation_curve_close[2],
                &config->animation_curve_close[3]) != 4) {
-      fprintf(stderr, "Error: Invalid animation_curve_close format: %s\n", value);
+      fprintf(stderr, "Error: Invalid animation_curve_close format: %s\n",
+              value);
     }
   } else if (strcmp(key, "scroller_structs") == 0) {
     config->scroller_structs = atoi(value);
@@ -1041,16 +1056,19 @@ void parse_config_line(Config *config, const char *line) {
         realloc(config->gesture_bindings,
                 (config->gesture_bindings_count + 1) * sizeof(GestureBinding));
     if (!config->gesture_bindings) {
-      fprintf(stderr, "Error: Failed to allocate memory for axis gesturebind\n");
+      fprintf(stderr,
+              "Error: Failed to allocate memory for axis gesturebind\n");
       return;
     }
 
-    GestureBinding *binding = &config->gesture_bindings[config->gesture_bindings_count];
+    GestureBinding *binding =
+        &config->gesture_bindings[config->gesture_bindings_count];
     memset(binding, 0, sizeof(GestureBinding));
 
-    char mod_str[256], motion_str[256], fingers_count_str[256] , func_name[256], arg_value[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str, motion_str, fingers_count_str, func_name,
-               arg_value) < 4) {
+    char mod_str[256], motion_str[256], fingers_count_str[256], func_name[256],
+        arg_value[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str, motion_str,
+               fingers_count_str, func_name, arg_value) < 4) {
       fprintf(stderr, "Error: Invalid gesturebind format: %s\n", value);
       return;
     }
@@ -1191,11 +1209,12 @@ void override_config(void) {
   memcpy(animation_curve_tag, config.animation_curve_tag,
          sizeof(animation_curve_tag));
   memcpy(animation_curve_close, config.animation_curve_close,
-   sizeof(animation_curve_close));
+         sizeof(animation_curve_close));
 
   scroller_structs = config.scroller_structs;
   scroller_default_proportion = config.scroller_default_proportion;
-  scroller_default_proportion_single = config.scroller_default_proportion_single;
+  scroller_default_proportion_single =
+      config.scroller_default_proportion_single;
   scroller_focus_center = config.scroller_focus_center;
   focus_cross_monitor = config.focus_cross_monitor;
   focus_cross_tag = config.focus_cross_tag;
@@ -1247,50 +1266,61 @@ void override_config(void) {
 
 void set_value_default() {
   /* animaion */
-  config.animations = animations;             // 是否启用动画
-  config.animation_fade_in = animation_fade_in;      // Enable animation fade in
+  config.animations = animations;               // 是否启用动画
+  config.animation_fade_in = animation_fade_in; // Enable animation fade in
   config.tag_animation_direction = tag_animation_direction; // 标签动画方向
-  config.zoom_initial_ratio = zoom_initial_ratio;   // 动画起始窗口比例
-  config.fadein_begin_opacity = fadein_begin_opacity; // Begin opac window ratio for animations
+  config.zoom_initial_ratio = zoom_initial_ratio;           // 动画起始窗口比例
+  config.fadein_begin_opacity =
+      fadein_begin_opacity; // Begin opac window ratio for animations
   config.fadeout_begin_opacity = fadeout_begin_opacity;
-  config.animation_duration_move = animation_duration_move;  // Animation move speed
-  config.animation_duration_open = animation_duration_open;  // Animation open speed
-  config.animation_duration_tag = animation_duration_tag;   // Animation tag speed
-  config.animation_duration_close = animation_duration_close; // Animation tag speed
+  config.animation_duration_move =
+      animation_duration_move; // Animation move speed
+  config.animation_duration_open =
+      animation_duration_open; // Animation open speed
+  config.animation_duration_tag = animation_duration_tag; // Animation tag speed
+  config.animation_duration_close =
+      animation_duration_close; // Animation tag speed
 
   /* appearance */
-  config.axis_bind_apply_timeout = axis_bind_apply_timeout; // 滚轮绑定动作的触发的时间间隔
-  config.focus_on_activate = focus_on_activate;         // 收到窗口激活请求是否自动跳转聚焦
-  config.new_is_master = new_is_master;             // 新窗口是否插在头部
-  config.default_mfact = default_mfact;         // master 窗口比例
-  config.default_smfact = default_smfact;         // 第一个stack比例
-  config.default_nmaster = default_nmaster;           // 默认master数量
+  config.axis_bind_apply_timeout =
+      axis_bind_apply_timeout; // 滚轮绑定动作的触发的时间间隔
+  config.focus_on_activate =
+      focus_on_activate;                    // 收到窗口激活请求是否自动跳转聚焦
+  config.new_is_master = new_is_master;     // 新窗口是否插在头部
+  config.default_mfact = default_mfact;     // master 窗口比例
+  config.default_smfact = default_smfact;   // 第一个stack比例
+  config.default_nmaster = default_nmaster; // 默认master数量
 
   config.numlockon = numlockon; // 是否打开右边小键盘
 
-  config.ov_tab_mode = ov_tab_mode;    // alt tab切换模式
-  config.hotarea_size = hotarea_size;  // 热区大小,10x10
+  config.ov_tab_mode = ov_tab_mode;       // alt tab切换模式
+  config.hotarea_size = hotarea_size;     // 热区大小,10x10
   config.enable_hotarea = enable_hotarea; // 是否启用鼠标热区
-  config.smartgaps = smartgaps; /* 1 means no outer gap when there is only one window */
+  config.smartgaps =
+      smartgaps; /* 1 means no outer gap when there is only one window */
   config.sloppyfocus = sloppyfocus; /* focus follows mouse */
-  config.gappih = gappih;      /* horiz inner gap between windows */
-  config.gappiv = gappiv;      /* vert inner gap between windows */
-  config.gappoh = gappoh;     /* horiz outer gap between windows and screen edge */
-  config.gappov = gappov;     /* vert outer gap between windows and screen edge */
+  config.gappih = gappih;           /* horiz inner gap between windows */
+  config.gappiv = gappiv;           /* vert inner gap between windows */
+  config.gappoh = gappoh; /* horiz outer gap between windows and screen edge */
+  config.gappov = gappov; /* vert outer gap between windows and screen edge */
 
   config.scroller_structs = scroller_structs;
   config.scroller_default_proportion = scroller_default_proportion;
-  config.scroller_default_proportion_single = scroller_default_proportion_single;
+  config.scroller_default_proportion_single =
+      scroller_default_proportion_single;
   config.scroller_focus_center = scroller_focus_center;
   config.scroller_prefer_center = scroller_prefer_center;
   config.focus_cross_monitor = focus_cross_monitor;
   config.focus_cross_tag = focus_cross_tag;
   config.swipe_min_threshold = swipe_min_threshold;
 
-  config.bypass_surface_visibility = bypass_surface_visibility; /* 1 means idle inhibitors will disable idle tracking even if it's surface isn't visible  */
+  config.bypass_surface_visibility =
+      bypass_surface_visibility; /* 1 means idle inhibitors will disable idle
+                                    tracking even if it's surface isn't visible
+                                  */
 
   config.borderpx = borderpx;
-  config.overviewgappi = overviewgappi;  /* overview时 窗口与边缘 缝隙大小 */
+  config.overviewgappi = overviewgappi; /* overview时 窗口与边缘 缝隙大小 */
   config.overviewgappo = overviewgappo; /* overview时 窗口与窗口 缝隙大小 */
 
   config.warpcursor = warpcursor; /* Warp cursor to focused client */
@@ -1315,7 +1345,7 @@ void set_value_default() {
   memcpy(config.animation_curve_tag, animation_curve_tag,
          sizeof(animation_curve_tag));
   memcpy(config.animation_curve_close, animation_curve_close,
-   sizeof(animation_curve_close));
+         sizeof(animation_curve_close));
 
   memcpy(config.rootcolor, rootcolor, sizeof(rootcolor));
   memcpy(config.bordercolor, bordercolor, sizeof(bordercolor));
@@ -1328,27 +1358,27 @@ void set_value_default() {
 }
 
 void set_default_key_bindings(Config *config) {
-    // 计算默认按键绑定的数量
-    size_t default_key_bindings_count =
-        sizeof(default_key_bindings) / sizeof(KeyBinding);
+  // 计算默认按键绑定的数量
+  size_t default_key_bindings_count =
+      sizeof(default_key_bindings) / sizeof(KeyBinding);
 
-    // 重新分配内存以容纳新的默认按键绑定
-    config->key_bindings =
-        realloc(config->key_bindings,
-                (config->key_bindings_count + default_key_bindings_count) *
-                    sizeof(KeyBinding));
-    if (!config->key_bindings) {
-      return;
-    }
+  // 重新分配内存以容纳新的默认按键绑定
+  config->key_bindings =
+      realloc(config->key_bindings,
+              (config->key_bindings_count + default_key_bindings_count) *
+                  sizeof(KeyBinding));
+  if (!config->key_bindings) {
+    return;
+  }
 
-    // 将默认按键绑定复制到配置的按键绑定数组中
-    for (size_t i = 0; i < default_key_bindings_count; i++) {
-      config->key_bindings[config->key_bindings_count + i] =
-          default_key_bindings[i];
-    }
+  // 将默认按键绑定复制到配置的按键绑定数组中
+  for (size_t i = 0; i < default_key_bindings_count; i++) {
+    config->key_bindings[config->key_bindings_count + i] =
+        default_key_bindings[i];
+  }
 
-    // 更新按键绑定的总数
-    config->key_bindings_count += default_key_bindings_count;
+  // 更新按键绑定的总数
+  config->key_bindings_count += default_key_bindings_count;
 }
 
 void parse_config(void) {

@@ -24,8 +24,8 @@ void *xzalloc(size_t size);
  *   struct wlr_box *box = znew(*box);
  *   char *buf = znew_n(char, 80);
  */
-#define znew(expr)       ((__typeof__(expr) *)xzalloc(sizeof(expr)))
-#define znew_n(expr, n)  ((__typeof__(expr) *)xzalloc((n) * sizeof(expr)))
+#define znew(expr) ((__typeof__(expr) *)xzalloc(sizeof(expr)))
+#define znew_n(expr, n) ((__typeof__(expr) *)xzalloc((n) * sizeof(expr)))
 
 /*
  * As defined in FreeBSD.
@@ -49,16 +49,20 @@ char *xstrdup(const char *str);
  * Same as ptr = xstrdup(str) but free
  * <ptr> before assigning the result.
  */
-#define xstrdup_replace(ptr, str) do { \
-	free(ptr); (ptr) = xstrdup(str); \
-} while (0)
+#define xstrdup_replace(ptr, str)                                              \
+  do {                                                                         \
+    free(ptr);                                                                 \
+    (ptr) = xstrdup(str);                                                      \
+  } while (0)
 
 /*
  * Frees memory pointed to by <ptr> and sets <ptr> to NULL.
  * Does nothing if <ptr> is already NULL.
  */
-#define zfree(ptr) do { \
-	free(ptr); (ptr) = NULL; \
-} while (0)
+#define zfree(ptr)                                                             \
+  do {                                                                         \
+    free(ptr);                                                                 \
+    (ptr) = NULL;                                                              \
+  } while (0)
 
 #endif /* LABWC_MEM_H */
