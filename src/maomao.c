@@ -4537,6 +4537,10 @@ void buffer_set_size(Client *c, animationScale data) {
     return;
   }
 
+  if(client_is_x11(c) && c->current.height >= c->animation.current.height && c->current.width >= c->animation.current.width) {
+    return;
+  }
+
   if (c == grabc)
     return;
 
