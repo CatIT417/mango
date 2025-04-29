@@ -5421,7 +5421,7 @@ void setup(void) {
   idle_inhibit_mgr = wlr_idle_inhibit_v1_create(dpy);
   wl_signal_add(&idle_inhibit_mgr->events.new_inhibitor, &new_idle_inhibitor);
 
-  layer_shell = wlr_layer_shell_v1_create(dpy, 3);
+  layer_shell = wlr_layer_shell_v1_create(dpy, 4);
   wl_signal_add(&layer_shell->events.new_surface, &new_layer_surface);
 
   xdg_shell = wlr_xdg_shell_create(dpy, 6);
