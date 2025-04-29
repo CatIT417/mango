@@ -4810,7 +4810,8 @@ void resize(Client *c, struct wlr_box geo, int interact) {
     client_set_opacity(c, 1);
   }
 
-  if (c->animation.action == OPEN && wlr_box_equal(&c->geom, &c->current)) {
+  if (c->animation.action == OPEN && !c->animation.tagining 
+     && !c->animation.tagouting && wlr_box_equal(&c->geom, &c->current)) {
     c->animation.action = c->animation.action;
   } else if (c->animation.tagouting) {
     c->animation.duration = animation_duration_tag;
