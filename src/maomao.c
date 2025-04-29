@@ -541,6 +541,7 @@ static void setcursor(struct wl_listener *listener, void *data);
 static void setfloating(Client *c, int floating);
 static void setfullscreen(Client *c, int fullscreen);
 static void setmaxmizescreen(Client *c, int maxmizescreen);
+static void reset_maxmizescreen_size(Client *c);
 static void setgaps(int oh, int ov, int ih, int iv);
 
 static void setmon(Client *c, Monitor *m, unsigned int newtags, bool focus);
@@ -1754,6 +1755,13 @@ arrange(Monitor *m, bool want_animation) {
         }
       }
     }
+
+
+    if (c->mon == m && c->ismaxmizescreen  
+      && !c->animation.tagouted && !c->animation.tagouting && VISIBLEON(c, m)) {
+      reset_maxmizescreen_size(c);
+    }
+  
   }
 
   // 给全屏窗口设置背景为黑色
@@ -4993,6 +5001,15 @@ setfloating(Client *c, int floating) {
   arrange(c->mon, false);
   printstatus();
 }
+
+void reset_maxmizescreen_size(Client *c) {
+    c->geom.x = c->mon->w.x + gappov;
+    c->geom.y = c->mon->w.y + gappoh;
+    c->geom.width = c->mon->w.width - 2 * gappov;
+    c->geom.height = c->mon->w.height - 2 * gappov;
+    resize(c, c->geom, 0);
+}
+
 
 void setmaxmizescreen(Client *c, int maxmizescreen) {
   struct wlr_box maxmizescreen_box;
