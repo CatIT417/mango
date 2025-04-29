@@ -997,6 +997,11 @@ void client_animation_next_tick(Client *c) {
     if (c->animation.begin_fade_in) {
       c->animation.begin_fade_in = false;
     }
+    
+    // clear the open action state 
+    // To prevent him from being mistaken that
+    // it's still in the opening animation in resize
+    c->animation.action = MOVE;
 
     c->animation.tagining = false;
     c->animation.running = false;
@@ -1695,24 +1700,33 @@ arrange(Monitor *m, bool want_animation) {
         }
         client_set_suspended(c, false);
         if (!c->animation.from_rule && want_animation &&
-            m->pertag->prevtag != 0 && m->pertag->curtag != 0 && animations &&
-            !c->animation.running) {
+            m->pertag->prevtag != 0 && m->pertag->curtag != 0 && animations) {
           c->animation.tagining = true;
           if (m->pertag->curtag > m->pertag->prevtag) {
-            c->animainit_geom.x = tag_animation_direction == VERTICAL
-                                      ? c->animation.current.x
-                                      : c->mon->m.x + c->mon->m.width;
-            c->animainit_geom.y = tag_animation_direction == VERTICAL
-                                      ? c->mon->m.y + c->mon->m.height
-                                      : c->animation.current.y;
+            if(c->animation.running) {
+              c->animainit_geom.x = c->animation.current.x;
+              c->animainit_geom.y = c->animation.current.y;
+            } else {
+              c->animainit_geom.x = tag_animation_direction == VERTICAL
+                                        ? c->animation.current.x
+                                        : c->mon->m.x + c->mon->m.width;
+              c->animainit_geom.y = tag_animation_direction == VERTICAL
+                                        ? c->mon->m.y + c->mon->m.height
+                                        : c->animation.current.y;
+            }
 
           } else {
-            c->animainit_geom.x = tag_animation_direction == VERTICAL
-                                      ? c->animation.current.x
-                                      : m->m.x - c->geom.width;
-            c->animainit_geom.y = tag_animation_direction == VERTICAL
-                                      ? m->m.y - c->geom.height
-                                      : c->animation.current.y;
+            if(c->animation.running) {
+              c->animainit_geom.x = c->animation.current.x;
+              c->animainit_geom.y = c->animation.current.y;
+            } else {
+              c->animainit_geom.x = tag_animation_direction == VERTICAL
+                                        ? c->animation.current.x
+                                        : m->m.x - c->geom.width;
+              c->animainit_geom.y = tag_animation_direction == VERTICAL
+                                        ? m->m.y - c->geom.height
+                                        : c->animation.current.y;
+            }
           }
         } else {
           c->animainit_geom.x = c->animation.current.x;
