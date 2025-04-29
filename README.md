@@ -76,9 +76,18 @@ yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist w
 - super+m: quit maomao
 
 ## My dotfile
-
+- depend
+```
+yay -S lavalauncher-mao-git wlr-dpms sway-audio-idle-inhibit swayidle dimland brightnessctl swayosd wlr-randr grim slurp satty swaylock-effects-git wlogout eww
+```
+### maomao config
 [maomao-config](https://github.com/DreamMaoMao/dotfile/tree/main/maomao)
-
+#### other
+[foot](https://github.com/DreamMaoMao/dotfile/tree/main/foot)
+[swaylock](https://github.com/DreamMaoMao/dotfile/tree/main/swaylock)
+[wlogout](https://github.com/DreamMaoMao/dotfile/tree/main/wlogout)
+[swaync](https://github.com/DreamMaoMao/dotfile/tree/main/swaync)
+[eww](https://github.com/DreamMaoMao/dotfile/tree/main/eww)
 
 ## Config document
 refer to [wiki](https://github.com/DreamMaoMao/maomaowm/wiki/)
