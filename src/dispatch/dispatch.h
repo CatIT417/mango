@@ -49,3 +49,4 @@ void incohgaps(const Arg *arg);
 void incovgaps(const Arg *arg);
 void incigaps(const Arg *arg);
 void defaultgaps(const Arg *arg);
+void togglefakefullscreen(const Arg *arg);

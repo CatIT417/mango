@@ -456,6 +456,8 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value) {
     func = togglefloating;
   } else if (strcmp(func_name, "togglefullscreen") == 0) {
     func = togglefullscreen;
+  } else if (strcmp(func_name, "togglefakefullscreen") == 0) {
+    func = togglefakefullscreen;
   } else if (strcmp(func_name, "minized") == 0) {
     func = minized;
   } else if (strcmp(func_name, "restore_minized") == 0) {

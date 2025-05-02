@@ -231,7 +231,7 @@ struct Client {
   bool dirty;
   uint32_t configure_serial;
   struct wlr_foreign_toplevel_handle_v1 *foreign_toplevel;
-  int isfloating, isurgent, isfullscreen, need_float_size_reduce, isminied;
+  int isfloating, isurgent, isfullscreen, isfakefullscreen, need_float_size_reduce, isminied;
   int ismaxmizescreen;
   int overview_backup_bw;
   int fullscreen_backup_x, fullscreen_backup_y, fullscreen_backup_w,
@@ -539,6 +539,7 @@ static void resize(Client *c, struct wlr_box geo, int interact);
 static void run(char *startup_cmd);
 static void setcursor(struct wl_listener *listener, void *data);
 static void setfloating(Client *c, int floating);
+static void setfakefullscreen(Client *c, int fakefullscreen);
 static void setfullscreen(Client *c, int fullscreen);
 static void setmaxmizescreen(Client *c, int maxmizescreen);
 static void reset_maxmizescreen_size(Client *c);
@@ -5069,6 +5070,17 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
   }
 }
 
+void
+setfakefullscreen(Client *c, int fakefullscreen)
+{
+	c->isfakefullscreen = fakefullscreen;
+	if (!c->mon)
+		return;
+	if (c->isfullscreen)
+		setfullscreen(c, 0);
+	client_set_fullscreen(c, fakefullscreen);
+}
+
 void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带全屏
 {
   c->isfullscreen = fullscreen;
@@ -6334,6 +6346,14 @@ void togglefloating(const Arg *arg) {
   /* return if fullscreen */
   setfloating(sel, !sel->isfloating);
   setborder_color(sel);
+}
+
+void
+togglefakefullscreen(const Arg *arg)
+{
+	Client *sel = focustop(selmon);
+	if (sel)
+		setfakefullscreen(sel, !sel->isfakefullscreen);
 }
 
 void togglefullscreen(const Arg *arg) {
