@@ -420,7 +420,7 @@ arrange(Monitor *m,
 static void arrangelayer(Monitor *m, struct wl_list *list,
                          struct wlr_box *usable_area, int exclusive);
 static void arrangelayers(Monitor *m);
-static void autostartexec(void); // 自启动命令执行
+static char* autostartexec(char*, size_t); // 自启动命令执行
 static void axisnotify(struct wl_listener *listener,
                        void *data); // 滚轮事件处理
 static void buttonpress(struct wl_listener *listener,
@@ -556,7 +556,6 @@ static void setmon(Client *c, Monitor *m, unsigned int newtags, bool focus);
 static void setpsel(struct wl_listener *listener, void *data);
 static void setsel(struct wl_listener *listener, void *data);
 static void setup(void);
-static void sigchld(int unused);
 static void startdrag(struct wl_listener *listener, void *data);
 
 static void tile(Monitor *m, unsigned int gappo, unsigned int uappi);
@@ -774,9 +773,6 @@ struct Pertag {
   const Layout
       *ltidxs[LENGTH(tags) + 1]; /* matrix of tags and layouts indexes  */
 };
-
-static pid_t *autostart_pids;
-static size_t autostart_len;
 
 struct vec2 *baked_points_move;
 struct vec2 *baked_points_open;
@@ -1478,12 +1474,13 @@ void gpureset(struct wl_listener *listener, void *data) {
   wlr_renderer_destroy(old_drw);
 }
 
-void handlesig(int signo) {
-  if (signo == SIGCHLD)
-    while (waitpid(-1, NULL, WNOHANG) > 0)
-      ;
-  else if (signo == SIGINT || signo == SIGTERM)
-    quit(NULL);
+void
+handlesig(int signo)
+{
+	if (signo == SIGCHLD)
+		while (waitpid(-1, NULL, WNOHANG) > 0);
+	else if (signo == SIGINT || signo == SIGTERM)
+		quit(NULL);
 }
 
 void toggle_hotarea(int x_root, int y_root) {
@@ -2159,41 +2156,21 @@ void arrangelayers(Monitor *m) {
   }
 }
 
-void autostartexec(void) {
+char* autostartexec(char *autostart_path, size_t buf_size) {
   const char *maomaoconfig = getenv("MAOMAOCONFIG");
-  char autostart_path[1024]; // 用于存储脚本的完整路径
 
   if (maomaoconfig && maomaoconfig[0] != '\0') {
-    // 如果 MAOMAOCONFIG 存在且不为空，使用它作为配置文件夹
-    snprintf(autostart_path, sizeof(autostart_path), "%s/autostart.sh",
-             maomaoconfig);
+    snprintf(autostart_path, buf_size, "%s/autostart.sh", maomaoconfig);
   } else {
-    // 否则使用 HOME 环境变量下的默认路径
     const char *homedir = getenv("HOME");
     if (!homedir) {
-      // 如果 HOME 环境变量不存在，无法继续
       fprintf(stderr, "Error: HOME environment variable not set.\n");
-      return;
+      return NULL;
     }
-    snprintf(autostart_path, sizeof(autostart_path),
-             "%s/.config/maomao/autostart.sh", homedir);
+    snprintf(autostart_path, buf_size, "%s/.config/maomao/autostart.sh", homedir);
   }
 
-  int piperw[2];
-  if (pipe(piperw) < 0)
-    die("startup: pipe:");
-  if ((child_pid = fork()) < 0)
-    die("startup: fork:");
-  if (child_pid == 0) {
-    dup2(piperw[0], STDIN_FILENO);
-    close(piperw[0]);
-    close(piperw[1]);
-    execl("/bin/sh", "/bin/sh", "-c", autostart_path, NULL);
-    die("startup: execl:");
-  }
-  dup2(piperw[1], STDOUT_FILENO);
-  close(piperw[1]);
-  close(piperw[0]);
+  return autostart_path;
 }
 
 void // 鼠标滚轮事件
@@ -4578,7 +4555,6 @@ void powermgrsetmode(struct wl_listener *listener, void *data) {
 void // 0.5 custom
 quit(const Arg *arg) {
   wl_display_terminate(dpy);
-  free_config();
 }
 
 void quitsignal(int signo) { quit(NULL); }
@@ -5017,6 +4993,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
 
 void // 17
 run(char *startup_cmd) {
+  char autostart_temp_path[1024];
   /* Add a Unix socket to the Wayland display. */
   const char *socket = wl_display_add_socket_auto(dpy);
   if (!socket)
@@ -5032,6 +5009,8 @@ run(char *startup_cmd) {
 
   /* Now that the socket exists and the backend is started, run the startup
    * command */
+  if(!startup_cmd)
+    startup_cmd = autostartexec(autostart_temp_path, sizeof(autostart_temp_path));
   if (startup_cmd) {
     int piperw[2];
     if (pipe(piperw) < 0)
@@ -5048,10 +5027,14 @@ run(char *startup_cmd) {
     dup2(piperw[1], STDOUT_FILENO);
     close(piperw[1]);
     close(piperw[0]);
-  } else {
-    autostartexec();
   }
-  printstatus();
+
+	/* Mark stdout as non-blocking to avoid people who does not close stdin
+	 * nor consumes it in their startup script getting dwl frozen */
+	if (fd_set_nonblock(STDOUT_FILENO) < 0)
+		close(STDOUT_FILENO);
+
+	printstatus();
 
   /* At this point the outputs are initialized, choose initial selmon based on
    * cursor position, and set default cursor image */
@@ -5725,39 +5708,6 @@ void setup(void) {
             "failed to setup XWayland X server, continuing without it\n");
   }
 #endif
-}
-
-void sigchld(int unused) {
-  siginfo_t in;
-  /* We should be able to remove this function in favor of a simple
-   *     struct sigaction sa = {.sa_handler = SIG_IGN};
-   *     sigaction(SIGCHLD, &sa, NULL);
-   * but the Xwayland implementation in wlroots currently prevents us from
-   * setting our own disposition for SIGCHLD.
-   */
-  /* WNOWAIT leaves the child in a waitable state, in case this is the
-   * XWayland process
-   */
-  while (!waitid(P_ALL, 0, &in, WEXITED | WNOHANG | WNOWAIT) && in.si_pid
-#ifdef XWAYLAND
-         && (!xwayland || in.si_pid != xwayland->server->pid)
-#endif
-  ) {
-    pid_t *p, *lim;
-    waitpid(in.si_pid, NULL, 0);
-    if (in.si_pid == child_pid)
-      child_pid = -1;
-    if (!(p = autostart_pids))
-      continue;
-    lim = &p[autostart_len];
-
-    for (; p < lim; p++) {
-      if (*p == in.si_pid) {
-        *p = -1;
-        break;
-      }
-    }
-  }
 }
 
 void spawn(const Arg *arg) {
