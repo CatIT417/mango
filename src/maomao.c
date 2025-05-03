@@ -494,6 +494,8 @@ static void dwl_ipc_output_set_tags(struct wl_client *client,
                                     uint32_t tagmask, uint32_t toggle_tagset);
 static void dwl_ipc_output_quit(struct wl_client *client,
                                 struct wl_resource *resource);
+static void dwl_ipc_output_dispatch(struct wl_client *client,
+                                struct wl_resource *resource,const char *dispatch,const char* arg1,const char* arg2);                
 static void dwl_ipc_output_release(struct wl_client *client,
                                    struct wl_resource *resource);
 static void focusclient(Client *c, int lift);
@@ -703,6 +705,7 @@ static struct zdwl_ipc_output_v2_interface dwl_output_implementation = {
     .release = dwl_ipc_output_release,
     .set_tags = dwl_ipc_output_set_tags,
     .quit = dwl_ipc_output_quit,
+    .dispatch = dwl_ipc_output_dispatch,
     .set_layout = dwl_ipc_output_set_layout,
     .set_client_tags = dwl_ipc_output_set_client_tags};
 
@@ -3491,6 +3494,20 @@ void dwl_ipc_output_set_tags(struct wl_client *client,
 void dwl_ipc_output_quit(struct wl_client *client,
                          struct wl_resource *resource) {
   quit(&(Arg){0});
+}
+
+void dwl_ipc_output_dispatch(struct wl_client *client,
+                             struct wl_resource *resource,
+                             const char *dispatch, const char *arg1,
+                             const char *arg2) {
+
+  void (*func)(const Arg *);
+  Arg arg;
+  func = parse_func_name((char*)dispatch, &arg, (char*)arg1, (char*)arg2);
+  if(func) {
+    func(&arg);
+  }
+
 }
 
 void dwl_ipc_output_release(struct wl_client *client,

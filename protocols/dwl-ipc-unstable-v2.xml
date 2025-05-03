@@ -167,6 +167,13 @@ I would probably just submit raphi's patchset but I don't think that would be po
       <description summary="Quit maomao">This request allows clients to instruct the compositor to quit maomao.</description>
     </request>
 
+    <request name="dispatch" since="2">
+      <description summary="Set the active tags of this output"/>
+      <arg name="dispatch" type="string" summary="dispatch name."/>
+      <arg name="arg1" type="string" summary="arg1."/>
+      <arg name="arg2" type="string" summary="arg2."/>
+    </request>
+
     <!-- Version 2 -->
     <event name="fullscreen" since="2">
       <description summary="Update fullscreen status">
