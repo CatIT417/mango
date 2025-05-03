@@ -1227,9 +1227,9 @@ void applybounds(Client *c, struct wlr_box *bbox) {
     c->geom.x = bbox->x + bbox->width - c->geom.width;
   if (c->geom.y >= bbox->y + bbox->height)
     c->geom.y = bbox->y + bbox->height - c->geom.height;
-  if (c->geom.x + c->geom.width <= bbox->x)
+  if (c->geom.x <= bbox->x)
     c->geom.x = bbox->x;
-  if (c->geom.y + c->geom.height <= bbox->y)
+  if (c->geom.y <= bbox->y)
     c->geom.y = bbox->y;
 }
 
@@ -1470,6 +1470,9 @@ void toggle_hotarea(int x_root, int y_root) {
   // 在刚启动的时候,selmon为NULL,但鼠标可能已经处于热区,
   // 必须判断避免奔溃
   if (!selmon)
+    return;
+
+  if(grabc)
     return;
 
   unsigned hx = selmon->m.x + hotarea_size;
@@ -4797,7 +4800,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
 
   if (strcmp(c->mon->pertag->ltidxs[c->mon->pertag->curtag]->name,
              "scroller") == 0 &&
-      !c->isfloating) {
+      (!c->isfloating || c == grabc)) {
     c->geom = geo;
     c->geom.width = MAX(1 + 2 * (int)c->bw, c->geom.width);
     c->geom.height = MAX(1 + 2 * (int)c->bw, c->geom.height);
