@@ -5222,7 +5222,7 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
 
     c->bw = 0;
     wlr_scene_node_raise_to_top(&c->scene->node); // 将视图提升到顶层
-    resize(c, c->mon->m, 0);
+    resize(c, c->mon->m, 1);
     c->isfullscreen = 1;
     // c->isfloating = 0;
   } else {
