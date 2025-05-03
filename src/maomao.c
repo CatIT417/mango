@@ -1253,7 +1253,7 @@ void toggleoverlay(const Arg *arg) {
 
   if (selmon->sel->isoverlay) {
     wlr_scene_node_reparent(&selmon->sel->scene->node,
-      layers[LyrFS]);
+      layers[LyrOverlay]);
     wlr_scene_node_raise_to_top(&selmon->sel->scene->node);
   } else {
     wlr_scene_node_reparent(&selmon->sel->scene->node,
