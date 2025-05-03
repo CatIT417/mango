@@ -146,6 +146,7 @@ struct vec2 {
 struct uvec2 {
   int x, y;
 };
+
 typedef struct {
   int i;
   float f;
@@ -191,7 +192,7 @@ typedef struct {
   float height_scale;
   int width;
   int height;
-  Monitor *m;
+  bool should_scale;
 } animationScale;
 
 typedef struct Client Client;
@@ -603,21 +604,21 @@ static struct wlr_box setclient_coordinate_center(struct wlr_box geom,
                                                   int offsetx, int offsety);
 static unsigned int get_tags_first_tag(unsigned int tags);
 
-void client_commit(Client *c);
-void apply_border(Client *c, struct wlr_box clip_box, int offsetx, int offsety);
-void client_set_opacity(Client *c, double opacity);
-void init_baked_points(void);
-void scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer, int sx, int sy,
+static void client_commit(Client *c);
+static void apply_border(Client *c, struct wlr_box clip_box, int offsetx, int offsety);
+static void client_set_opacity(Client *c, double opacity);
+static void init_baked_points(void);
+static void scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer, int sx, int sy,
                                 void *data);
 
-Client *direction_select(const Arg *arg);
-void view_in_mon(const Arg *arg, bool want_animation, Monitor *m);
+static Client *direction_select(const Arg *arg);
+static void view_in_mon(const Arg *arg, bool want_animation, Monitor *m);
 
-void buffer_set_size(Client *c, animationScale scale_data);
-void snap_scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx,
+static void buffer_set_effect(Client *c, animationScale scale_data);
+static void snap_scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int sx,
                                   int sy, void *data);
-void client_set_pending_state(Client *c);
-void set_rect_size(struct wlr_scene_rect *rect, int width, int height);
+static void client_set_pending_state(Client *c);
+static void set_rect_size(struct wlr_scene_rect *rect, int width, int height);
 
 #include "dispatch/dispatch.h"
 
@@ -944,7 +945,7 @@ void fadeout_client_animation_next_tick(Client *c) {
     scale_data.height_scale = animation_passed;
 
     wlr_scene_node_for_each_buffer(&c->scene->node,
-                                   snap_scene_buffer_apply_size, &scale_data);
+                                   snap_scene_buffer_apply_effect, &scale_data);
   }
 
   if (animation_passed == 1.0) {
@@ -1134,23 +1135,13 @@ struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
   return offset;
 }
 
-void apply_buffer_scale(Client *c, struct wlr_box clip_box,
-                        struct wlr_box geom) {
-  animationScale scale_data;
-  scale_data.width = clip_box.width - 2 * c->bw;
-  scale_data.height = clip_box.height - 2 * c->bw;
-  scale_data.m = c->mon;
-  scale_data.width_scale = (float)scale_data.width / geom.width;
-  scale_data.height_scale = (float)scale_data.height / geom.height;
-  buffer_set_size(c, scale_data);
-}
-
 void client_apply_clip(Client *c) {
 
   if (c->iskilling || !client_surface(c)->mapped)
     return;
   struct wlr_box clip_box;
   struct uvec2 offset;
+  animationScale scale_data;
 
   if (!animations) {
     c->animation.running = false;
@@ -1161,7 +1152,7 @@ void client_apply_clip(Client *c) {
     offset = clip_to_hide(c, &clip_box);
     apply_border(c, clip_box, offset.x, offset.y);
     wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
-    /* apply_buffer_scale(c, clip_box); */
+    buffer_set_effect(c, (animationScale){0, 0, 0, 0, false});
     return;
   }
 
@@ -1186,7 +1177,13 @@ void client_apply_clip(Client *c) {
 
   wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
   apply_border(c, clip_box, offset.x, offset.y);
-  apply_buffer_scale(c, clip_box, geometry);
+
+  scale_data.should_scale = true;
+  scale_data.width = clip_box.width - 2 * c->bw;
+  scale_data.height = clip_box.height - 2 * c->bw;
+  scale_data.width_scale = (float)scale_data.width / geometry.width;
+  scale_data.height_scale = (float)scale_data.height / geometry.height;
+  buffer_set_effect(c, scale_data);
 }
 
 bool client_draw_frame(Client *c) {
@@ -4566,20 +4563,20 @@ void scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer, int sx, int sy,
   wlr_scene_buffer_set_opacity(buffer, *(double *)data);
 }
 
-void scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy,
+void scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int sx, int sy,
                              void *data) {
   animationScale *scale_data = (animationScale *)data;
 
-  if (scale_data->height_scale < 1 && scale_data->width_scale < 1) {
-    return;
+  if (scale_data->should_scale && scale_data->height_scale < 1 && scale_data->width_scale < 1) {
+    scale_data->should_scale = false;
   }
 
-  if (scale_data->height_scale == 1 && scale_data->width_scale < 1) {
-    return;
+  if (scale_data->should_scale && scale_data->height_scale == 1 && scale_data->width_scale < 1) {
+    scale_data->should_scale = false;
   }
 
-  if (scale_data->height_scale < 1 && scale_data->width_scale == 1) {
-    return;
+  if (scale_data->should_scale && scale_data->height_scale < 1 && scale_data->width_scale == 1) {
+    scale_data->should_scale = false;
   }
 
   struct wlr_scene_surface *scene_surface =
@@ -4587,56 +4584,61 @@ void scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx, int sy,
 
   if (scene_surface == NULL)
     return;
-
+  
   struct wlr_surface *surface = scene_surface->surface;
 
-  uint32_t surface_width = surface->current.width;
-  uint32_t surface_height = surface->current.height;
+  if (scale_data->should_scale) {
 
-  surface_width = scale_data->width_scale < 1
-                      ? surface_width
-                      : scale_data->width_scale * surface_width;
-  surface_height = scale_data->height_scale < 1
-                       ? surface_height
-                       : scale_data->height_scale * surface_height;
+    uint32_t surface_width = surface->current.width;
+    uint32_t surface_height = surface->current.height;
 
-  if (surface_width > scale_data->width &&
-      wlr_subsurface_try_from_wlr_surface(surface) == NULL) {
-    surface_width = scale_data->width;
+    surface_width = scale_data->width_scale < 1
+                        ? surface_width
+                        : scale_data->width_scale * surface_width;
+    surface_height = scale_data->height_scale < 1
+                         ? surface_height
+                         : scale_data->height_scale * surface_height;
+
+    if (surface_width > scale_data->width &&
+        wlr_subsurface_try_from_wlr_surface(surface) == NULL) {
+      surface_width = scale_data->width;
+    }
+
+    if (surface_height > scale_data->height &&
+        wlr_subsurface_try_from_wlr_surface(surface) == NULL) {
+      surface_height = scale_data->height;
+    }
+
+    if (surface_height > 0 && surface_width > 0) {
+      wlr_scene_buffer_set_dest_size(buffer, surface_width, surface_height);
+    }
   }
+  // TODO: blur set, opacity set
 
-  if (surface_height > scale_data->height &&
-      wlr_subsurface_try_from_wlr_surface(surface) == NULL) {
-    surface_height = scale_data->height;
-  }
-
-  if (surface_height > 0 && surface_width > 0) {
-    wlr_scene_buffer_set_dest_size(buffer, surface_width, surface_height);
-  }
 }
 
-void snap_scene_buffer_apply_size(struct wlr_scene_buffer *buffer, int sx,
+void snap_scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int sx,
                                   int sy, void *data) {
   animationScale *scale_data = (animationScale *)data;
   wlr_scene_buffer_set_dest_size(buffer, scale_data->width, scale_data->height);
 }
 
-void buffer_set_size(Client *c, animationScale data) {
+void buffer_set_effect(Client *c, animationScale data) {
 
   if (c->iskilling || c->animation.tagouting || c->animation.tagouted ||
       c->animation.tagining) {
-    return;
+    data.should_scale = false;
   }
 
   if(client_is_x11(c) && c->current.height >= c->animation.current.height && c->current.width >= c->animation.current.width) {
-    return;
+    data.should_scale = false;
   }
 
   if (c == grabc)
-    return;
+    data.should_scale = false;
 
   wlr_scene_node_for_each_buffer(&c->scene_surface->node,
-                                 scene_buffer_apply_size, &data);
+                                 scene_buffer_apply_effect, &data);
 }
 
 void client_set_opacity(Client *c, double opacity) {
