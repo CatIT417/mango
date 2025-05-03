@@ -500,14 +500,9 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value, char *arg_v
     func = spawn;
     (*arg).v = strdup(arg_value);
   } else if (strcmp(func_name, "spawn_on_empty") == 0) {
-    char cmd[256], tag_num[256];
-    if (sscanf(arg_value, "%255[^,],%255s", cmd, tag_num) == 2) {
-      func = spawn_on_empty;
-      (*arg).v = strdup(cmd); // 注意：之后需要释放这个内存
-      (*arg).ui = 1 << (atoi(tag_num) - 1);
-    } else {
-      fprintf(stderr, "Error: Invalid value format: %s\n", arg_value);
-    }
+    func = spawn_on_empty;
+    (*arg).v = strdup(arg_value); // 注意：之后需要释放这个内存
+    (*arg).ui = 1 << (atoi(arg_value2) - 1);
   } else if (strcmp(func_name, "quit") == 0) {
     func = quit;
   } else if (strcmp(func_name, "moveresize") == 0) {
