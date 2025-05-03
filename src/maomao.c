@@ -1923,6 +1923,7 @@ void apply_window_snap(Client *c) {
     c->geom.y = c->geom.y + snap_down;
   }
 
+  c->oldgeom = c->geom;
   resize(c, c->geom, 1);
 }
 
@@ -7173,6 +7174,79 @@ void zoom(const Arg *arg) {
   focusclient(sel, 1);
   arrange(selmon, false);
 }
+
+void resizewin(const Arg *arg) {
+  Client *c;
+  c = selmon->sel;
+  if (!c || c->isfullscreen)
+    return;
+  if (!c->isfloating)
+    togglefloating(NULL);
+
+  switch(arg->ui) {
+    case NUM_TYPE_MINUS:
+      c->geom.width -= arg->i;
+      break;
+    case NUM_TYPE_PLUS:
+      c->geom.width += arg->i;
+      break;
+    default:
+      c->geom.width = arg->i;
+      break;
+  }
+
+  switch(arg->ui2) {
+    case NUM_TYPE_MINUS:
+      c->geom.height -= arg->i2;
+      break;
+    case NUM_TYPE_PLUS:
+      c->geom.height += arg->i2;
+      break;
+    default:
+      c->geom.height = arg->i2;
+      break;
+  }
+  
+  c->oldgeom = c->geom;
+  resize(c, c->geom, 0);
+}
+
+void movewin(const Arg *arg) {
+  Client *c;
+  c = selmon->sel;
+  if (!c || c->isfullscreen)
+    return;
+  if (!c->isfloating)
+    togglefloating(NULL);
+
+  switch(arg->ui) {
+    case NUM_TYPE_MINUS:
+      c->geom.x -= arg->i;
+      break;
+    case NUM_TYPE_PLUS:
+      c->geom.x += arg->i;
+      break;
+    default:
+      c->geom.x = arg->i;
+      break;
+  }
+
+  switch(arg->ui2) {
+    case NUM_TYPE_MINUS:
+      c->geom.y -= arg->i2;
+      break;
+    case NUM_TYPE_PLUS:
+      c->geom.y += arg->i2;
+      break;
+    default:
+      c->geom.y = arg->i2;
+      break;
+  }
+
+  c->oldgeom = c->geom;
+  resize(c, c->geom, 0);
+}
+
 
 void smartmovewin(const Arg *arg) {
   Client *c, *tc;

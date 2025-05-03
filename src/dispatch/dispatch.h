@@ -51,3 +51,5 @@ void incigaps(const Arg *arg);
 void defaultgaps(const Arg *arg);
 void togglefakefullscreen(const Arg *arg);
 void toggleoverlay(const Arg *arg);
+void movewin(const Arg *arg);
+void resizewin(const Arg *arg);

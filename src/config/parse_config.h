@@ -7,6 +7,8 @@
 #define SYSCONFDIR "/etc"
 #endif
 
+enum { NUM_TYPE_MINUS, NUM_TYPE_PLUS, NUM_TYPE_DEFAULT };
+
 typedef struct {
   uint32_t mod;
   xkb_keysym_t keysym;
@@ -400,6 +402,17 @@ void convert_hex_to_rgba(float *color, unsigned long int hex) {
   color[3] = (hex & 0xFF) / 255.0f;
 }
 
+unsigned int parse_num_type(char *str) {
+  switch (str[0]) {
+    case '-':
+      return NUM_TYPE_MINUS;
+    case '+':
+      return NUM_TYPE_PLUS;
+    default:
+      return NUM_TYPE_DEFAULT;
+  }
+}
+
 FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value, char *arg_value2) {
 
   FuncType func = NULL;
@@ -526,6 +539,18 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value, char *arg_v
   } else if (strcmp(func_name, "smartresizewin") == 0) {
     func = smartresizewin;
     (*arg).i = parse_direction(arg_value);
+  } else if (strcmp(func_name, "resizewin") == 0) {
+    func = resizewin;
+    (*arg).ui = parse_num_type(arg_value);
+    (*arg).ui2 = parse_num_type(arg_value2);
+    (*arg).i = (*arg).ui == NUM_TYPE_DEFAULT ? atoi(arg_value) : atoi(arg_value+1);
+    (*arg).i2 = (*arg).ui2 == NUM_TYPE_DEFAULT ? atoi(arg_value2) : atoi(arg_value2+1);
+  } else if (strcmp(func_name, "movewin") == 0) {
+    func = movewin;
+    (*arg).ui = parse_num_type(arg_value);
+    (*arg).ui2 = parse_num_type(arg_value2);
+    (*arg).i = (*arg).ui == NUM_TYPE_DEFAULT ? atoi(arg_value) : atoi(arg_value+1);
+    (*arg).i2 = (*arg).ui2 == NUM_TYPE_DEFAULT ? atoi(arg_value2) : atoi(arg_value2+1);
   } else {
     return NULL;
   }
