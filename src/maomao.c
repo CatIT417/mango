@@ -2750,7 +2750,7 @@ void commitnotify(struct wl_listener *listener, void *data) {
     return;
   }
 
-  resize(c, c->geom, (c->isfloating && !c->isfullscreen));
+  resize(c, c->geom, 0);
 }
 
 void destroydecoration(struct wl_listener *listener, void *data) {
@@ -4894,7 +4894,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   c->need_output_flush = true;
 
   // oldgeom = c->geom;
-  bbox = interact ? &sgeom : &c->mon->w;
+  bbox = (interact || (c->isfloating && !c->isfullscreen)) ? &sgeom : &c->mon->w;
 
   if (strcmp(c->mon->pertag->ltidxs[c->mon->pertag->curtag]->name,
              "scroller") == 0 &&
