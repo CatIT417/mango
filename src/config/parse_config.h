@@ -108,6 +108,8 @@ typedef struct {
   int scroller_prefer_center;
   int focus_cross_monitor;
   int focus_cross_tag;
+  int snap_distance;
+  int enable_floating_snap;
   unsigned int swipe_min_threshold;
   float *scroller_proportion_preset;
   int scroller_proportion_preset_count;
@@ -604,6 +606,10 @@ void parse_config_line(Config *config, const char *line) {
     config->focus_cross_monitor = atoi(value);
   } else if (strcmp(key, "focus_cross_tag") == 0) {
     config->focus_cross_tag = atoi(value);
+  } else if (strcmp(key, "snap_distance") == 0) {
+    config->snap_distance = atoi(value);
+  } else if (strcmp(key, "enable_floating_snap") == 0) {
+    config->enable_floating_snap = atoi(value);
   } else if (strcmp(key, "swipe_min_threshold") == 0) {
     config->swipe_min_threshold = atoi(value);
   } else if (strcmp(key, "scroller_proportion_preset") == 0) {
@@ -1220,6 +1226,8 @@ void override_config(void) {
   scroller_focus_center = config.scroller_focus_center;
   focus_cross_monitor = config.focus_cross_monitor;
   focus_cross_tag = config.focus_cross_tag;
+  snap_distance = config.snap_distance;
+  enable_floating_snap = config.enable_floating_snap;
   swipe_min_threshold = config.swipe_min_threshold;
   scroller_prefer_center = config.scroller_prefer_center;
 
@@ -1314,6 +1322,8 @@ void set_value_default() {
   config.scroller_prefer_center = scroller_prefer_center;
   config.focus_cross_monitor = focus_cross_monitor;
   config.focus_cross_tag = focus_cross_tag;
+  config.snap_distance = snap_distance;
+  config.enable_floating_snap = enable_floating_snap;
   config.swipe_min_threshold = swipe_min_threshold;
 
   config.bypass_surface_visibility =

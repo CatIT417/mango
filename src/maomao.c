@@ -1837,6 +1837,73 @@ Client *center_select(Monitor *m) {
   return target_c;
 }
 
+void apply_window_snap(Client *c) {
+  int snap_up = 99999, snap_down = 99999, snap_left = 99999, snap_right = 99999;
+  int snap_up_temp = 0 ,snap_down_temp = 0, snap_left_temp = 0, snap_right_temp = 0;
+  int snap_up_screen = 0, snap_down_screen = 0, snap_left_screen = 0, snap_right_screen = 0;
+  Client *tc;
+  if (!c || !c->mon || !client_surface(c)->mapped || c->iskilling)
+    return;
+
+  if (!c->isfloating || !enable_floating_snap)
+    return;
+
+  // 第一次遍历，计算客户端数量
+  wl_list_for_each(tc, &clients, link) {
+    if (tc && tc->isfloating && !tc->iskilling && client_surface(tc)->mapped && VISIBLEON(tc, c->mon)) {
+      snap_left_temp = c->geom.x - tc->geom.x - tc->geom.width;
+      snap_right_temp = tc->geom.x - c->geom.x - c->geom.width;
+      snap_up_temp = c->geom.y - tc->geom.y - tc->geom.height;
+      snap_down_temp = tc->geom.y - c->geom.y - c->geom.height;
+      if (snap_left_temp < snap_left && snap_left_temp >= 0) {
+        snap_left = snap_left_temp;
+      }
+      if (snap_right_temp < snap_right && snap_right_temp >= 0) {
+        snap_right = snap_right_temp;
+      }
+      if (snap_up_temp < snap_up && snap_up_temp >= 0) {
+        snap_up = snap_up_temp;
+      }
+      if (snap_down_temp < snap_down && snap_down_temp >= 0) {
+        snap_down = snap_down_temp;
+      }
+    }
+  }
+
+  snap_left_screen = c->geom.x - c->mon->m.x;
+  snap_right_screen = c->mon->m.x + c->mon->m.width - c->geom.x - c->geom.width;
+  snap_up_screen = c->geom.y - c->mon->m.y;
+  snap_down_screen = c->mon->m.y + c->mon->m.height - c->geom.y - c->geom.height;
+
+  if(snap_up_screen > 0 && snap_up_screen < snap_up)
+    snap_up = snap_up_screen;
+  if(snap_down_screen > 0 && snap_down_screen < snap_down)
+    snap_down = snap_down_screen;
+  if(snap_left_screen > 0 && snap_left_screen < snap_left)
+    snap_left = snap_left_screen;
+  if(snap_right_screen > 0 && snap_right_screen < snap_right)
+    snap_right = snap_right_screen;
+
+  if(snap_left < snap_right && snap_left < snap_distance) {
+    c->geom.x = c->geom.x  - snap_left;
+  }
+
+  if(snap_right <= snap_left && snap_right < snap_distance) {
+    c->geom.x = c->geom.x + snap_right;
+  }
+
+  if(snap_up < snap_down && snap_up < snap_distance) {
+    c->geom.y = c->geom.y  - snap_up;
+  }
+
+  if(snap_down <= snap_up && snap_down < snap_distance) {
+    c->geom.y = c->geom.y + snap_down;
+  }
+
+  resize(c,c->geom,1);
+
+}
+
 Client *find_client_by_direction(Client *tc, const Arg *arg, bool findfloating,
                                  bool align) {
   Client *c;
@@ -2335,6 +2402,7 @@ buttonpress(struct wl_listener *listener, void *data) {
       reset_foreign_tolevel(grabc);
       selmon->prevsel = selmon->sel;
       selmon->sel = grabc;
+      apply_window_snap(grabc);
       grabc = NULL;
       return;
     } else {
