@@ -149,9 +149,12 @@ struct uvec2 {
 
 typedef struct {
   int i;
+  int i2;
   float f;
+  float f2;
   char *v;
   unsigned int ui;
+  unsigned int ui2;
 } Arg;
 
 typedef struct {
