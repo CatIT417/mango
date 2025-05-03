@@ -231,7 +231,7 @@ struct Client {
   bool dirty;
   uint32_t configure_serial;
   struct wlr_foreign_toplevel_handle_v1 *foreign_toplevel;
-  int isfloating, isurgent, isfullscreen, isfakefullscreen, need_float_size_reduce, isminied;
+  int isfloating, isurgent, isfullscreen, isfakefullscreen, need_float_size_reduce, isminied, isoverlay;
   int ismaxmizescreen;
   int overview_backup_bw;
   int fullscreen_backup_x, fullscreen_backup_y, fullscreen_backup_w,
@@ -1242,6 +1242,24 @@ void clear_fullscreen_flag(Client *c) {
     c->bw = borderpx;
     client_set_fullscreen(c, false);
   }
+}
+
+void toggleoverlay(const Arg *arg) {
+  if (!selmon->sel || !selmon->sel->mon || selmon->sel->isfullscreen) {
+    return;
+  }
+
+  selmon->sel->isoverlay ^= 1;
+
+  if (selmon->sel->isoverlay) {
+    wlr_scene_node_reparent(&selmon->sel->scene->node,
+      layers[LyrFS]);
+    wlr_scene_node_raise_to_top(&selmon->sel->scene->node);
+  } else {
+    wlr_scene_node_reparent(&selmon->sel->scene->node,
+      layers[selmon->sel->isfloating ? LyrFloat : LyrTile]);   
+  }
+  setborder_color(selmon->sel);
 }
 
 void minized(const Arg *arg) {
@@ -4094,6 +4112,7 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->iskilling = 0;
   c->isglobal = 0;
   c->isminied = 0;
+  c->isoverlay = 0;
   c->is_in_scratchpad = 0;
   c->is_scratchpad_show = 0;
   c->need_float_size_reduce = 0;
@@ -4695,7 +4714,9 @@ void setborder_color(Client *c) {
     client_set_border_color(c, scratchpadcolor);
   } else if (c->isglobal && selmon && c == selmon->sel) {
     client_set_border_color(c, globalcolor);
-  } else if (c->ismaxmizescreen && selmon && c == selmon->sel) {
+  } else if (c->isoverlay && selmon && c == selmon->sel) {
+    client_set_border_color(c, overlaycolor);
+  }  else if (c->ismaxmizescreen && selmon && c == selmon->sel) {
     client_set_border_color(c, maxmizescreencolor);
   } else if (selmon && c == selmon->sel) {
     client_set_border_color(c, focuscolor);

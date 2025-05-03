@@ -162,6 +162,7 @@ typedef struct {
   float urgentcolor[4];
   float scratchpadcolor[4];
   float globalcolor[4];
+  float overlaycolor[4];
 
   char autostart[3][256];
 
@@ -460,6 +461,8 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value) {
     func = togglefullscreen;
   } else if (strcmp(func_name, "togglefakefullscreen") == 0) {
     func = togglefakefullscreen;
+  } else if (strcmp(func_name, "toggleoverlay") == 0) {
+    func = toggleoverlay;
   } else if (strcmp(func_name, "minized") == 0) {
     func = minized;
   } else if (strcmp(func_name, "restore_minized") == 0) {
@@ -833,6 +836,13 @@ void parse_config_line(Config *config, const char *line) {
       fprintf(stderr, "Error: Invalid globalcolor format: %s\n", value);
     } else {
       convert_hex_to_rgba(config->globalcolor, color);
+    }
+  } else if (strcmp(key, "overlaycolor") == 0) {
+    long int color = parse_color(value);
+    if (color == -1) {
+      fprintf(stderr, "Error: Invalid overlaycolor format: %s\n", value);
+    } else {
+      convert_hex_to_rgba(config->overlaycolor, color);
     }
   } else if (strcmp(key, "autostart") == 0) {
     if (sscanf(value, "%[^,],%[^,],%[^,]", config->autostart[0],
@@ -1272,6 +1282,7 @@ void override_config(void) {
   memcpy(urgentcolor, config.urgentcolor, sizeof(urgentcolor));
   memcpy(scratchpadcolor, config.scratchpadcolor, sizeof(scratchpadcolor));
   memcpy(globalcolor, config.globalcolor, sizeof(globalcolor));
+  memcpy(overlaycolor, config.overlaycolor, sizeof(overlaycolor));
 }
 
 void set_value_default() {
@@ -1367,6 +1378,7 @@ void set_value_default() {
   memcpy(config.urgentcolor, urgentcolor, sizeof(urgentcolor));
   memcpy(config.scratchpadcolor, scratchpadcolor, sizeof(scratchpadcolor));
   memcpy(config.globalcolor, globalcolor, sizeof(globalcolor));
+  memcpy(config.overlaycolor, overlaycolor, sizeof(overlaycolor));
 }
 
 void set_default_key_bindings(Config *config) {

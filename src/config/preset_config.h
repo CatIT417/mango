@@ -67,6 +67,7 @@ float maxmizescreencolor[] = COLOR(0x89aa61ff);
 float urgentcolor[] = COLOR(0xad401fff);
 float scratchpadcolor[] = COLOR(0x516c93ff);
 float globalcolor[] = COLOR(0xb153a7ff);
+float overlaycolor[] = COLOR(0x14a57cff);
 // char *cursor_theme = "Bibata-Modern-Ice";
 
 int overviewgappi = 5;  /* overview时 窗口与边缘 缝隙大小 */
