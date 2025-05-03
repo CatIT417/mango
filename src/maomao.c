@@ -232,7 +232,8 @@ struct Client {
   bool dirty;
   uint32_t configure_serial;
   struct wlr_foreign_toplevel_handle_v1 *foreign_toplevel;
-  int isfloating, isurgent, isfullscreen, isfakefullscreen, need_float_size_reduce, isminied, isoverlay;
+  int isfloating, isurgent, isfullscreen, isfakefullscreen,
+      need_float_size_reduce, isminied, isoverlay;
   int ismaxmizescreen;
   int overview_backup_bw;
   int fullscreen_backup_x, fullscreen_backup_y, fullscreen_backup_w,
@@ -605,18 +606,19 @@ static struct wlr_box setclient_coordinate_center(struct wlr_box geom,
 static unsigned int get_tags_first_tag(unsigned int tags);
 
 static void client_commit(Client *c);
-static void apply_border(Client *c, struct wlr_box clip_box, int offsetx, int offsety);
+static void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
+                         int offsety);
 static void client_set_opacity(Client *c, double opacity);
 static void init_baked_points(void);
-static void scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer, int sx, int sy,
-                                void *data);
+static void scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer, int sx,
+                                       int sy, void *data);
 
 static Client *direction_select(const Arg *arg);
 static void view_in_mon(const Arg *arg, bool want_animation, Monitor *m);
 
 static void buffer_set_effect(Client *c, animationScale scale_data);
-static void snap_scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int sx,
-                                  int sy, void *data);
+static void snap_scene_buffer_apply_effect(struct wlr_scene_buffer *buffer,
+                                           int sx, int sy, void *data);
 static void client_set_pending_state(Client *c);
 static void set_rect_size(struct wlr_scene_rect *rect, int width, int height);
 
@@ -999,8 +1001,8 @@ void client_animation_next_tick(Client *c) {
     if (c->animation.begin_fade_in) {
       c->animation.begin_fade_in = false;
     }
-    
-    // clear the open action state 
+
+    // clear the open action state
     // To prevent him from being mistaken that
     // it's still in the opening animation in resize
     c->animation.action = MOVE;
@@ -1249,12 +1251,12 @@ void toggleoverlay(const Arg *arg) {
   selmon->sel->isoverlay ^= 1;
 
   if (selmon->sel->isoverlay) {
-    wlr_scene_node_reparent(&selmon->sel->scene->node,
-      layers[LyrOverlay]);
+    wlr_scene_node_reparent(&selmon->sel->scene->node, layers[LyrOverlay]);
     wlr_scene_node_raise_to_top(&selmon->sel->scene->node);
   } else {
-    wlr_scene_node_reparent(&selmon->sel->scene->node,
-      layers[selmon->sel->isfloating ? LyrFloat : LyrTile]);   
+    wlr_scene_node_reparent(
+        &selmon->sel->scene->node,
+        layers[selmon->sel->isfloating ? LyrFloat : LyrTile]);
   }
   setborder_color(selmon->sel);
 }
@@ -1487,7 +1489,7 @@ void toggle_hotarea(int x_root, int y_root) {
   if (!selmon)
     return;
 
-  if(grabc)
+  if (grabc)
     return;
 
   unsigned hx = selmon->m.x + hotarea_size;
@@ -1722,7 +1724,7 @@ arrange(Monitor *m, bool want_animation) {
             m->pertag->prevtag != 0 && m->pertag->curtag != 0 && animations) {
           c->animation.tagining = true;
           if (m->pertag->curtag > m->pertag->prevtag) {
-            if(c->animation.running) {
+            if (c->animation.running) {
               c->animainit_geom.x = c->animation.current.x;
               c->animainit_geom.y = c->animation.current.y;
             } else {
@@ -1735,7 +1737,7 @@ arrange(Monitor *m, bool want_animation) {
             }
 
           } else {
-            if(c->animation.running) {
+            if (c->animation.running) {
               c->animainit_geom.x = c->animation.current.x;
               c->animainit_geom.y = c->animation.current.y;
             } else {
@@ -1789,12 +1791,10 @@ arrange(Monitor *m, bool want_animation) {
       }
     }
 
-
-    if (c->mon == m && c->ismaxmizescreen  
-      && !c->animation.tagouted && !c->animation.tagouting && VISIBLEON(c, m)) {
+    if (c->mon == m && c->ismaxmizescreen && !c->animation.tagouted &&
+        !c->animation.tagouting && VISIBLEON(c, m)) {
       reset_maxmizescreen_size(c);
     }
-  
   }
 
   // 给全屏窗口设置背景为黑色
@@ -1854,8 +1854,10 @@ Client *center_select(Monitor *m) {
 
 void apply_window_snap(Client *c) {
   int snap_up = 99999, snap_down = 99999, snap_left = 99999, snap_right = 99999;
-  int snap_up_temp = 0 ,snap_down_temp = 0, snap_left_temp = 0, snap_right_temp = 0;
-  int snap_up_screen = 0, snap_down_screen = 0, snap_left_screen = 0, snap_right_screen = 0;
+  int snap_up_temp = 0, snap_down_temp = 0, snap_left_temp = 0,
+      snap_right_temp = 0;
+  int snap_up_screen = 0, snap_down_screen = 0, snap_left_screen = 0,
+      snap_right_screen = 0;
   Client *tc;
   if (!c || !c->mon || !client_surface(c)->mapped || c->iskilling)
     return;
@@ -1863,13 +1865,15 @@ void apply_window_snap(Client *c) {
   if (!c->isfloating || !enable_floating_snap)
     return;
 
-  // 第一次遍历，计算客户端数量
   wl_list_for_each(tc, &clients, link) {
-    if (tc && tc->isfloating && !tc->iskilling && client_surface(tc)->mapped && VISIBLEON(tc, c->mon)) {
+    if (tc && tc->isfloating && !tc->iskilling && client_surface(tc)->mapped &&
+        VISIBLEON(tc, c->mon)) {
+
       snap_left_temp = c->geom.x - tc->geom.x - tc->geom.width;
       snap_right_temp = tc->geom.x - c->geom.x - c->geom.width;
       snap_up_temp = c->geom.y - tc->geom.y - tc->geom.height;
       snap_down_temp = tc->geom.y - c->geom.y - c->geom.height;
+
       if (snap_left_temp < snap_left && snap_left_temp >= 0) {
         snap_left = snap_left_temp;
       }
@@ -1888,35 +1892,35 @@ void apply_window_snap(Client *c) {
   snap_left_screen = c->geom.x - c->mon->m.x;
   snap_right_screen = c->mon->m.x + c->mon->m.width - c->geom.x - c->geom.width;
   snap_up_screen = c->geom.y - c->mon->m.y;
-  snap_down_screen = c->mon->m.y + c->mon->m.height - c->geom.y - c->geom.height;
+  snap_down_screen =
+      c->mon->m.y + c->mon->m.height - c->geom.y - c->geom.height;
 
-  if(snap_up_screen > 0 && snap_up_screen < snap_up)
+  if (snap_up_screen > 0 && snap_up_screen < snap_up)
     snap_up = snap_up_screen;
-  if(snap_down_screen > 0 && snap_down_screen < snap_down)
+  if (snap_down_screen > 0 && snap_down_screen < snap_down)
     snap_down = snap_down_screen;
-  if(snap_left_screen > 0 && snap_left_screen < snap_left)
+  if (snap_left_screen > 0 && snap_left_screen < snap_left)
     snap_left = snap_left_screen;
-  if(snap_right_screen > 0 && snap_right_screen < snap_right)
+  if (snap_right_screen > 0 && snap_right_screen < snap_right)
     snap_right = snap_right_screen;
 
-  if(snap_left < snap_right && snap_left < snap_distance) {
-    c->geom.x = c->geom.x  - snap_left;
+  if (snap_left < snap_right && snap_left < snap_distance) {
+    c->geom.x = c->geom.x - snap_left;
   }
 
-  if(snap_right <= snap_left && snap_right < snap_distance) {
+  if (snap_right <= snap_left && snap_right < snap_distance) {
     c->geom.x = c->geom.x + snap_right;
   }
 
-  if(snap_up < snap_down && snap_up < snap_distance) {
-    c->geom.y = c->geom.y  - snap_up;
+  if (snap_up < snap_down && snap_up < snap_distance) {
+    c->geom.y = c->geom.y - snap_up;
   }
 
-  if(snap_down <= snap_up && snap_down < snap_distance) {
+  if (snap_down <= snap_up && snap_down < snap_distance) {
     c->geom.y = c->geom.y + snap_down;
   }
 
-  resize(c,c->geom,1);
-
+  resize(c, c->geom, 1);
 }
 
 Client *find_client_by_direction(Client *tc, const Arg *arg, bool findfloating,
@@ -4564,18 +4568,21 @@ void scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer, int sx, int sy,
 }
 
 void scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int sx, int sy,
-                             void *data) {
+                               void *data) {
   animationScale *scale_data = (animationScale *)data;
 
-  if (scale_data->should_scale && scale_data->height_scale < 1 && scale_data->width_scale < 1) {
+  if (scale_data->should_scale && scale_data->height_scale < 1 &&
+      scale_data->width_scale < 1) {
     scale_data->should_scale = false;
   }
 
-  if (scale_data->should_scale && scale_data->height_scale == 1 && scale_data->width_scale < 1) {
+  if (scale_data->should_scale && scale_data->height_scale == 1 &&
+      scale_data->width_scale < 1) {
     scale_data->should_scale = false;
   }
 
-  if (scale_data->should_scale && scale_data->height_scale < 1 && scale_data->width_scale == 1) {
+  if (scale_data->should_scale && scale_data->height_scale < 1 &&
+      scale_data->width_scale == 1) {
     scale_data->should_scale = false;
   }
 
@@ -4584,7 +4591,7 @@ void scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int sx, int sy,
 
   if (scene_surface == NULL)
     return;
-  
+
   struct wlr_surface *surface = scene_surface->surface;
 
   if (scale_data->should_scale) {
@@ -4614,11 +4621,10 @@ void scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int sx, int sy,
     }
   }
   // TODO: blur set, opacity set
-
 }
 
 void snap_scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int sx,
-                                  int sy, void *data) {
+                                    int sy, void *data) {
   animationScale *scale_data = (animationScale *)data;
   wlr_scene_buffer_set_dest_size(buffer, scale_data->width, scale_data->height);
 }
@@ -4630,7 +4636,8 @@ void buffer_set_effect(Client *c, animationScale data) {
     data.should_scale = false;
   }
 
-  if(client_is_x11(c) && c->current.height >= c->animation.current.height && c->current.width >= c->animation.current.width) {
+  if (client_is_x11(c) && c->current.height >= c->animation.current.height &&
+      c->current.width >= c->animation.current.width) {
     data.should_scale = false;
   }
 
@@ -4718,7 +4725,7 @@ void setborder_color(Client *c) {
     client_set_border_color(c, globalcolor);
   } else if (c->isoverlay && selmon && c == selmon->sel) {
     client_set_border_color(c, overlaycolor);
-  }  else if (c->ismaxmizescreen && selmon && c == selmon->sel) {
+  } else if (c->ismaxmizescreen && selmon && c == selmon->sel) {
     client_set_border_color(c, maxmizescreencolor);
   } else if (selmon && c == selmon->sel) {
     client_set_border_color(c, focuscolor);
@@ -4909,8 +4916,8 @@ void resize(Client *c, struct wlr_box geo, int interact) {
     client_set_opacity(c, 1);
   }
 
-  if (c->animation.action == OPEN && !c->animation.tagining 
-     && !c->animation.tagouting && wlr_box_equal(&c->geom, &c->current)) {
+  if (c->animation.action == OPEN && !c->animation.tagining &&
+      !c->animation.tagouting && wlr_box_equal(&c->geom, &c->current)) {
     c->animation.action = c->animation.action;
   } else if (c->animation.tagouting) {
     c->animation.duration = animation_duration_tag;
@@ -5117,13 +5124,12 @@ setfloating(Client *c, int floating) {
 }
 
 void reset_maxmizescreen_size(Client *c) {
-    c->geom.x = c->mon->w.x + gappov;
-    c->geom.y = c->mon->w.y + gappoh;
-    c->geom.width = c->mon->w.width - 2 * gappov;
-    c->geom.height = c->mon->w.height - 2 * gappov;
-    resize(c, c->geom, 0);
+  c->geom.x = c->mon->w.x + gappov;
+  c->geom.y = c->mon->w.y + gappoh;
+  c->geom.width = c->mon->w.width - 2 * gappov;
+  c->geom.height = c->mon->w.height - 2 * gappov;
+  resize(c, c->geom, 0);
 }
-
 
 void setmaxmizescreen(Client *c, int maxmizescreen) {
   struct wlr_box maxmizescreen_box;
@@ -5164,15 +5170,13 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
   }
 }
 
-void
-setfakefullscreen(Client *c, int fakefullscreen)
-{
-	c->isfakefullscreen = fakefullscreen;
-	if (!c->mon)
-		return;
-	if (c->isfullscreen)
-		setfullscreen(c, 0);
-	client_set_fullscreen(c, fakefullscreen);
+void setfakefullscreen(Client *c, int fakefullscreen) {
+  c->isfakefullscreen = fakefullscreen;
+  if (!c->mon)
+    return;
+  if (c->isfullscreen)
+    setfullscreen(c, 0);
+  client_set_fullscreen(c, fakefullscreen);
 }
 
 void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带全屏
@@ -6442,12 +6446,10 @@ void togglefloating(const Arg *arg) {
   setborder_color(sel);
 }
 
-void
-togglefakefullscreen(const Arg *arg)
-{
-	Client *sel = focustop(selmon);
-	if (sel)
-		setfakefullscreen(sel, !sel->isfakefullscreen);
+void togglefakefullscreen(const Arg *arg) {
+  Client *sel = focustop(selmon);
+  if (sel)
+    setfakefullscreen(sel, !sel->isfakefullscreen);
 }
 
 void togglefullscreen(const Arg *arg) {
