@@ -520,11 +520,11 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value, char *arg_v
   } else if (strcmp(func_name, "toggleview") == 0) {
     func = toggleview;
     (*arg).ui = 1 << (atoi(arg_value) - 1);
-  } else if (strcmp(func_name, "movewin") == 0) {
-    func = movewin;
+  } else if (strcmp(func_name, "smartmovewin") == 0) {
+    func = smartmovewin;
     (*arg).i = parse_direction(arg_value);
-  } else if (strcmp(func_name, "resizewin") == 0) {
-    func = resizewin;
+  } else if (strcmp(func_name, "smartresizewin") == 0) {
+    func = smartresizewin;
     (*arg).i = parse_direction(arg_value);
   } else {
     return NULL;

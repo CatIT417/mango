@@ -136,7 +136,7 @@ enum {
   NetLast
 }; /* EWMH atoms */
 #endif
-enum { UP, DOWN, LEFT, RIGHT, UNDIR }; /* movewin */
+enum { UP, DOWN, LEFT, RIGHT, UNDIR }; /* smartmovewin */
 enum { NONE, OPEN, MOVE, CLOSE, TAG };
 
 struct vec2 {
@@ -7174,7 +7174,7 @@ void zoom(const Arg *arg) {
   arrange(selmon, false);
 }
 
-void movewin(const Arg *arg) {
+void smartmovewin(const Arg *arg) {
   Client *c, *tc;
   int nx, ny;
   int buttom, top, left, right, tar;
@@ -7272,7 +7272,7 @@ void movewin(const Arg *arg) {
   resize(c, c->oldgeom, 1);
 }
 
-void resizewin(const Arg *arg) {
+void smartresizewin(const Arg *arg) {
   Client *c, *tc;
   int nw, nh;
   int buttom, top, left, right, tar;
