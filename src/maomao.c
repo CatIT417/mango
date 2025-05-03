@@ -2495,9 +2495,10 @@ void cleanup(void) {
 #endif
 
   wl_display_destroy_clients(dpy);
-  if (child_pid > 0) {
-    kill(-child_pid, SIGTERM);
-    waitpid(child_pid, NULL, 0);
+  if (getpgid(child_pid) == child_pid) {  // 检查是否是进程组 leader
+    kill(-child_pid, SIGTERM);  // 是，则杀死整个进程组
+  } else {
+      kill(child_pid, SIGTERM);    // 否，只杀死单个进程
   }
   wlr_xcursor_manager_destroy(cursor_mgr);
 
