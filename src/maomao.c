@@ -1861,6 +1861,8 @@ void apply_window_snap(Client *c) {
       snap_right_temp = 0;
   int snap_up_screen = 0, snap_down_screen = 0, snap_left_screen = 0,
       snap_right_screen = 0;
+  int snap_up_mon = 0, snap_down_mon = 0, snap_left_mon = 0, snap_right_mon = 0;
+
   Client *tc;
   if (!c || !c->mon || !client_surface(c)->mapped || c->iskilling)
     return;
@@ -1892,11 +1894,27 @@ void apply_window_snap(Client *c) {
     }
   }
 
-  snap_left_screen = c->geom.x - c->mon->m.x;
-  snap_right_screen = c->mon->m.x + c->mon->m.width - c->geom.x - c->geom.width;
-  snap_up_screen = c->geom.y - c->mon->m.y;
-  snap_down_screen =
+  snap_left_mon = c->geom.x - c->mon->m.x;
+  snap_right_mon = c->mon->m.x + c->mon->m.width - c->geom.x - c->geom.width;
+  snap_up_mon = c->geom.y - c->mon->m.y;
+  snap_down_mon =
       c->mon->m.y + c->mon->m.height - c->geom.y - c->geom.height;
+
+  if (snap_up_mon > 0 && snap_up_mon < snap_up)
+    snap_up = snap_up_mon;
+  if (snap_down_mon > 0 && snap_down_mon < snap_down)
+    snap_down = snap_down_mon;
+  if (snap_left_mon > 0 && snap_left_mon < snap_left)
+    snap_left = snap_left_mon;
+  if (snap_right_mon > 0 && snap_right_mon < snap_right)
+    snap_right = snap_right_mon;
+
+
+  snap_left_screen = c->geom.x - c->mon->w.x;
+  snap_right_screen = c->mon->w.x + c->mon->w.width - c->geom.x - c->geom.width;
+  snap_up_screen = c->geom.y - c->mon->w.y;
+  snap_down_screen =
+      c->mon->w.y + c->mon->w.height - c->geom.y - c->geom.height;
 
   if (snap_up_screen > 0 && snap_up_screen < snap_up)
     snap_up = snap_up_screen;
