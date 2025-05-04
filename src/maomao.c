@@ -6440,7 +6440,13 @@ void togglefloating(const Arg *arg) {
   if (!sel)
     return;
 
-  setfloating(sel, !sel->isfloating);
+  if ((sel->isfullscreen || sel->ismaxmizescreen)) {
+    sel->isfloating = 1;
+  } else {
+    sel->isfloating = !sel->isfloating;
+  }
+
+  setfloating(sel, sel->isfloating);
 }
 
 void togglefakefullscreen(const Arg *arg) {
