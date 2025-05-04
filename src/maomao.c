@@ -5024,8 +5024,6 @@ run(char *startup_cmd) {
   if (!wlr_backend_start(backend))
     die("startup: backend_start");
 
-  setenv("XDG_CURRENT_DESKTOP", "maomao", 1);
-
   /* Now that the socket exists and the backend is started, run the startup
    * command */
   if(!startup_cmd)
@@ -5482,6 +5480,8 @@ void setup(void) {
   parse_config();
 
   init_baked_points();
+
+  setenv("XDG_CURRENT_DESKTOP", "maomao", 1);
 
   int drm_fd, i, sig[] = {SIGCHLD, SIGINT, SIGTERM, SIGPIPE};
   struct sigaction sa = {.sa_flags = SA_RESTART, .sa_handler = handlesig};
