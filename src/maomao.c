@@ -2512,12 +2512,11 @@ void cleanup(void) {
   xwayland = NULL;
 #endif
 
-  wl_display_destroy_clients(dpy);
-  if (getpgid(child_pid) == child_pid) {  // 检查是否是进程组 leader
-    kill(-child_pid, SIGTERM);  // 是，则杀死整个进程组
-  } else {
-      kill(child_pid, SIGTERM);    // 否，只杀死单个进程
-  }
+	wl_display_destroy_clients(dpy);
+	if (child_pid > 0) {
+		kill(-child_pid, SIGTERM);
+		waitpid(child_pid, NULL, 0);
+	}
   wlr_xcursor_manager_destroy(cursor_mgr);
 
   destroykeyboardgroup(&kb_group->destroy, NULL);
@@ -5029,21 +5028,22 @@ run(char *startup_cmd) {
   if(!startup_cmd)
     startup_cmd = autostartexec(autostart_temp_path, sizeof(autostart_temp_path));
   if (startup_cmd) {
-    int piperw[2];
-    if (pipe(piperw) < 0)
-      die("startup: pipe:");
-    if ((child_pid = fork()) < 0)
-      die("startup: fork:");
-    if (child_pid == 0) {
-      dup2(piperw[0], STDIN_FILENO);
-      close(piperw[0]);
-      close(piperw[1]);
-      execl("/bin/sh", "/bin/sh", "-c", startup_cmd, NULL);
-      die("startup: execl:");
-    }
-    dup2(piperw[1], STDOUT_FILENO);
-    close(piperw[1]);
-    close(piperw[0]);
+		int piperw[2];
+		if (pipe(piperw) < 0)
+			die("startup: pipe:");
+		if ((child_pid = fork()) < 0)
+			die("startup: fork:");
+		if (child_pid == 0) {
+			setsid();
+			dup2(piperw[0], STDIN_FILENO);
+			close(piperw[0]);
+			close(piperw[1]);
+			execl("/bin/sh", "/bin/sh", "-c", startup_cmd, NULL);
+			die("startup: execl:");
+		}
+		dup2(piperw[1], STDOUT_FILENO);
+		close(piperw[1]);
+		close(piperw[0]);
   }
 
 	/* Mark stdout as non-blocking to avoid people who does not close stdin
