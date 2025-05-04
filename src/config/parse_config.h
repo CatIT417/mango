@@ -1001,6 +1001,15 @@ void parse_config_line(Config *config, const char *line) {
     } else {
       fprintf(stderr, "Error: Invalid monitorrule format: %s\n", value);
     }
+  } else if (strncmp(key, "env", 3) == 0) {
+
+    char env_type[256], env_value[256];
+    if (sscanf(value, "%[^,],%[^\n]", env_type,env_value) < 2) {
+      fprintf(stderr, "Error: Invalid bind format: %s\n", value);
+      return;
+    }
+    setenv(env_type, env_value, 1);
+
   } else if (strncmp(key, "bind", 4) == 0) {
     config->key_bindings =
         realloc(config->key_bindings,
