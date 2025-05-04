@@ -191,6 +191,12 @@ typedef struct {
   GestureBinding *gesture_bindings;
   int gesture_bindings_count;
 
+  char **exec;
+  int exec_count;
+
+  char **exec_once;
+  int exec_once_count;
+
 } Config;
 
 typedef void (*FuncType)(const Arg *);
@@ -550,6 +556,24 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value, char *arg_v
     return NULL;
   }
   return func;
+}
+
+void run_exec() {
+  Arg arg;
+
+  for(int i = 0; i < config.exec_count; i++) {
+    arg.v = config.exec[i];
+    spawn(&arg);
+  }
+}
+
+void run_exec_once() {
+  Arg arg;
+
+  for(int i = 0; i < config.exec_once_count; i++) {
+    arg.v = config.exec_once[i];
+    spawn(&arg);
+  }
 }
 
 void parse_config_line(Config *config, const char *line) {
@@ -1010,6 +1034,39 @@ void parse_config_line(Config *config, const char *line) {
     }
     setenv(env_type, env_value, 1);
 
+  } else if (strncmp(key, "exec", 9) == 0) {
+    char **new_exec = realloc(config->exec, (config->exec_count + 1) * sizeof(char *));
+    if (!new_exec) {
+        fprintf(stderr, "Error: Failed to allocate memory for exec\n");
+        return;
+    }
+    config->exec = new_exec;
+    
+    config->exec[config->exec_count] = strdup(value);
+    if (!config->exec[config->exec_count]) {
+        fprintf(stderr, "Error: Failed to duplicate exec string\n");
+        return;
+    }
+    
+    config->exec_count++;
+
+  } else if (strncmp(key, "exec-once", 9) == 0) {
+
+    char **new_exec_once = realloc(config->exec_once, (config->exec_once_count + 1) * sizeof(char *));
+    if (!new_exec_once) {
+        fprintf(stderr, "Error: Failed to allocate memory for exec_once\n");
+        return;
+    }
+    config->exec_once = new_exec_once;
+    
+    config->exec_once[config->exec_once_count] = strdup(value);
+    if (!config->exec_once[config->exec_once_count]) {
+        fprintf(stderr, "Error: Failed to duplicate exec_once string\n");
+        return;
+    }
+    
+    config->exec_once_count++;
+
   } else if (strncmp(key, "bind", 4) == 0) {
     config->key_bindings =
         realloc(config->key_bindings,
@@ -1226,6 +1283,16 @@ void free_config(void) {
     }
   }
   free(config.gesture_bindings);
+
+  for(i = 0; i < config.exec_count; i++) {
+      free(config.exec[i]);
+  }
+  free(config.exec);
+
+  for(i = 0; i < config.exec_once_count; i++) {
+      free(config.exec_once[i]);
+  }
+  free(config.exec_once);
 
   free(config.scroller_proportion_preset);
   config.scroller_proportion_preset = NULL;
@@ -1491,6 +1558,7 @@ void reload_config(const Arg *arg) {
   free_config();
   parse_config();
   init_baked_points();
+  run_exec();
   wl_list_for_each(c, &clients, link) {
     if (c && !c->iskilling) {
       if (c->bw) {

@@ -5064,10 +5064,14 @@ run(char *startup_cmd) {
   wlr_cursor_warp_closest(cursor, NULL, cursor->x, cursor->y);
   wlr_cursor_set_xcursor(cursor, cursor_mgr, "left_ptr");
 
+  run_exec();
+  run_exec_once();
+
   /* Run the Wayland event loop. This does not return until you exit the
    * compositor. Starting the backend rigged up all of the necessary event
    * loop configuration to listen to libinput events, DRM events, generate
    * frame events at the refresh rate, and so on. */
+  
   wl_display_run(dpy);
 }
 
@@ -5476,7 +5480,6 @@ void handle_foreign_destroy(struct wl_listener *listener, void *data) {
 void setup(void) {
 
   // signal(SIGSEGV, signalhandler);
-
   parse_config();
 
   init_baked_points();
