@@ -1091,6 +1091,10 @@ void parse_config_line(Config *config, const char *line) {
     binding->arg.v = NULL;
     binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2);
     if (!binding->func) {
+      if (binding->arg.v) {
+        free(binding->arg.v);
+        binding->arg.v = NULL;
+      }
       fprintf(stderr, "Error: Unknown function in bind: %s\n", func_name);
     } else {
       config->key_bindings_count++;
@@ -1121,6 +1125,10 @@ void parse_config_line(Config *config, const char *line) {
     binding->arg.v = NULL;
     binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2);
     if (!binding->func) {
+      if (binding->arg.v) {
+        free(binding->arg.v);
+        binding->arg.v = NULL;
+      }
       fprintf(stderr, "Error: Unknown function in mousebind: %s\n", func_name);
     } else {
       config->mouse_bindings_count++;
@@ -1150,6 +1158,10 @@ void parse_config_line(Config *config, const char *line) {
     binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2);
 
     if (!binding->func) {
+      if (binding->arg.v) {
+        free(binding->arg.v);
+        binding->arg.v = NULL;
+      }
       fprintf(stderr, "Error: Unknown function in axisbind: %s\n", func_name);
     } else {
       config->axis_bindings_count++;
@@ -1184,6 +1196,10 @@ void parse_config_line(Config *config, const char *line) {
     binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2);
 
     if (!binding->func) {
+      if (binding->arg.v) {
+        free(binding->arg.v);
+        binding->arg.v = NULL;
+      }
       fprintf(stderr, "Error: Unknown function in axisbind: %s\n", func_name);
     } else {
       config->gesture_bindings_count++;
@@ -1227,78 +1243,138 @@ void free_circle_layout(Config *config) {
   config->circle_layout_count = 0; // 重置计数
 }
 
+void free_baked_points(void) {
+  if(baked_points_move)
+    free(baked_points_move);
+  if(baked_points_open)
+    free(baked_points_open);
+  if(baked_points_close)
+    free(baked_points_close);
+  if(baked_points_tag)
+  baked_points_move = NULL;
+  baked_points_open = NULL;
+  baked_points_close = NULL;
+  baked_points_tag = NULL;
+}
+
 void free_config(void) {
   // 释放内存
   int i;
-  for (i = 0; i < config.window_rules_count; i++) {
-    ConfigWinRule *rule = &config.window_rules[i];
-    if (rule->id)
+  
+  // 释放 window_rules
+  if (config.window_rules) {
+    for (int i = 0; i < config.window_rules_count; i++) {
+      ConfigWinRule *rule = &config.window_rules[i];
       free((void *)rule->id);
-    if (rule->title)
       free((void *)rule->title);
-    if (rule->animation_type_open)
       free((void *)rule->animation_type_open);
-    if (rule->animation_type_close)
       free((void *)rule->animation_type_close);
+      // 释放 globalkeybinding 的 arg.v（如果动态分配）
+      if (rule->globalkeybinding.arg.v) {
+        free((void *)rule->globalkeybinding.arg.v);
+      }
+    }
+    free(config.window_rules);
+    config.window_rules = NULL;
+    config.window_rules_count = 0;
   }
-  free(config.window_rules);
 
-  for (i = 0; i < config.monitor_rules_count; i++) {
-    ConfigMonitorRule *rule = &config.monitor_rules[i];
-    if (rule->name)
+  // 释放 monitor_rules
+  if (config.monitor_rules) {
+    for (int i = 0; i < config.monitor_rules_count; i++) {
+      ConfigMonitorRule *rule = &config.monitor_rules[i];
       free((void *)rule->name);
-    if (rule->layout)
       free((void *)rule->layout);
-  }
-  free(config.monitor_rules);
-
-  for (i = 0; i < config.key_bindings_count; i++) {
-    if (config.key_bindings[i].arg.v) {
-      free((void *)config.key_bindings[i].arg.v);
-      config.key_bindings[i].arg.v = NULL; // 避免重复释放
     }
+    free(config.monitor_rules);
+    config.monitor_rules = NULL;
+    config.monitor_rules_count = 0;
   }
-  free(config.key_bindings);
 
-  for (i = 0; i < config.mouse_bindings_count; i++) {
-    if (config.mouse_bindings[i].arg.v) {
-      free((void *)config.mouse_bindings[i].arg.v);
-      config.mouse_bindings[i].arg.v = NULL; // 避免重复释放
+  // 释放 key_bindings
+  if (config.key_bindings) {
+    for (i = 0; i < config.key_bindings_count; i++) {
+      if (config.key_bindings[i].arg.v) {
+        free((void *)config.key_bindings[i].arg.v);
+        config.key_bindings[i].arg.v = NULL;
+      }
     }
+    free(config.key_bindings);
+    config.key_bindings = NULL;
+    config.key_bindings_count = 0;
   }
-  free(config.mouse_bindings);
 
-  for (i = 0; i < config.axis_bindings_count; i++) {
-    if (config.axis_bindings[i].arg.v) {
-      free((void *)config.axis_bindings[i].arg.v);
-      config.axis_bindings[i].arg.v = NULL; // 避免重复释放
+  // 释放 mouse_bindings
+  if (config.mouse_bindings) {
+    for (i = 0; i < config.mouse_bindings_count; i++) {
+      if (config.mouse_bindings[i].arg.v) {
+        free((void *)config.mouse_bindings[i].arg.v);
+        config.mouse_bindings[i].arg.v = NULL;
+      }
     }
+    free(config.mouse_bindings);
+    config.mouse_bindings = NULL;
+    config.mouse_bindings_count = 0;
   }
-  free(config.axis_bindings);
 
-  for (i = 0; i < config.gesture_bindings_count; i++) {
-    if (config.gesture_bindings[i].arg.v) {
-      free((void *)config.gesture_bindings[i].arg.v);
-      config.gesture_bindings[i].arg.v = NULL; // 避免重复释放
+  // 释放 axis_bindings
+  if (config.axis_bindings) {
+    for (i = 0; i < config.axis_bindings_count; i++) {
+      if (config.axis_bindings[i].arg.v) {
+        free((void *)config.axis_bindings[i].arg.v);
+        config.axis_bindings[i].arg.v = NULL;
+      }
     }
+    free(config.axis_bindings);
+    config.axis_bindings = NULL;
+    config.axis_bindings_count = 0;
   }
-  free(config.gesture_bindings);
 
-  for(i = 0; i < config.exec_count; i++) {
+  // 释放 gesture_bindings
+  if (config.gesture_bindings) {
+    for (i = 0; i < config.gesture_bindings_count; i++) {
+      if (config.gesture_bindings[i].arg.v) {
+        free((void *)config.gesture_bindings[i].arg.v);
+        config.gesture_bindings[i].arg.v = NULL;
+      }
+    }
+    free(config.gesture_bindings);
+    config.gesture_bindings = NULL;
+    config.gesture_bindings_count = 0;
+  }
+
+  // 释放 exec
+  if (config.exec) {
+    for (i = 0; i < config.exec_count; i++) {
       free(config.exec[i]);
+    }
+    free(config.exec);
+    config.exec = NULL;
+    config.exec_count = 0;
   }
-  free(config.exec);
 
-  for(i = 0; i < config.exec_once_count; i++) {
+  // 释放 exec_once
+  if (config.exec_once) {
+    for (i = 0; i < config.exec_once_count; i++) {
       free(config.exec_once[i]);
+    }
+    free(config.exec_once);
+    config.exec_once = NULL;
+    config.exec_once_count = 0;
   }
-  free(config.exec_once);
 
-  free(config.scroller_proportion_preset);
-  config.scroller_proportion_preset = NULL;
-  config.scroller_proportion_preset_count = 0;
+  // 释放 scroller_proportion_preset
+  if (config.scroller_proportion_preset) {
+    free(config.scroller_proportion_preset);
+    config.scroller_proportion_preset = NULL;
+    config.scroller_proportion_preset_count = 0;
+  }
 
+  // 释放 circle_layout
   free_circle_layout(&config);
+
+  // 释放动画资源
+  free_baked_points();
 }
 
 void override_config(void) {
