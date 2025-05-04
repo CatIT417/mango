@@ -1687,12 +1687,15 @@ applyrules(Client *c) {
     arrange(c->mon, false);
   }
 
+  int fullscreen_state_backup = c->isfullscreen;
   setmon(c, mon, newtags, !c->isopensilent);
 
   if (!c->isopensilent && !(c->tags & (1 << (selmon->pertag->curtag - 1)))) {
     c->animation.from_rule = true;
     view(&(Arg){.ui = c->tags}, true);
   }
+
+  setfullscreen(c, fullscreen_state_backup);
 }
 
 void // 17
@@ -4909,7 +4912,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
   c->need_output_flush = true;
 
   // oldgeom = c->geom;
-  bbox = (interact || (c->isfloating && !c->isfullscreen)) ? &sgeom : &c->mon->w;
+  bbox = (interact || c->isfloating || c->isfullscreen) ? &sgeom : &c->mon->w;
 
   if (strcmp(c->mon->pertag->ltidxs[c->mon->pertag->curtag]->name,
              "scroller") == 0 &&
