@@ -7406,17 +7406,10 @@ void smartresizewin(const Arg *arg) {
 void activatex11(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, activate);
 
-  if (!c || c->iskilling)
+  if (!c || c->iskilling || !c->foreign_toplevel || client_is_unmanaged(c))
     return;
 
   if (c && c->swallowing)
-    return;
-
-  /* Only "managed" windows can be activated */
-  if (!client_is_unmanaged(c))
-    wlr_xwayland_surface_activate(c->surface.xwayland, 1);
-
-  if (!c || !c->foreign_toplevel)
     return;
 
   if (focus_on_activate && c != selmon->sel) {
@@ -7430,6 +7423,7 @@ void activatex11(struct wl_listener *listener, void *data) {
       setborder_color(c);
     }
     view(&(Arg){.ui = c->tags}, true);
+    wlr_xwayland_surface_activate(c->surface.xwayland, 1);
     focusclient(c, 1);
   } else if (c != focustop(selmon)) {
     if (client_surface(c)->mapped)
