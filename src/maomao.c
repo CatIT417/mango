@@ -5109,6 +5109,13 @@ setfloating(Client *c, int floating) {
   target_box = c->geom;
 
   if (floating == 1 && c != grabc) {
+
+    if (c->isfullscreen || c->ismaxmizescreen) {
+      c->isfullscreen = 0; // 清除窗口全屏标志
+      c->ismaxmizescreen = 0;
+      c->bw = borderpx; // 恢复非全屏的border
+    }
+
     if (c->need_float_size_reduce && !c->swallowing && !c->is_open_animation) {
       target_box.height = target_box.height * 0.8;
       target_box.width = target_box.width * 0.8;
@@ -5143,6 +5150,7 @@ setfloating(Client *c, int floating) {
   }
 
   arrange(c->mon, false);
+  setborder_color(c);
   printstatus();
 }
 
@@ -6426,14 +6434,7 @@ void togglefloating(const Arg *arg) {
   if (!sel)
     return;
 
-  if (sel->isfullscreen || sel->ismaxmizescreen) {
-    sel->isfullscreen = 0; // 清除窗口全屏标志
-    sel->ismaxmizescreen = 0;
-    sel->bw = borderpx; // 恢复非全屏的border
-  }
-  /* return if fullscreen */
   setfloating(sel, !sel->isfloating);
-  setborder_color(sel);
 }
 
 void togglefakefullscreen(const Arg *arg) {
@@ -7242,7 +7243,7 @@ void smartmovewin(const Arg *arg) {
   if (!c || c->isfullscreen)
     return;
   if (!c->isfloating)
-    togglefloating(NULL);
+    setfloating(selmon->sel, true);
   nx = c->geom.x;
   ny = c->geom.y;
 
@@ -7265,7 +7266,7 @@ void smartmovewin(const Arg *arg) {
     }
 
     ny = tar == -99999 ? ny : tar;
-    ny = MAX(ny, c->mon->w.y + gappov);
+    ny = MAX(ny, c->mon->w.y);
     break;
   case DOWN:
     tar = 99999;
@@ -7284,7 +7285,7 @@ void smartmovewin(const Arg *arg) {
       };
     }
     ny = tar == 99999 ? ny : tar;
-    ny = MIN(ny, c->mon->w.y + c->mon->w.height - gappov - c->geom.height);
+    ny = MIN(ny, c->mon->w.y + c->mon->w.height - c->geom.height);
     break;
   case LEFT:
     tar = -99999;
@@ -7304,7 +7305,7 @@ void smartmovewin(const Arg *arg) {
     }
 
     nx = tar == -99999 ? nx : tar;
-    nx = MAX(nx, c->mon->w.x + gappoh);
+    nx = MAX(nx, c->mon->w.x);
     break;
   case RIGHT:
     tar = 99999;
@@ -7322,7 +7323,7 @@ void smartmovewin(const Arg *arg) {
       };
     }
     nx = tar == 99999 ? nx : tar;
-    nx = MIN(nx, c->mon->w.x + c->mon->w.width - gappoh - c->geom.width);
+    nx = MIN(nx, c->mon->w.x + c->mon->w.width - c->geom.width);
     break;
   }
 
@@ -7340,7 +7341,7 @@ void smartresizewin(const Arg *arg) {
   if (!c || c->isfullscreen)
     return;
   if (!c->isfloating)
-    togglefloating(NULL);
+    setfloating(c, true);
   nw = c->geom.width;
   nh = c->geom.height;
 
