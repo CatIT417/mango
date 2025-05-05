@@ -1325,12 +1325,23 @@ void show_scratchpad(Client *c) {
     c->ismaxmizescreen = 0;
     c->bw = borderpx; // 恢复非全屏的border
   }
+
+  if(c->oldgeom.width)
+    c->scratch_geom.width = c->oldgeom.width;
+  if(c->oldgeom.height)
+    c->scratch_geom.height = c->oldgeom.height;
+
   /* return if fullscreen */
   if (!c->isfloating) {
     setfloating(c, 1);
     c->geom.width = c->scratch_geom.width ? c->scratch_geom.width: c->mon->w.width * 0.7;
     c->geom.height = c->scratch_geom.height? c->scratch_geom.height : c->mon->w.height * 0.8;
     // 重新计算居中的坐标
+    c->geom = c->animainit_geom = c->animation.current = setclient_coordinate_center(c->geom, 0, 0);
+    resize(c, c->geom, 0);
+  } else if(c->geom.width != c->scratch_geom.width || c->geom.height != c->scratch_geom.height) {
+    c->geom.width = c->scratch_geom.width ? c->scratch_geom.width: c->mon->w.width * 0.7;
+    c->geom.height = c->scratch_geom.height? c->scratch_geom.height : c->mon->w.height * 0.8;
     c->geom = c->animainit_geom = c->animation.current = setclient_coordinate_center(c->geom, 0, 0);
     resize(c, c->geom, 0);
   }
