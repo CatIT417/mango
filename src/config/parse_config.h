@@ -419,10 +419,11 @@ unsigned int parse_num_type(char *str) {
   }
 }
 
-FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value, char *arg_value2) {
+FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value, char *arg_value2, char *arg_value3, char *arg_value4) {
 
   FuncType func = NULL;
   (*arg).v = NULL;
+  (*arg).v2 = NULL;
 
   if (strcmp(func_name, "focusstack") == 0) {
     func = focusstack;
@@ -1079,9 +1080,9 @@ void parse_config_line(Config *config, const char *line) {
     KeyBinding *binding = &config->key_bindings[config->key_bindings_count];
     memset(binding, 0, sizeof(KeyBinding));
 
-    char mod_str[256], keysym_str[256], func_name[256], arg_value[256] = "none",arg_value2[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str, keysym_str,
-               func_name, arg_value, arg_value2) < 3) {
+    char mod_str[256], keysym_str[256], func_name[256], arg_value[256] = "none",arg_value2[256] = "none", arg_value3[256] = "none", arg_value4[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str, keysym_str,
+               func_name, arg_value, arg_value2, arg_value3, arg_value4) < 3) {
       fprintf(stderr, "Error: Invalid bind format: %s\n", value);
       return;
     }
@@ -1089,11 +1090,16 @@ void parse_config_line(Config *config, const char *line) {
     binding->mod = parse_mod(mod_str);
     binding->keysym = parse_keysym(keysym_str);
     binding->arg.v = NULL;
-    binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2);
+    binding->arg.v2 = NULL;
+    binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2, arg_value3, arg_value4);
     if (!binding->func) {
       if (binding->arg.v) {
         free(binding->arg.v);
         binding->arg.v = NULL;
+      }
+      if (binding->arg.v2) {
+        free(binding->arg.v2);
+        binding->arg.v2 = NULL;
       }
       fprintf(stderr, "Error: Unknown function in bind: %s\n", func_name);
     } else {
@@ -1113,9 +1119,9 @@ void parse_config_line(Config *config, const char *line) {
         &config->mouse_bindings[config->mouse_bindings_count];
     memset(binding, 0, sizeof(MouseBinding));
 
-    char mod_str[256], button_str[256], func_name[256], arg_value[256] = "none", arg_value2[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str, button_str,
-               func_name, arg_value, arg_value2) < 3) {
+    char mod_str[256], button_str[256], func_name[256], arg_value[256] = "none", arg_value2[256] = "none", arg_value3[256] = "none", arg_value4[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str, button_str,
+               func_name, arg_value, arg_value2, arg_value3, arg_value4) < 3) {
       fprintf(stderr, "Error: Invalid mousebind format: %s\n", value);
       return;
     }
@@ -1123,11 +1129,16 @@ void parse_config_line(Config *config, const char *line) {
     binding->mod = parse_mod(mod_str);
     binding->button = parse_button(button_str);
     binding->arg.v = NULL;
-    binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2);
+    binding->arg.v2 = NULL;
+    binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2, arg_value3, arg_value4);
     if (!binding->func) {
       if (binding->arg.v) {
         free(binding->arg.v);
         binding->arg.v = NULL;
+      }
+      if (binding->arg.v2) {
+        free(binding->arg.v2);
+        binding->arg.v2 = NULL;
       }
       fprintf(stderr, "Error: Unknown function in mousebind: %s\n", func_name);
     } else {
@@ -1145,9 +1156,9 @@ void parse_config_line(Config *config, const char *line) {
     AxisBinding *binding = &config->axis_bindings[config->axis_bindings_count];
     memset(binding, 0, sizeof(AxisBinding));
 
-    char mod_str[256], dir_str[256], func_name[256], arg_value[256] = "none", arg_value2[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str, dir_str, func_name,
-               arg_value, arg_value2) < 3) {
+    char mod_str[256], dir_str[256], func_name[256], arg_value[256] = "none", arg_value2[256] = "none", arg_value3[256] = "none", arg_value4[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str, dir_str, func_name,
+               arg_value, arg_value2, arg_value3, arg_value4) < 3) {
       fprintf(stderr, "Error: Invalid axisbind format: %s\n", value);
       return;
     }
@@ -1155,12 +1166,17 @@ void parse_config_line(Config *config, const char *line) {
     binding->mod = parse_mod(mod_str);
     binding->dir = parse_direction(dir_str);
     binding->arg.v = NULL;
-    binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2);
+    binding->arg.v2 = NULL;
+    binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2, arg_value3, arg_value4);
 
     if (!binding->func) {
       if (binding->arg.v) {
         free(binding->arg.v);
         binding->arg.v = NULL;
+      }
+      if (binding->arg.v2) {
+        free(binding->arg.v2);
+        binding->arg.v2 = NULL;
       }
       fprintf(stderr, "Error: Unknown function in axisbind: %s\n", func_name);
     } else {
@@ -1182,9 +1198,9 @@ void parse_config_line(Config *config, const char *line) {
     memset(binding, 0, sizeof(GestureBinding));
 
     char mod_str[256], motion_str[256], fingers_count_str[256], func_name[256],
-        arg_value[256] = "none", arg_value2[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str, motion_str,
-               fingers_count_str, func_name, arg_value, arg_value2) < 4) {
+        arg_value[256] = "none", arg_value2[256] = "none", arg_value3[256] = "none", arg_value4[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str, motion_str,
+               fingers_count_str, func_name, arg_value, arg_value2, arg_value3, arg_value4) < 4) {
       fprintf(stderr, "Error: Invalid gesturebind format: %s\n", value);
       return;
     }
@@ -1193,12 +1209,17 @@ void parse_config_line(Config *config, const char *line) {
     binding->motion = parse_direction(motion_str);
     binding->fingers_count = atoi(fingers_count_str);
     binding->arg.v = NULL;
-    binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2);
+    binding->arg.v2 = NULL;
+    binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2, arg_value3, arg_value4);
 
     if (!binding->func) {
       if (binding->arg.v) {
         free(binding->arg.v);
         binding->arg.v = NULL;
+      }
+      if (binding->arg.v2) {
+        free(binding->arg.v2);
+        binding->arg.v2 = NULL;
       }
       fprintf(stderr, "Error: Unknown function in axisbind: %s\n", func_name);
     } else {
@@ -1303,6 +1324,10 @@ void free_config(void) {
         free((void *)config.key_bindings[i].arg.v);
         config.key_bindings[i].arg.v = NULL;
       }
+      if (config.key_bindings[i].arg.v2) {
+        free((void *)config.key_bindings[i].arg.v2);
+        config.key_bindings[i].arg.v2 = NULL;
+      }
     }
     free(config.key_bindings);
     config.key_bindings = NULL;
@@ -1315,6 +1340,10 @@ void free_config(void) {
       if (config.mouse_bindings[i].arg.v) {
         free((void *)config.mouse_bindings[i].arg.v);
         config.mouse_bindings[i].arg.v = NULL;
+      }
+      if (config.mouse_bindings[i].arg.v2) {
+        free((void *)config.mouse_bindings[i].arg.v2);
+        config.mouse_bindings[i].arg.v2 = NULL;
       }
     }
     free(config.mouse_bindings);
@@ -1329,6 +1358,10 @@ void free_config(void) {
         free((void *)config.axis_bindings[i].arg.v);
         config.axis_bindings[i].arg.v = NULL;
       }
+      if (config.axis_bindings[i].arg.v2) {
+        free((void *)config.axis_bindings[i].arg.v2);
+        config.axis_bindings[i].arg.v2 = NULL;
+      }
     }
     free(config.axis_bindings);
     config.axis_bindings = NULL;
@@ -1341,6 +1374,10 @@ void free_config(void) {
       if (config.gesture_bindings[i].arg.v) {
         free((void *)config.gesture_bindings[i].arg.v);
         config.gesture_bindings[i].arg.v = NULL;
+      }
+      if (config.gesture_bindings[i].arg.v2) {
+        free((void *)config.gesture_bindings[i].arg.v2);
+        config.gesture_bindings[i].arg.v2 = NULL;
       }
     }
     free(config.gesture_bindings);

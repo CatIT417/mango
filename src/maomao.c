@@ -153,6 +153,7 @@ typedef struct {
   float f;
   float f2;
   char *v;
+  char *v2;
   unsigned int ui;
   unsigned int ui2;
 } Arg;
@@ -495,7 +496,12 @@ static void dwl_ipc_output_set_tags(struct wl_client *client,
 static void dwl_ipc_output_quit(struct wl_client *client,
                                 struct wl_resource *resource);
 static void dwl_ipc_output_dispatch(struct wl_client *client,
-                                struct wl_resource *resource,const char *dispatch,const char* arg1,const char* arg2);                
+                                struct wl_resource *resource,
+                                const char *dispatch,
+                                const char* arg1,
+                                const char* arg2,
+                                const char* arg3,
+                                const char* arg4);                
 static void dwl_ipc_output_release(struct wl_client *client,
                                    struct wl_resource *resource);
 static void focusclient(Client *c, int lift);
@@ -3497,11 +3503,11 @@ void dwl_ipc_output_quit(struct wl_client *client,
 void dwl_ipc_output_dispatch(struct wl_client *client,
                              struct wl_resource *resource,
                              const char *dispatch, const char *arg1,
-                             const char *arg2) {
+                             const char *arg2, const char *arg3, const char *arg4) {
 
   void (*func)(const Arg *);
   Arg arg;
-  func = parse_func_name((char*)dispatch, &arg, (char*)arg1, (char*)arg2);
+  func = parse_func_name((char*)dispatch, &arg, (char*)arg1, (char*)arg2, (char*)arg3, (char*)arg4);
   if(func) {
     func(&arg);
   }
