@@ -491,6 +491,8 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value, char *arg_v
     func = restore_minized;
   } else if (strcmp(func_name, "toggle_scratchpad") == 0) {
     func = toggle_scratchpad;
+  } else if (strcmp(func_name, "toggle_render_border") == 0) {
+    func = toggle_render_border;
   } else if (strcmp(func_name, "focusmon") == 0) {
     func = focusmon;
     (*arg).i = parse_direction(arg_value);

@@ -702,6 +702,8 @@ static uint32_t swipe_fingers = 0;
 static double swipe_dx = 0;
 static double swipe_dy = 0;
 
+bool render_border = true;
+
 /* global event handlers */
 static struct zdwl_ipc_manager_v2_interface dwl_manager_implementation = {
     .release = dwl_ipc_manager_release,
@@ -1055,6 +1057,14 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
 
   if (c->iskilling || !client_surface(c)->mapped)
     return;
+
+  if(!render_border) {
+    set_rect_size(c->border[0], 0, 0);
+    set_rect_size(c->border[1], 0, 0);
+    set_rect_size(c->border[2], 0, 0);
+    set_rect_size(c->border[3], 0, 0);
+    return;
+  }
 
   wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
   set_rect_size(c->border[0], clip_box.width, c->bw);
@@ -1448,6 +1458,11 @@ bool switch_scratch_client_state(Client *c) {
   }
 
   return false;
+}
+
+void toggle_render_border(const Arg *arg) {
+  render_border = !render_border;
+  arrange(selmon, false);
 }
 
 void toggle_named_scratch(const Arg *arg) {
