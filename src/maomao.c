@@ -5214,8 +5214,12 @@ setfloating(Client *c, int floating) {
   if (!c || !c->mon || !client_surface(c)->mapped || c->iskilling)
     return;
 
-  wlr_scene_node_reparent(&c->scene->node,
-                          layers[c->isfloating ? LyrFloat : LyrTile]);
+  if(c->isoverlay) {
+    wlr_scene_node_reparent(&c->scene->node, layers[LyrOverlay]);
+  } else {
+    wlr_scene_node_reparent(&c->scene->node,
+      layers[c->isfloating ? LyrFloat : LyrTile]);
+  }
 
   target_box = c->geom;
 
@@ -5329,9 +5333,14 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
     return;
 
   client_set_fullscreen(c, fullscreen);
-  wlr_scene_node_reparent(&c->scene->node, layers[fullscreen      ? LyrFloat
-                                                  : c->isfloating ? LyrFloat
-                                                                  : LyrTile]);
+
+  if(c->isoverlay) {
+    wlr_scene_node_reparent(&c->scene->node, layers[LyrOverlay]);
+  } else {
+    wlr_scene_node_reparent(&c->scene->node, layers[fullscreen ? LyrFloat
+      : c->isfloating ? LyrFloat
+                      : LyrTile]);
+  }
 
   if (fullscreen) {
     if (c->isfloating)
