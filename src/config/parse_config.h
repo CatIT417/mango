@@ -34,6 +34,8 @@ typedef struct {
   int height;
   int isterm;
   int noswallow;
+  int scratch_width;
+  int scratch_height;
   uint32_t passmod;
   xkb_keysym_t keysym;
   KeyBinding globalkeybinding;
@@ -935,6 +937,8 @@ void parse_config_line(Config *config, const char *line) {
     rule->monitor = -1;
     rule->offsetx = 0;
     rule->offsety = 0;
+    rule->scratch_width = 0;
+    rule->scratch_height = 0;
     rule->width = -1;
     rule->height = -1;
     rule->animation_type_open = NULL;
@@ -971,6 +975,10 @@ void parse_config_line(Config *config, const char *line) {
           rule->offsetx = atoi(val);
         } else if (strcmp(key, "offsety") == 0) {
           rule->offsety = atoi(val);
+        } else if (strcmp(key, "scratch_width") == 0) {
+          rule->scratch_width = atoi(val);
+        } else if (strcmp(key, "scratch_height") == 0) {
+          rule->scratch_height = atoi(val);
         } else if (strcmp(key, "width") == 0) {
           rule->width = atoi(val);
         } else if (strcmp(key, "height") == 0) {

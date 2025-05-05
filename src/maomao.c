@@ -1701,6 +1701,8 @@ applyrules(Client *c) {
          strstr(title, r->title))) {
       c->isterm = r->isterm > 0 ? r->isterm : c->isterm;
       c->noswallow = r->noswallow > 0 ? r->noswallow : c->noswallow;
+      c->scratch_geom.width = r->scratch_width > 0 ? r->scratch_width : c->scratch_geom.width;
+      c->scratch_geom.height = r->scratch_height > 0 ? r->scratch_height : c->scratch_geom.height;
       c->isfloating = r->isfloating > 0 ? r->isfloating : c->isfloating;
       c->isfullscreen = r->isfullscreen > 0 ? r->isfullscreen : c->isfullscreen;
       c->animation_type_open = r->animation_type_open == NULL
