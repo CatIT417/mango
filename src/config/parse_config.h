@@ -204,6 +204,9 @@ typedef struct {
   char **exec_once;
   int exec_once_count;
 
+  char *cursor_theme;
+  unsigned int cursor_size;
+
 } Config;
 
 typedef void (*FuncType)(const Arg *);
@@ -832,6 +835,10 @@ void parse_config_line(Config *config, const char *line) {
     config->mouse_natural_scrolling = atoi(value);
   } else if (strcmp(key, "trackpad_natural_scrolling") == 0) {
     config->trackpad_natural_scrolling = atoi(value);
+  } else if (strcmp(key, "cursor_size") == 0) {
+    config->cursor_size = atoi(value);
+  } else if (strcmp(key, "cursor_theme") == 0) {
+    config->cursor_theme = strdup(value);
   } else if (strcmp(key, "disable_while_typing") == 0) {
     config->disable_while_typing = atoi(value);
   } else if (strcmp(key, "left_handed") == 0) {
@@ -1464,11 +1471,17 @@ void free_config(void) {
     config.scroller_proportion_preset_count = 0;
   }
 
+  if(config.cursor_theme) {
+    free(config.cursor_theme);
+    config.cursor_theme = NULL;
+  }
+
   // 释放 circle_layout
   free_circle_layout(&config);
 
   // 释放动画资源
   free_baked_points();
+
 }
 
 void override_config(void) {
@@ -1534,6 +1547,7 @@ void override_config(void) {
   tap_and_drag = config.tap_and_drag;
   drag_lock = config.drag_lock;
   mouse_natural_scrolling = config.mouse_natural_scrolling;
+  cursor_size = config.cursor_size;
   trackpad_natural_scrolling = config.trackpad_natural_scrolling;
   disable_while_typing = config.disable_while_typing;
   left_handed = config.left_handed;
@@ -1622,6 +1636,7 @@ void set_value_default() {
   config.tap_and_drag = tap_and_drag;
   config.drag_lock = drag_lock;
   config.mouse_natural_scrolling = mouse_natural_scrolling;
+  config.cursor_size = cursor_size;
   config.trackpad_natural_scrolling = trackpad_natural_scrolling;
   config.disable_while_typing = disable_while_typing;
   config.left_handed = left_handed;
@@ -1703,6 +1718,7 @@ void parse_config(void) {
   config.circle_layout_count = 0;
   config.tag_rules = NULL;
   config.tag_rules_count = 0;
+  config.cursor_theme = NULL;
 
   // 获取 MAOMAOCONFIG 环境变量
   const char *maomaoconfig = getenv("MAOMAOCONFIG");

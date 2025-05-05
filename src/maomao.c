@@ -5588,12 +5588,11 @@ void handle_foreign_destroy(struct wl_listener *listener, void *data) {
 
 void setup(void) {
 
-  // signal(SIGSEGV, signalhandler);
-  parse_config();
-
-  init_baked_points();
-
+  setenv("XCURSOR_SIZE", "24", 1);
   setenv("XDG_CURRENT_DESKTOP", "maomao", 1);
+
+  parse_config();
+  init_baked_points();
 
   int drm_fd, i, sig[] = {SIGCHLD, SIGINT, SIGTERM, SIGPIPE};
   struct sigaction sa = {.sa_flags = SA_RESTART, .sa_handler = handlesig};
@@ -5750,8 +5749,7 @@ void setup(void) {
    * images are available at all scale factors on the screen (necessary for
    * HiDPI support). Scaled cursors will be loaded with each output. */
   // cursor_mgr = wlr_xcursor_manager_create(cursor_theme, 24);
-  cursor_mgr = wlr_xcursor_manager_create(NULL, 24);
-  setenv("XCURSOR_SIZE", "24", 1);
+  cursor_mgr = wlr_xcursor_manager_create(config.cursor_theme, cursor_size);
 
   /*
    * wlr_cursor *only* displays an image on screen. It does not move around
