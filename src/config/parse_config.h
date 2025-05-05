@@ -553,6 +553,10 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value, char *arg_v
     (*arg).ui2 = parse_num_type(arg_value2);
     (*arg).i = (*arg).ui == NUM_TYPE_DEFAULT ? atoi(arg_value) : atoi(arg_value+1);
     (*arg).i2 = (*arg).ui2 == NUM_TYPE_DEFAULT ? atoi(arg_value2) : atoi(arg_value2+1);
+  } else if (strcmp(func_name, "toggle_named_scratch") == 0) {
+    func = toggle_named_scratch;
+    (*arg).v = strdup(arg_value);
+    (*arg).v2 = strdup(arg_value2);
   } else {
     return NULL;
   }

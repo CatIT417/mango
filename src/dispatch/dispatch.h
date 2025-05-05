@@ -53,3 +53,4 @@ void togglefakefullscreen(const Arg *arg);
 void toggleoverlay(const Arg *arg);
 void movewin(const Arg *arg);
 void resizewin(const Arg *arg);
+void toggle_named_scratch(const Arg *arg);

@@ -1432,25 +1432,84 @@ void swallow(Client *c, Client *w) {
   }
 }
 
-void toggle_scratchpad(const Arg *arg) {
-  Client *c;
+bool switch_scratch_client_state(Client *c) {
+  if (c->is_in_scratchpad && c->is_scratchpad_show &&
+      (selmon->tagset[selmon->seltags] & c->tags) == 0) {
+    unsigned int target = get_tags_first_tag(selmon->tagset[selmon->seltags]);
+    tag_client(&(Arg){.ui = target}, c);
+    return true;
+  } else if (c->is_in_scratchpad && c->is_scratchpad_show &&
+             (selmon->tagset[selmon->seltags] & c->tags) != 0) {
+    set_minized(c);
+    return true;
+  } else if (c && c->is_in_scratchpad && !c->is_scratchpad_show) {
+    show_scratchpad(c);
+    return true;
+  }
+
+  return false;
+}
+
+void toggle_named_scratch(const Arg *arg) {
+  Client *c = NULL;
+  Client *target_client = NULL;
+  const char *appid, *title;
+  char *arg_id = arg->v;
+  char *arg_title = arg->v2;
+
   wl_list_for_each(c, &clients, link) {
     if (c->mon != selmon) {
       continue;
     }
-    if (c->is_in_scratchpad && c->is_scratchpad_show &&
-        (selmon->tagset[selmon->seltags] & c->tags) == 0) {
-      unsigned int target = get_tags_first_tag(selmon->tagset[selmon->seltags]);
-      tag_client(&(Arg){.ui = target}, c);
-      return;
-    } else if (c->is_in_scratchpad && c->is_scratchpad_show &&
-               (selmon->tagset[selmon->seltags] & c->tags) != 0) {
-      set_minized(c);
-      return;
-    } else if (c && c->is_in_scratchpad && !c->is_scratchpad_show) {
-      show_scratchpad(c);
-      return;
+
+    if (!(appid = client_get_appid(c)))
+      appid = broken;
+    if (!(title = client_get_title(c)))
+      title = broken;
+
+    if (arg_id && strncmp(arg_id, "none", 4) == 0)
+      arg_id = NULL;
+
+    if (arg_title && strncmp(arg_title, "none", 4) == 0)
+      arg_title = NULL;
+
+    if ((arg_title && strstr(title, arg_title) && !arg_id) ||
+        (arg_id && strstr(appid, arg_id) && !arg_title) ||
+        (arg_id && strstr(appid, arg_id) && arg_title &&
+         strstr(title, arg_title))) {
+        target_client = c;
+        break;
     }
+  }
+
+  if (!target_client)
+    return;
+
+  wl_list_for_each(c, &clients, link) {
+    if (c->mon != selmon) {
+      continue;
+    }
+    if(c->is_in_scratchpad && c->is_scratchpad_show && c != target_client) {
+      set_minized(c);
+    }
+  }
+
+  if(!target_client->is_in_scratchpad)
+    set_minized(target_client);
+  else
+    switch_scratch_client_state(target_client);
+}
+
+void toggle_scratchpad(const Arg *arg) {
+  Client *c;
+  bool hit = false;
+  wl_list_for_each(c, &clients, link) {
+    if (c->mon != selmon) {
+      continue;
+    }
+    hit =switch_scratch_client_state(c);
+    if(hit)
+      break;
   }
 }
 
