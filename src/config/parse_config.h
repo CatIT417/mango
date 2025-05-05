@@ -87,6 +87,13 @@ typedef struct {
   void (*func)(const Arg *);
   Arg arg;
 } GestureBinding;
+
+typedef struct {
+  int id;                      // 标签ID (1-9)
+  char* layout_name;       // 布局名称
+  int no_render_border;
+} ConfigTagRule;
+
 typedef struct {
   int animations;
   char animation_type_open[10];
@@ -170,10 +177,8 @@ typedef struct {
 
   char autostart[3][256];
 
-  struct {
-    int id;
-    char layout_name[256];
-  } tags[9];
+  ConfigTagRule *tag_rules;    // 动态数组
+  int tag_rules_count;         // 数量
 
   ConfigWinRule *window_rules;
   int window_rules_count;
@@ -905,19 +910,40 @@ void parse_config_line(Config *config, const char *line) {
       fprintf(stderr, "Error: Invalid autostart format: %s\n", value);
     }
   } else if (strcmp(key, "tags") == 0) {
-    int id;
-    char layout_name[256];
-    if (sscanf(value, "id:%d,layout_name:%255[^\n]", &id, layout_name) == 2) {
-      if (id >= 1 && id <= 9) {
-        config->tags[id - 1].id = id;
-        strncpy(config->tags[id - 1].layout_name, layout_name,
-                sizeof(config->tags[id - 1].layout_name));
-      } else {
-        fprintf(stderr, "Error: Invalid tag id: %d\n", id);
-      }
-    } else {
-      fprintf(stderr, "Error: Invalid tags format: %s\n", value);
+    config->tag_rules = realloc(config->tag_rules,
+                              (config->tag_rules_count + 1) * sizeof(ConfigTagRule));
+    if (!config->tag_rules) {
+        fprintf(stderr, "Error: Failed to allocate memory for tag rules\n");
+        return;
     }
+
+    ConfigTagRule *rule = &config->tag_rules[config->tag_rules_count];
+    memset(rule, 0, sizeof(ConfigTagRule));
+
+    // 设置默认值
+    rule->id = 0;
+    rule->layout_name = NULL;
+
+    char *token = strtok(value, ",");
+    while (token != NULL) {
+        char *colon = strchr(token, ':');
+        if (colon != NULL) {
+            *colon = '\0';
+            char *key = token;
+            char *val = colon + 1;
+
+            if (strcmp(key, "id") == 0) {
+                rule->id = atoi(val);
+            } else if (strcmp(key, "layout_name") == 0) {
+                rule->layout_name = strdup(val);
+            } else if (strcmp(key, "no_render_border") == 0) {
+                rule->no_render_border = atoi(val);
+            }
+        }
+        token = strtok(NULL, ",");
+    }
+    
+    config->tag_rules_count++;
   } else if (strcmp(key, "windowrule") == 0) {
     config->window_rules =
         realloc(config->window_rules,
@@ -1401,6 +1427,16 @@ void free_config(void) {
     config.gesture_bindings_count = 0;
   }
 
+  // 释放 tag_rules
+  if (config.tag_rules) {
+    for (int i = 0; i < config.tag_rules_count; i++) {
+      free((void *)config.tag_rules[i].layout_name);
+    }
+    free(config.tag_rules);
+    config.tag_rules = NULL;
+    config.tag_rules_count = 0;
+  }
+
   // 释放 exec
   if (config.exec) {
     for (i = 0; i < config.exec_count; i++) {
@@ -1665,6 +1701,8 @@ void parse_config(void) {
   config.scroller_proportion_preset_count = 0;
   config.circle_layout = NULL;
   config.circle_layout_count = 0;
+  config.tag_rules = NULL;
+  config.tag_rules_count = 0;
 
   // 获取 MAOMAOCONFIG 环境变量
   const char *maomaoconfig = getenv("MAOMAOCONFIG");
@@ -1700,11 +1738,13 @@ void parse_config(void) {
 void reload_config(const Arg *arg) {
   Client *c;
   Monitor *m;
-  int i;
+  int i, jk;
   Keyboard *kb;
   parse_config();
   init_baked_points();
   run_exec();
+
+  // reset border width when config change
   wl_list_for_each(c, &clients, link) {
     if (c && !c->iskilling) {
       if (c->bw) {
@@ -1712,10 +1752,13 @@ void reload_config(const Arg *arg) {
       }
     }
   }
+
+   // reset keyboard repeat rate when config change
   wl_list_for_each(kb, &keyboards, link) {
     wlr_keyboard_set_repeat_info(kb->wlr_keyboard, repeat_rate, repeat_delay);
   }
 
+  // reset master status when config change
   for (i = 0; i <= LENGTH(tags); i++) {
     wl_list_for_each(m, &mons, link) {
       if (!m->wlr_output->enabled) {
@@ -1726,5 +1769,24 @@ void reload_config(const Arg *arg) {
       m->pertag->smfacts[i] = default_smfact;
     }
   }
+
+  // reset tag status by tag rules
+  wl_list_for_each(m, &mons, link) { 
+    if (!m->wlr_output->enabled) {
+      continue;
+    }
+
+    for (i = 0; i <= LENGTH(tags); i++) {
+  
+      if (i > 0 && strlen(config.tag_rules[i - 1].layout_name) > 0) {
+        for (jk = 0; jk < LENGTH(layouts); jk++) {
+          if (strcmp(layouts[jk].name, config.tag_rules[i - 1].layout_name) == 0) {
+            m->pertag->ltidxs[i] = &layouts[jk];
+          }
+        }
+      }
+    }  
+  }
+
   arrange(selmon, false);
 }

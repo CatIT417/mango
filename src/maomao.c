@@ -1054,7 +1054,7 @@ void set_rect_size(struct wlr_scene_rect *rect, int width, int height) {
 
 void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
                   int offsety) {
-
+  int i;
   if (c->iskilling || !client_surface(c)->mapped)
     return;
 
@@ -1064,6 +1064,16 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
     set_rect_size(c->border[2], 0, 0);
     set_rect_size(c->border[3], 0, 0);
     return;
+  }
+
+  for(i=0;i< config.tag_rules_count;i++) {
+    if(c->tags & (1 << (config.tag_rules[i].id - 1)) && config.tag_rules[i].no_render_border) {
+      set_rect_size(c->border[0], 0, 0);
+      set_rect_size(c->border[1], 0, 0);
+      set_rect_size(c->border[2], 0, 0);
+      set_rect_size(c->border[3], 0, 0);
+      return;
+    }
   }
 
   wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
@@ -3105,9 +3115,9 @@ void createmon(struct wl_listener *listener, void *data) {
     m->pertag->smfacts[i] = default_smfact;
     m->pertag->ltidxs[i] = m->lt;
 
-    if (i > 0 && strlen(config.tags[i - 1].layout_name) > 0) {
+    if (i > 0 && strlen(config.tag_rules[i - 1].layout_name) > 0) {
       for (jk = 0; jk < LENGTH(layouts); jk++) {
-        if (strcmp(layouts[jk].name, config.tags[i - 1].layout_name) == 0) {
+        if (strcmp(layouts[jk].name, config.tag_rules[i - 1].layout_name) == 0) {
           m->pertag->ltidxs[i] = &layouts[jk];
         }
       }
