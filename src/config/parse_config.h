@@ -557,6 +557,8 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value, char *arg_v
     func = toggle_named_scratch;
     (*arg).v = strdup(arg_value);
     (*arg).v2 = strdup(arg_value2);
+    (*arg).ui = arg_value3 ? atoi(arg_value3) : 0;
+    (*arg).ui2 = arg_value4 ? atoi(arg_value4) : 0;
   } else {
     return NULL;
   }

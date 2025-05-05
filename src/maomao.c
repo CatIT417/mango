@@ -203,7 +203,7 @@ typedef struct Client Client;
 struct Client {
   /* Must keep these three elements in this order */
   unsigned int type; /* XDGShell or X11* */
-  struct wlr_box geom, pending, oldgeom, animainit_geom, overview_backup_geom,
+  struct wlr_box geom, pending, oldgeom,scratch_geom, animainit_geom, overview_backup_geom,
       current; /* layout-relative, includes border */
   Monitor *mon;
   struct wlr_scene_tree *scene;
@@ -1308,10 +1308,10 @@ void show_scratchpad(Client *c) {
   /* return if fullscreen */
   if (!c->isfloating) {
     setfloating(c, 1);
-    c->geom.width = c->mon->w.width * 0.7;
-    c->geom.height = c->mon->w.height * 0.8;
+    c->geom.width = c->scratch_geom.width ? c->scratch_geom.width: c->mon->w.width * 0.7;
+    c->geom.height = c->scratch_geom.height? c->scratch_geom.height : c->mon->w.height * 0.8;
     // 重新计算居中的坐标
-    c->geom = setclient_coordinate_center(c->geom, 0, 0);
+    c->geom = c->animainit_geom = c->animation.current = setclient_coordinate_center(c->geom, 0, 0);
     resize(c, c->geom, 0);
   }
   c->oldtags = selmon->tagset[selmon->seltags];
@@ -1493,6 +1493,9 @@ void toggle_named_scratch(const Arg *arg) {
       set_minized(c);
     }
   }
+
+  target_client->scratch_geom.width = arg->ui;
+  target_client->scratch_geom.height = arg->ui2;
 
   if(!target_client->is_in_scratchpad)
     set_minized(target_client);
