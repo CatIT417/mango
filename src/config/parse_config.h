@@ -1244,17 +1244,22 @@ void free_circle_layout(Config *config) {
 }
 
 void free_baked_points(void) {
-  if(baked_points_move)
+  if (baked_points_move) {
     free(baked_points_move);
-  if(baked_points_open)
+    baked_points_move = NULL;
+  }
+  if (baked_points_open) {
     free(baked_points_open);
-  if(baked_points_close)
+    baked_points_open = NULL;
+  }
+  if (baked_points_close) {
     free(baked_points_close);
-  if(baked_points_tag)
-  baked_points_move = NULL;
-  baked_points_open = NULL;
-  baked_points_close = NULL;
-  baked_points_tag = NULL;
+    baked_points_close = NULL;
+  }
+  if (baked_points_tag) {
+    free(baked_points_tag);
+    baked_points_tag = NULL;
+  }
 }
 
 void free_config(void) {
@@ -1581,7 +1586,12 @@ void parse_config(void) {
 
   char filename[1024];
 
+  free_config();
+
+  // 重置config结构体，确保所有指针初始化为NULL
   memset(&config, 0, sizeof(config));
+
+  // 初始化动态数组的指针为NULL，避免野指针
   config.window_rules = NULL;
   config.window_rules_count = 0;
   config.monitor_rules = NULL;
@@ -1594,6 +1604,14 @@ void parse_config(void) {
   config.axis_bindings_count = 0;
   config.gesture_bindings = NULL;
   config.gesture_bindings_count = 0;
+  config.exec = NULL;
+  config.exec_count = 0;
+  config.exec_once = NULL;
+  config.exec_once_count = 0;
+  config.scroller_proportion_preset = NULL;
+  config.scroller_proportion_preset_count = 0;
+  config.circle_layout = NULL;
+  config.circle_layout_count = 0;
 
   // 获取 MAOMAOCONFIG 环境变量
   const char *maomaoconfig = getenv("MAOMAOCONFIG");
@@ -1631,7 +1649,6 @@ void reload_config(const Arg *arg) {
   Monitor *m;
   int i;
   Keyboard *kb;
-  free_config();
   parse_config();
   init_baked_points();
   run_exec();
