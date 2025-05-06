@@ -1783,6 +1783,10 @@ void reload_config(const Arg *arg) {
       m->pertag->nmasters[i] = default_nmaster;
       m->pertag->mfacts[i] = default_mfact;
       m->pertag->smfacts[i] = default_smfact;
+      m->gappih = gappih;
+      m->gappiv = gappiv;
+      m->gappoh = gappoh;
+      m->gappov = gappov;
     }
   }
 

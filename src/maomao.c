@@ -3810,6 +3810,11 @@ void incigaps(const Arg *arg) {
           selmon->gappiv + arg->i);
 }
 
+void incogaps(const Arg *arg) {
+  setgaps(selmon->gappoh + arg->i, selmon->gappov + arg->i, selmon->gappih,
+          selmon->gappiv);
+}
+
 void incihgaps(const Arg *arg) {
   setgaps(selmon->gappoh, selmon->gappov, selmon->gappih + arg->i,
           selmon->gappiv);
@@ -3820,13 +3825,13 @@ void incivgaps(const Arg *arg) {
           selmon->gappiv + arg->i);
 }
 
-void incogaps(const Arg *arg) {
-  setgaps(selmon->gappoh + arg->i, selmon->gappov + arg->i, selmon->gappih,
+void incohgaps(const Arg *arg) {
+  setgaps(selmon->gappoh + arg->i, selmon->gappov, selmon->gappih,
           selmon->gappiv);
 }
 
-void incohgaps(const Arg *arg) {
-  setgaps(selmon->gappoh + arg->i, selmon->gappov, selmon->gappih,
+void incovgaps(const Arg *arg) {
+  setgaps(selmon->gappoh, selmon->gappov + arg->i, selmon->gappih,
           selmon->gappiv);
 }
 
@@ -3836,10 +3841,6 @@ void requestmonstate(struct wl_listener *listener, void *data) {
   updatemons(NULL, NULL);
 }
 
-void incovgaps(const Arg *arg) {
-  setgaps(selmon->gappoh, selmon->gappov + arg->i, selmon->gappih,
-          selmon->gappiv);
-}
 void inputdevice(struct wl_listener *listener, void *data) {
   /* This event is raised by the backend when a new input device becomes
    * available. */
@@ -5994,10 +5995,10 @@ void fibonacci(Monitor *mon, int s) {
   if (n == 0)
     return;
 
-  nx = mon->w.x + gappoh;
-  ny = mon->w.y + gappov;
-  nw = mon->w.width - 2 * gappoh;
-  nh = mon->w.height - 2 * gappov;
+  nx = mon->w.x + mon->gappoh;
+  ny = mon->w.y + mon->gappov;
+  nw = mon->w.width - 2 * mon->gappoh;
+  nh = mon->w.height - 2 * mon->gappov;
 
   wl_list_for_each(c, &clients, link) if (VISIBLEON(c, mon) && !c->isfloating &&
                                           !c->iskilling && !c->isfullscreen &&
@@ -6036,13 +6037,13 @@ void fibonacci(Monitor *mon, int s) {
 
       if (i == 0) {
         if (n != 1)
-          nw = (mon->w.width - 2 * gappoh) *
+          nw = (mon->w.width - 2 * mon->gappoh) *
                mon->pertag->mfacts[mon->pertag->curtag];
-        ny = mon->w.y + gappov;
+        ny = mon->w.y + mon->gappov;
       } else if (i == 1) {
-        nw = mon->w.width - 2 * gappoh - nw;
+        nw = mon->w.width - 2 * mon->gappoh - nw;
       } else if (i == 2)
-        nh = mon->w.height - 2 * gappov - nh;
+        nh = mon->w.height - 2 * mon->gappov - nh;
       i++;
     }
 
@@ -6057,8 +6058,8 @@ void fibonacci(Monitor *mon, int s) {
                                           !c->iskilling && !c->isfullscreen &&
                                           !c->ismaxmizescreen &&
                                           !c->animation.tagouting) {
-    gih = find_client_by_direction(c, dir_right, false, true) ? gappih : 0;
-    giv = find_client_by_direction(c, dir_down, false, true) ? gappiv : 0;
+    gih = find_client_by_direction(c, dir_right, false, true) ? mon->gappih : 0;
+    giv = find_client_by_direction(c, dir_down, false, true) ? mon->gappiv : 0;
     resize(c,
            (struct wlr_box){.x = c->geom.x,
                             .y = c->geom.y,
@@ -6188,7 +6189,7 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
   int focus_client_index = 0;
   bool need_scroller = false;
 
-  unsigned int max_client_width = m->w.width - 2 * scroller_structs - gappih;
+  unsigned int max_client_width = m->w.width - 2 * scroller_structs - m->gappih;
 
   // 第一次遍历，计算 n 的值
   wl_list_for_each(c, &clients, link) {
@@ -6223,9 +6224,9 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
 
   if (n == 1) {
     c = tempClients[0];
-    target_geom.height = m->w.height - 2 * gappov;
+    target_geom.height = m->w.height - 2 * m->gappov;
     target_geom.width =
-        (m->w.width - 2 * gappoh) * scroller_default_proportion_single;
+        (m->w.width - 2 * m->gappoh) * scroller_default_proportion_single;
     target_geom.x = m->w.x + (m->w.width - target_geom.width) / 2;
     target_geom.y = m->w.y + (m->w.height - target_geom.height) / 2;
     resize(c, target_geom, 0);
@@ -6263,7 +6264,7 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
     }
   }
 
-  target_geom.height = m->w.height - 2 * gappov;
+  target_geom.height = m->w.height - 2 * m->gappov;
   target_geom.width = max_client_width * c->scroller_proportion;
   target_geom.y = m->w.y + (m->w.height - target_geom.height) / 2;
 
@@ -6272,7 +6273,7 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
         ((!m->prevsel ||
           (m->prevsel->scroller_proportion * max_client_width) +
                   (root_client->scroller_proportion * max_client_width) >
-              m->w.width - 2 * scroller_structs - gappih) &&
+              m->w.width - 2 * scroller_structs - m->gappih) &&
          scroller_prefer_center)) {
       target_geom.x = m->w.x + (m->w.width - target_geom.width) / 2;
     } else {
@@ -6292,7 +6293,7 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
   for (i = 1; i <= focus_client_index; i++) {
     c = tempClients[focus_client_index - i];
     target_geom.width = max_client_width * c->scroller_proportion;
-    target_geom.x = tempClients[focus_client_index - i + 1]->geom.x - gappih -
+    target_geom.x = tempClients[focus_client_index - i + 1]->geom.x - m->gappih -
                     target_geom.width;
     resize(c, target_geom, 0);
   }
@@ -6300,7 +6301,7 @@ void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
   for (i = 1; i < n - focus_client_index; i++) {
     c = tempClients[focus_client_index + i];
     target_geom.width = max_client_width * c->scroller_proportion;
-    target_geom.x = tempClients[focus_client_index + i - 1]->geom.x + gappih +
+    target_geom.x = tempClients[focus_client_index + i - 1]->geom.x + m->gappih +
                     tempClients[focus_client_index + i - 1]->geom.width;
     resize(c, target_geom, 0);
   }
