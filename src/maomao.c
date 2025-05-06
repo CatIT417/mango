@@ -6992,9 +6992,9 @@ void view_in_mon(const Arg *arg, bool want_animation, Monitor *m) {
     if (arg->ui == ~0)
       m->pertag->curtag = 0;
     else {
-      for (i = 0; !(arg->ui & 1 << i) && arg->ui != 0; i++)
+      for (i = 0; !(arg->ui & 1 << i) && i <LENGTH(tags) && arg->ui != 0; i++)
         ;
-      m->pertag->curtag = i + 1;
+      m->pertag->curtag = i >= LENGTH(tags) ? LENGTH(tags) : i + 1;
     }
 
     m->pertag->prevtag =
@@ -7076,10 +7076,15 @@ void viewtoright_have_client(const Arg *arg) {
   if (!selmon || (target) == selmon->tagset[selmon->seltags])
     return;
   selmon->seltags ^= 1; /* toggle sel tagset */
+
+  int new_tag = selmon->pertag->curtag + n;
+  if (new_tag > LENGTH(tags))
+    new_tag = LENGTH(tags);
+
   if (target) {
     selmon->tagset[selmon->seltags] = target;
     selmon->pertag->prevtag = selmon->pertag->curtag;
-    selmon->pertag->curtag = selmon->pertag->curtag + n;
+    selmon->pertag->curtag = new_tag;
   } else {
     tmptag = selmon->pertag->prevtag;
     selmon->pertag->prevtag = selmon->pertag->curtag;
@@ -7150,10 +7155,15 @@ void viewtoleft_have_client(const Arg *arg) {
   if (!selmon || (target) == selmon->tagset[selmon->seltags])
     return;
   selmon->seltags ^= 1; /* toggle sel tagset */
+
+  int new_tag = selmon->pertag->curtag - n;
+  if (new_tag < 1)
+    new_tag = 1;
+
   if (target) {
     selmon->tagset[selmon->seltags] = target;
     selmon->pertag->prevtag = selmon->pertag->curtag;
-    selmon->pertag->curtag = selmon->pertag->curtag - n;
+    selmon->pertag->curtag = new_tag;
   } else {
     tmptag = selmon->pertag->prevtag;
     selmon->pertag->prevtag = selmon->pertag->curtag;
