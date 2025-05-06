@@ -1058,6 +1058,14 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
   if (c->iskilling || !client_surface(c)->mapped)
     return;
 
+  if(clip_box.width > c->animation.current.width) {
+    clip_box.width = c->animation.current.width;
+  }
+
+  if(clip_box.height > c->animation.current.height) {
+    clip_box.height = c->animation.current.height;
+  }
+
   if(!render_border) {
     set_rect_size(c->border[0], 0, 0);
     set_rect_size(c->border[1], 0, 0);
@@ -1094,22 +1102,21 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
                     clip_box.height - 2 * c->bw);
     } else if (c->animation.current.x + c->animation.current.width >
                c->mon->m.x + c->mon->m.width) {
-      set_rect_size(c->border[3], GEZERO(c->bw - offsetx),
+      set_rect_size(c->border[3], GEZERO(c->bw - (c->animation.current.x + c->animation.current.width - c->mon->m.x + c->mon->m.width)),
                     clip_box.height - 2 * c->bw);
     } else if (c->animation.current.y < c->mon->m.y) {
       set_rect_size(c->border[0], clip_box.width, GEZERO(c->bw - offsety));
     } else if (c->animation.current.y + c->animation.current.height >
                c->mon->m.y + c->mon->m.height) {
-      set_rect_size(c->border[1], clip_box.width, GEZERO(c->bw - offsety));
+      set_rect_size(c->border[1], clip_box.width, GEZERO(c->bw - (c->animation.current.y + c->animation.current.height - c->mon->m.y + c->mon->m.height)));
     }
   }
-
+  
   wlr_scene_node_set_position(&c->border[0]->node, offsetx, offsety);
   wlr_scene_node_set_position(&c->border[2]->node, offsetx, c->bw + offsety);
-  wlr_scene_node_set_position(&c->border[1]->node, offsetx,
-                              clip_box.height - c->bw + offsety);
-  wlr_scene_node_set_position(
-      &c->border[3]->node, clip_box.width - c->bw + offsetx, c->bw + offsety);
+  wlr_scene_node_set_position(&c->border[1]->node, offsetx, clip_box.height - c->bw + offsety);
+  wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw + offsetx,
+                              c->bw + offsety);
 }
 
 struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
@@ -1127,7 +1134,7 @@ struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
   if (ISTILED(c) || c->animation.tagining || c->animation.tagouted ||
       c->animation.tagouting) {
     if (c->animation.current.x <= c->mon->m.x) {
-      offsetx = c->mon->m.x - c->animation.current.x - c->bw;
+      offsetx = GEZERO(c->mon->m.x - c->animation.current.x);
       clip_box->x = clip_box->x + offsetx;
       clip_box->width = clip_box->width - offsetx;
     } else if (c->animation.current.x + c->animation.current.width >=
@@ -1139,7 +1146,7 @@ struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
     }
 
     if (c->animation.current.y <= c->mon->m.y) {
-      offsety = c->mon->m.y - c->animation.current.y - c->bw;
+      offsety = GEZERO(c->mon->m.y - c->animation.current.y);
       clip_box->y = clip_box->y + offsety;
       clip_box->height = clip_box->height - offsety;
     } else if (c->animation.current.y + c->animation.current.height >=
@@ -1160,6 +1167,14 @@ struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
   } else if (c->is_clip_to_hide && VISIBLEON(c, c->mon)) {
     c->is_clip_to_hide = false;
     wlr_scene_node_set_enabled(&c->scene->node, true);
+  }
+
+  if(clip_box->width > c->animation.current.width) {
+    clip_box->width = c->animation.current.width;
+  }
+
+  if(clip_box->height > c->animation.current.height) {
+    clip_box->height = c->animation.current.height;
   }
 
   return offset;
