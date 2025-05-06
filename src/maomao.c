@@ -3657,7 +3657,7 @@ void focusclient(Client *c, int lift) {
 
     // decide whether need to re-arrange
     if (c && selmon->prevsel && !selmon->prevsel->isfloating &&
-        selmon->prevsel->tags == c->tags && !c->isfloating &&
+        (selmon->prevsel->tags & selmon->tagset[selmon->seltags]) && (c->tags & selmon->tagset[selmon->seltags]) && !c->isfloating &&
         !c->isfullscreen &&
         strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
                "scroller") == 0) {
