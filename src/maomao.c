@@ -36,12 +36,10 @@
 #include <wlr/types/wlr_relative_pointer_v1.h>
 #include <wlr/util/region.h>
 #include <wordexp.h>
-// #include <wlr/types/wlr_idle.h>
 #include <wlr/types/wlr_cursor_shape_v1.h>
 #include <wlr/types/wlr_idle_inhibit_v1.h>
 #include <wlr/types/wlr_idle_notify_v1.h>
 #include <wlr/types/wlr_input_device.h>
-// #include <wlr/types/wlr_input_inhibitor.h>
 #include <wlr/types/wlr_keyboard.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output.h>
