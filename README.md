@@ -1,3 +1,21 @@
+# Maomaowm
+
+This project is developed based on [dwl](https://codeberg.org/dwl/dwl/),
+
+1. **Lightweight & Fast Build**  
+   - *Maomao* is as lightweight as *dwl*, and its build can be completed within 3 seconds. Despite this, *maomao* does not compromise on functionality.  
+
+2. **Feature Integration**  
+   - In addition to inheriting *dwl*'s core features and common functions found in other compositors, *maomao* also supports unique functionalities from other projects. These include:  
+     - Hyprland’s *animations*,  
+     - Sway’s *additional protocols*,  
+     - Labwc’s *text input method*,  
+     - Niri’s *scrolling layout*.  
+   - However, these are implemented in a deliberately lightweight and simplistic manner to avoid bloated code.  
+
+3. **Philosophy**  
+   - *Maomao* has no rigid design ideology—you could call it an eclectic hybrid of various compositors.
+
 Master-Stack Layout
 
 https://github.com/user-attachments/assets/a9d4776e-b50b-48fb-94ce-651d8a749b8a
@@ -6,15 +24,8 @@ Scroller Layout
 
 https://github.com/user-attachments/assets/c9bf9415-fad1-4400-bcdc-3ad2d76de85a
 
-# Maomaowm
 
-This project is developed based on [dwl](https://codeberg.org/dwl/dwl/),
-it is basically compatible with all `dwm` features.
-In addition, it is added many operation that supported in `hyprland`, such as `smooth and customizable animation`、`External configuration that can be hot overloaded`,`pin mode`,`maximize window` etc...
-
-See below for more features.
-
-# separate window layout for each workspace(tags), with separate workspace parameters
+# maomao based on tags instead of workspace, so it support separate window layout for each tags, with separate tags parameters
 
 ## support layout
 
