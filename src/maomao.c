@@ -333,7 +333,7 @@ typedef struct {
 
 typedef struct {
   const char *symbol;
-  void (*arrange)(Monitor *, unsigned int, unsigned int);
+  void (*arrange)(Monitor *);
   const char *name;
 } Layout;
 
@@ -525,7 +525,7 @@ static void locksession(struct wl_listener *listener, void *data);
 static void mapnotify(struct wl_listener *listener, void *data);
 static void maximizenotify(struct wl_listener *listener, void *data);
 static void minimizenotify(struct wl_listener *listener, void *data);
-static void monocle(Monitor *m, unsigned int gappo, unsigned int gappi);
+static void monocle(Monitor *m);
 static void motionabsolute(struct wl_listener *listener, void *data);
 static void motionnotify(uint32_t time, struct wlr_input_device *device,
                          double sx, double sy, double sx_unaccel,
@@ -564,12 +564,12 @@ static void setsel(struct wl_listener *listener, void *data);
 static void setup(void);
 static void startdrag(struct wl_listener *listener, void *data);
 
-static void tile(Monitor *m, unsigned int gappo, unsigned int uappi);
-static void overview(Monitor *m, unsigned int gappo, unsigned int gappi);
-static void grid(Monitor *m, unsigned int gappo, unsigned int uappi);
-static void scroller(Monitor *m, unsigned int gappo, unsigned int uappi);
-static void dwindle(Monitor *mon, unsigned int gappo, unsigned int gappi);
-static void spiral(Monitor *mon, unsigned int gappo, unsigned int gappi);
+static void tile(Monitor *m);
+static void overview(Monitor *m);
+static void grid(Monitor *m);
+static void scroller(Monitor *m);
+static void dwindle(Monitor *mon);
+static void spiral(Monitor *mon);
 static void unlocksession(struct wl_listener *listener, void *data);
 static void unmaplayersurfacenotify(struct wl_listener *listener, void *data);
 static void unmapnotify(struct wl_listener *listener, void *data);
@@ -1930,9 +1930,9 @@ arrange(Monitor *m, bool want_animation) {
   // 		(c = focustop(m)) && c->isfullscreen);
 
   if (m->isoverview) {
-    overviewlayout.arrange(m, 0, 0);
+    overviewlayout.arrange(m);
   } else if (m && m->pertag->ltidxs[m->pertag->curtag]->arrange) {
-    m->pertag->ltidxs[m->pertag->curtag]->arrange(m, gappoh, 0);
+    m->pertag->ltidxs[m->pertag->curtag]->arrange(m);
   }
 
   motionnotify(0, NULL, 0, 0, 0, 0);
@@ -4378,7 +4378,7 @@ minimizenotify(struct wl_listener *listener, void *data) {
 }
 
 void // 17
-monocle(Monitor *m, unsigned int gappo, unsigned int gappi) {
+monocle(Monitor *m) {
   Client *c;
   int n = 0;
 
@@ -5995,8 +5995,8 @@ void tagmon(const Arg *arg) {
   }
 }
 
-void overview(Monitor *m, unsigned int gappo, unsigned int gappi) {
-  grid(m, overviewgappo, overviewgappi);
+void overview(Monitor *m) {
+  grid(m);
 }
 
 void fibonacci(Monitor *mon, int s) {
@@ -6118,16 +6118,16 @@ void fibonacci(Monitor *mon, int s) {
   }
 }
 
-void dwindle(Monitor *mon, unsigned int gappo, unsigned int gappi) {
+void dwindle(Monitor *mon) {
   fibonacci(mon, 1);
 }
 
-void spiral(Monitor *mon, unsigned int gappo, unsigned int gappi) {
+void spiral(Monitor *mon) {
   fibonacci(mon, 0);
 }
 
 // 网格布局窗口大小和位置计算
-void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
+void grid(Monitor *m) {
   unsigned int i, n;
   unsigned int cx, cy, cw, ch;
   unsigned int dx;
@@ -6151,8 +6151,8 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
     wl_list_for_each(c, &clients, link) {
       if (VISIBLEON(c, c->mon) && !c->iskilling && !c->animation.tagouting &&
           c->mon == selmon) {
-        cw = (m->w.width - 2 * gappo) * 0.7;
-        ch = (m->w.height - 2 * gappo) * 0.8;
+        cw = (m->w.width - 2 * overviewgappo) * 0.7;
+        ch = (m->w.height - 2 * overviewgappo) * 0.8;
         c->geom.x = m->w.x + (m->w.width - cw) / 2;
         c->geom.y = m->w.y + (m->w.height - ch) / 2;
         c->geom.width = cw - 2 * c->bw;
@@ -6164,21 +6164,21 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
   }
 
   if (n == 2) {
-    cw = (m->w.width - 2 * gappo - gappi) / 2;
-    ch = (m->w.height - 2 * gappo) * 0.65;
+    cw = (m->w.width - 2 * overviewgappo - overviewgappi) / 2;
+    ch = (m->w.height - 2 * overviewgappo) * 0.65;
     i = 0;
     wl_list_for_each(c, &clients, link) {
       if (VISIBLEON(c, c->mon) && !c->iskilling && !c->animation.tagouting &&
           c->mon == selmon) {
         if (i == 0) {
-          c->geom.x = m->w.x + gappo;
-          c->geom.y = m->w.y + (m->w.height - ch) / 2 + gappo;
+          c->geom.x = m->w.x + overviewgappo;
+          c->geom.y = m->w.y + (m->w.height - ch) / 2 + overviewgappo;
           c->geom.width = cw - 2 * c->bw;
           c->geom.height = ch - 2 * c->bw;
           resize(c, c->geom, 0);
         } else if (i == 1) {
-          c->geom.x = m->w.x + cw + gappo + gappi;
-          c->geom.y = m->w.y + (m->w.height - ch) / 2 + gappo;
+          c->geom.x = m->w.x + cw + overviewgappo + overviewgappi;
+          c->geom.y = m->w.y + (m->w.height - ch) / 2 + overviewgappo;
           c->geom.width = cw - 2 * c->bw;
           c->geom.height = ch - 2 * c->bw;
           resize(c, c->geom, 0);
@@ -6198,13 +6198,13 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
   rows = (cols && (cols - 1) * cols >= n) ? cols - 1 : cols;
 
   // 计算每个客户端的高度和宽度
-  ch = (m->w.height - 2 * gappo - (rows - 1) * gappi) / rows;
-  cw = (m->w.width - 2 * gappo - (cols - 1) * gappi) / cols;
+  ch = (m->w.height - 2 * overviewgappo - (rows - 1) * overviewgappi) / rows;
+  cw = (m->w.width - 2 * overviewgappo - (cols - 1) * overviewgappi) / cols;
 
   // 处理多余的列
   overcols = n % cols;
   if (overcols) {
-    dx = (m->w.width - overcols * cw - (overcols - 1) * gappi) / 2 - gappo;
+    dx = (m->w.width - overcols * cw - (overcols - 1) * overviewgappi) / 2 - overviewgappo;
   }
 
   // 调整每个客户端的位置和大小
@@ -6212,13 +6212,13 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
   wl_list_for_each(c, &clients, link) {
     if (VISIBLEON(c, c->mon) && !c->iskilling && !c->animation.tagouting &&
         c->mon == selmon) {
-      cx = m->w.x + (i % cols) * (cw + gappi);
-      cy = m->w.y + (i / cols) * (ch + gappi);
+      cx = m->w.x + (i % cols) * (cw + overviewgappi);
+      cy = m->w.y + (i / cols) * (ch + overviewgappi);
       if (overcols && i >= n - overcols) {
         cx += dx;
       }
-      c->geom.x = cx + gappo;
-      c->geom.y = cy + gappo;
+      c->geom.x = cx + overviewgappo;
+      c->geom.y = cy + overviewgappo;
       c->geom.width = cw - 2 * c->bw;
       c->geom.height = ch - 2 * c->bw;
       resize(c, c->geom, 0);
@@ -6228,7 +6228,7 @@ void grid(Monitor *m, unsigned int gappo, unsigned int gappi) {
 }
 
 // 滚动布局
-void scroller(Monitor *m, unsigned int gappo, unsigned int gappi) {
+void scroller(Monitor *m) {
   unsigned int i, n;
 
   Client *c, *root_client = NULL;
@@ -6547,7 +6547,7 @@ void toggleoverview(const Arg *arg) {
   }
 }
 
-void tile(Monitor *m, unsigned int gappo, unsigned int uappi) {
+void tile(Monitor *m) {
   unsigned int i, n = 0, h, r, oe = enablegaps, ie = enablegaps, mw, my, ty;
   Client *c;
 
