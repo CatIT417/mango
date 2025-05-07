@@ -6669,7 +6669,7 @@ void toggletag(const Arg *arg) {
   if (newtags) {
     sel->tags = newtags;
     focusclient(focustop(selmon), 1);
-    arrange(selmon, true);
+    arrange(selmon, false);
   }
   printstatus();
 }
