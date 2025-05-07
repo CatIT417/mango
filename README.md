@@ -3,7 +3,7 @@
 This project is developed based on [dwl](https://codeberg.org/dwl/dwl/),
 
 1. **Lightweight & Fast Build**  
-   - *Maomao* is as lightweight as *dwl*, and its build can be completed within 3 seconds. Despite this, *maomao* does not compromise on functionality.  
+   - *Maomao* is as lightweight as *dwl*, and its build can be completed within few seconds. Despite this, *maomao* does not compromise on functionality.  
 
 2. **Feature Integration**  
    - In addition to inheriting *dwl*'s core features and common functions found in other compositors, *maomao* also supports unique functionalities from other projects. These include:  
