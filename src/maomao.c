@@ -6002,89 +6002,119 @@ void overview(Monitor *m, unsigned int gappo, unsigned int gappi) {
 void fibonacci(Monitor *mon, int s) {
   unsigned int i = 0, n = 0, nx, ny, nw, nh;
   Client *c;
-  unsigned int cur_gappih = enablegaps? mon->gappih : 0;
-  unsigned int cur_gappiv = enablegaps? mon->gappiv : 0;
-  unsigned int cur_gappoh = enablegaps? mon->gappoh : 0;
-  unsigned int cur_gappov = enablegaps? mon->gappov : 0;
+  unsigned int cur_gappih = enablegaps ? mon->gappih : 0;
+  unsigned int cur_gappiv = enablegaps ? mon->gappiv : 0;
+  unsigned int cur_gappoh = enablegaps ? mon->gappoh : 0;
+  unsigned int cur_gappov = enablegaps ? mon->gappov : 0;
 
-  wl_list_for_each(c, &clients, link) if (VISIBLEON(c, mon) && !c->isfloating &&
-                                          !c->iskilling && !c->isfullscreen &&
-                                          !c->ismaxmizescreen &&
-                                          !c->animation.tagouting) n++;
+  // Count visible clients
+  wl_list_for_each(c, &clients, link) 
+      if (VISIBLEON(c, mon) && !c->isfloating && !c->iskilling && 
+          !c->isfullscreen && !c->ismaxmizescreen && !c->animation.tagouting) 
+          n++;
+  
   if (n == 0)
-    return;
+      return;
 
+  // Initial dimensions including outer gaps
   nx = mon->w.x + cur_gappoh;
   ny = mon->w.y + cur_gappov;
   nw = mon->w.width - 2 * cur_gappoh;
   nh = mon->w.height - 2 * cur_gappov;
 
-  wl_list_for_each(c, &clients, link) if (VISIBLEON(c, mon) && !c->isfloating &&
-                                          !c->iskilling && !c->isfullscreen &&
-                                          !c->ismaxmizescreen &&
-                                          !c->animation.tagouting) {
-    if ((i % 2 && nh / 2 > 2 * c->bw) || (!(i % 2) && nw / 2 > 2 * c->bw)) {
-      if (i < n - 1) {
-        if (i % 2) {
-          if (i == 1) {
-            nh = nh * c->mon->pertag->smfacts[selmon->pertag->curtag];
-          } else
-            nh /= 2;
-        } else
-          nw /= 2;
-        if ((i % 4) == 2 && !s)
-          nx += nw;
-        else if ((i % 4) == 3 && !s)
-          ny += nh;
+  // First pass: calculate client geometries
+  wl_list_for_each(c, &clients, link) {
+      if (!VISIBLEON(c, mon) || c->isfloating || c->iskilling || 
+          c->isfullscreen || c->ismaxmizescreen || c->animation.tagouting)
+          continue;
+
+      if ((i % 2 && nh / 2 > 2 * c->bw) || (!(i % 2) && nw / 2 > 2 * c->bw)) {
+          if (i < n - 1) {
+              if (i % 2) {
+                  if (i == 1) {
+                      nh = nh * mon->pertag->smfacts[mon->pertag->curtag];
+                  } else {
+                      nh = (nh - cur_gappiv) / 2;
+                  }
+              } else {
+                  nw = (nw - cur_gappih) / 2;
+              }
+              
+              if ((i % 4) == 2 && !s)
+                  nx += nw + cur_gappih;
+              else if ((i % 4) == 3 && !s)
+                  ny += nh + cur_gappiv;
+          }
+
+          if ((i % 4) == 0) {
+              if (s)
+                  ny += nh + cur_gappiv;
+              else
+                  ny -= nh + cur_gappiv;
+          } else if ((i % 4) == 1)
+              nx += nw + cur_gappih;
+          else if ((i % 4) == 2)
+              ny += nh + cur_gappiv;
+          else if ((i % 4) == 3) {
+              if (s)
+                  nx += nw + cur_gappih;
+              else
+                  nx -= nw + cur_gappih;
+          }
+
+          if (i == 0) {
+              if (n != 1)
+                  nw = (mon->w.width - 2 * cur_gappoh) * mon->pertag->mfacts[mon->pertag->curtag];
+              ny = mon->w.y + cur_gappov;
+          } else if (i == 1) {
+              nw = mon->w.width - 2 * cur_gappoh - nw - cur_gappih;
+          } else if (i == 2) {
+              nh = mon->w.height - 2 * cur_gappov - nh - cur_gappiv;
+          }
+          i++;
       }
 
-      if ((i % 4) == 0) {
-        if (s)
-          ny += nh;
-        else
-          ny -= nh;
-      } else if ((i % 4) == 1)
-        nx += nw;
-      else if ((i % 4) == 2)
-        ny += nh;
-      else if ((i % 4) == 3) {
-        if (s)
-          nx += nw;
-        else
-          nx -= nw;
-      }
-
-      if (i == 0) {
-        if (n != 1)
-          nw = (mon->w.width - 2 * cur_gappoh) *
-               mon->pertag->mfacts[mon->pertag->curtag];
-        ny = mon->w.y + cur_gappov;
-      } else if (i == 1) {
-        nw = mon->w.width - 2 * cur_gappoh - nw;
-      } else if (i == 2)
-        nh = mon->w.height - 2 * cur_gappov - nh;
-      i++;
-    }
-
-    c->geom = (struct wlr_box){.x = nx, .y = ny, .width = nw, .height = nh};
+      c->geom = (struct wlr_box){.x = nx, .y = ny, .width = nw, .height = nh};
   }
 
-  unsigned int gih, giv;
-  const Arg *dir_down = &(Arg){.i = DOWN};
-  const Arg *dir_right = &(Arg){.i = RIGHT};
+  // Second pass: apply gaps between clients
+  wl_list_for_each(c, &clients, link) {
+      if (!VISIBLEON(c, mon) || c->isfloating || c->iskilling || 
+          c->isfullscreen || c->ismaxmizescreen || c->animation.tagouting)
+          continue;
 
-  wl_list_for_each(c, &clients, link) if (VISIBLEON(c, mon) && !c->isfloating &&
-                                          !c->iskilling && !c->isfullscreen &&
-                                          !c->ismaxmizescreen &&
-                                          !c->animation.tagouting) {
-    gih = find_client_by_direction(c, dir_right, false, true) ? cur_gappih : 0;
-    giv = find_client_by_direction(c, dir_down, false, true) ? cur_gappiv : 0;
-    resize(c,
-           (struct wlr_box){.x = c->geom.x,
-                            .y = c->geom.y,
-                            .width = c->geom.width - gih,
-                            .height = c->geom.height - giv},
-           0);
+      unsigned int right_gap = 0;
+      unsigned int bottom_gap = 0;
+      Client *nc;
+
+      wl_list_for_each(nc, &clients, link) {
+          if (!VISIBLEON(nc, mon) || nc->isfloating || nc->iskilling || 
+              nc->isfullscreen || nc->ismaxmizescreen || nc->animation.tagouting)
+              continue;
+
+          if (c == nc) continue;
+
+          // Check for right neighbor
+          if (c->geom.y == nc->geom.y && 
+              c->geom.x + c->geom.width == nc->geom.x) {
+              right_gap = cur_gappih;
+          }
+
+          // Check for bottom neighbor
+          if (c->geom.x == nc->geom.x && 
+              c->geom.y + c->geom.height == nc->geom.y) {
+              bottom_gap = cur_gappiv;
+          }
+      }
+
+      resize(c,
+             (struct wlr_box){
+                 .x = c->geom.x,
+                 .y = c->geom.y,
+                 .width = c->geom.width - right_gap,
+                 .height = c->geom.height - bottom_gap
+             },
+             0);
   }
 }
 
