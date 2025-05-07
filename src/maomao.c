@@ -4128,8 +4128,6 @@ static bool scene_node_snapshot(struct wlr_scene_node *node, int lx, int ly,
     // Effects
     wlr_scene_buffer_set_opacity(snapshot_buffer, scene_buffer->opacity);
 
-    wlr_scene_buffer_set_opacity(snapshot_buffer, scene_buffer->opacity);
-
     snapshot_buffer->node.data = scene_buffer->node.data;
 
     struct wlr_scene_surface *scene_surface =
