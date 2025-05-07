@@ -421,7 +421,7 @@ arrange(Monitor *m,
 static void arrangelayer(Monitor *m, struct wl_list *list,
                          struct wlr_box *usable_area, int exclusive);
 static void arrangelayers(Monitor *m);
-static char* autostartexec(char*, size_t); // 自启动命令执行
+static char* get_autostart_path(char*, size_t); // 自启动命令执行
 static void axisnotify(struct wl_listener *listener,
                        void *data); // 滚轮事件处理
 static void buttonpress(struct wl_listener *listener,
@@ -2298,7 +2298,7 @@ void arrangelayers(Monitor *m) {
   }
 }
 
-char* autostartexec(char *autostart_path, size_t buf_size) {
+char* get_autostart_path(char *autostart_path, size_t buf_size) {
   const char *maomaoconfig = getenv("MAOMAOCONFIG");
 
   if (maomaoconfig && maomaoconfig[0] != '\0') {
@@ -5151,7 +5151,7 @@ run(char *startup_cmd) {
   /* Now that the socket exists and the backend is started, run the startup
    * command */
   if(!startup_cmd)
-    startup_cmd = autostartexec(autostart_temp_path, sizeof(autostart_temp_path));
+    startup_cmd = get_autostart_path(autostart_temp_path, sizeof(autostart_temp_path));
   if (startup_cmd) {
 		int piperw[2];
 		if (pipe(piperw) < 0)
