@@ -89,8 +89,8 @@ typedef struct {
 } GestureBinding;
 
 typedef struct {
-  int id;                      // 标签ID (1-9)
-  char* layout_name;       // 布局名称
+  int id;            // 标签ID (1-9)
+  char *layout_name; // 布局名称
   int no_render_border;
 } ConfigTagRule;
 
@@ -177,8 +177,8 @@ typedef struct {
 
   char autostart[3][256];
 
-  ConfigTagRule *tag_rules;    // 动态数组
-  int tag_rules_count;         // 数量
+  ConfigTagRule *tag_rules; // 动态数组
+  int tag_rules_count;      // 数量
 
   ConfigWinRule *window_rules;
   int window_rules_count;
@@ -420,16 +420,17 @@ void convert_hex_to_rgba(float *color, unsigned long int hex) {
 
 unsigned int parse_num_type(char *str) {
   switch (str[0]) {
-    case '-':
-      return NUM_TYPE_MINUS;
-    case '+':
-      return NUM_TYPE_PLUS;
-    default:
-      return NUM_TYPE_DEFAULT;
+  case '-':
+    return NUM_TYPE_MINUS;
+  case '+':
+    return NUM_TYPE_PLUS;
+  default:
+    return NUM_TYPE_DEFAULT;
   }
 }
 
-FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value, char *arg_value2, char *arg_value3, char *arg_value4) {
+FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
+                         char *arg_value2, char *arg_value3, char *arg_value4) {
 
   FuncType func = NULL;
   (*arg).v = NULL;
@@ -557,14 +558,18 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value, char *arg_v
     func = resizewin;
     (*arg).ui = parse_num_type(arg_value);
     (*arg).ui2 = parse_num_type(arg_value2);
-    (*arg).i = (*arg).ui == NUM_TYPE_DEFAULT ? atoi(arg_value) : atoi(arg_value+1);
-    (*arg).i2 = (*arg).ui2 == NUM_TYPE_DEFAULT ? atoi(arg_value2) : atoi(arg_value2+1);
+    (*arg).i =
+        (*arg).ui == NUM_TYPE_DEFAULT ? atoi(arg_value) : atoi(arg_value + 1);
+    (*arg).i2 = (*arg).ui2 == NUM_TYPE_DEFAULT ? atoi(arg_value2)
+                                               : atoi(arg_value2 + 1);
   } else if (strcmp(func_name, "movewin") == 0) {
     func = movewin;
     (*arg).ui = parse_num_type(arg_value);
     (*arg).ui2 = parse_num_type(arg_value2);
-    (*arg).i = (*arg).ui == NUM_TYPE_DEFAULT ? atoi(arg_value) : atoi(arg_value+1);
-    (*arg).i2 = (*arg).ui2 == NUM_TYPE_DEFAULT ? atoi(arg_value2) : atoi(arg_value2+1);
+    (*arg).i =
+        (*arg).ui == NUM_TYPE_DEFAULT ? atoi(arg_value) : atoi(arg_value + 1);
+    (*arg).i2 = (*arg).ui2 == NUM_TYPE_DEFAULT ? atoi(arg_value2)
+                                               : atoi(arg_value2 + 1);
   } else if (strcmp(func_name, "toggle_named_scratch") == 0) {
     func = toggle_named_scratch;
     (*arg).v = strdup(arg_value);
@@ -580,7 +585,7 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value, char *arg_v
 void run_exec() {
   Arg arg;
 
-  for(int i = 0; i < config.exec_count; i++) {
+  for (int i = 0; i < config.exec_count; i++) {
     arg.v = config.exec[i];
     spawn(&arg);
   }
@@ -589,7 +594,7 @@ void run_exec() {
 void run_exec_once() {
   Arg arg;
 
-  for(int i = 0; i < config.exec_once_count; i++) {
+  for (int i = 0; i < config.exec_once_count; i++) {
     arg.v = config.exec_once[i];
     spawn(&arg);
   }
@@ -917,11 +922,12 @@ void parse_config_line(Config *config, const char *line) {
       fprintf(stderr, "Error: Invalid autostart format: %s\n", value);
     }
   } else if (strcmp(key, "tags") == 0) {
-    config->tag_rules = realloc(config->tag_rules,
-                              (config->tag_rules_count + 1) * sizeof(ConfigTagRule));
+    config->tag_rules =
+        realloc(config->tag_rules,
+                (config->tag_rules_count + 1) * sizeof(ConfigTagRule));
     if (!config->tag_rules) {
-        fprintf(stderr, "Error: Failed to allocate memory for tag rules\n");
-        return;
+      fprintf(stderr, "Error: Failed to allocate memory for tag rules\n");
+      return;
     }
 
     ConfigTagRule *rule = &config->tag_rules[config->tag_rules_count];
@@ -933,23 +939,23 @@ void parse_config_line(Config *config, const char *line) {
 
     char *token = strtok(value, ",");
     while (token != NULL) {
-        char *colon = strchr(token, ':');
-        if (colon != NULL) {
-            *colon = '\0';
-            char *key = token;
-            char *val = colon + 1;
+      char *colon = strchr(token, ':');
+      if (colon != NULL) {
+        *colon = '\0';
+        char *key = token;
+        char *val = colon + 1;
 
-            if (strcmp(key, "id") == 0) {
-                rule->id = atoi(val);
-            } else if (strcmp(key, "layout_name") == 0) {
-                rule->layout_name = strdup(val);
-            } else if (strcmp(key, "no_render_border") == 0) {
-                rule->no_render_border = atoi(val);
-            }
+        if (strcmp(key, "id") == 0) {
+          rule->id = atoi(val);
+        } else if (strcmp(key, "layout_name") == 0) {
+          rule->layout_name = strdup(val);
+        } else if (strcmp(key, "no_render_border") == 0) {
+          rule->no_render_border = atoi(val);
         }
-        token = strtok(NULL, ",");
+      }
+      token = strtok(NULL, ",");
     }
-    
+
     config->tag_rules_count++;
   } else if (strcmp(key, "windowrule") == 0) {
     config->window_rules =
@@ -1078,43 +1084,45 @@ void parse_config_line(Config *config, const char *line) {
   } else if (strncmp(key, "env", 3) == 0) {
 
     char env_type[256], env_value[256];
-    if (sscanf(value, "%[^,],%[^\n]", env_type,env_value) < 2) {
+    if (sscanf(value, "%[^,],%[^\n]", env_type, env_value) < 2) {
       fprintf(stderr, "Error: Invalid bind format: %s\n", value);
       return;
     }
     setenv(env_type, env_value, 1);
 
   } else if (strncmp(key, "exec", 9) == 0) {
-    char **new_exec = realloc(config->exec, (config->exec_count + 1) * sizeof(char *));
+    char **new_exec =
+        realloc(config->exec, (config->exec_count + 1) * sizeof(char *));
     if (!new_exec) {
-        fprintf(stderr, "Error: Failed to allocate memory for exec\n");
-        return;
+      fprintf(stderr, "Error: Failed to allocate memory for exec\n");
+      return;
     }
     config->exec = new_exec;
-    
+
     config->exec[config->exec_count] = strdup(value);
     if (!config->exec[config->exec_count]) {
-        fprintf(stderr, "Error: Failed to duplicate exec string\n");
-        return;
+      fprintf(stderr, "Error: Failed to duplicate exec string\n");
+      return;
     }
-    
+
     config->exec_count++;
 
   } else if (strncmp(key, "exec-once", 9) == 0) {
 
-    char **new_exec_once = realloc(config->exec_once, (config->exec_once_count + 1) * sizeof(char *));
+    char **new_exec_once = realloc(
+        config->exec_once, (config->exec_once_count + 1) * sizeof(char *));
     if (!new_exec_once) {
-        fprintf(stderr, "Error: Failed to allocate memory for exec_once\n");
-        return;
+      fprintf(stderr, "Error: Failed to allocate memory for exec_once\n");
+      return;
     }
     config->exec_once = new_exec_once;
-    
+
     config->exec_once[config->exec_once_count] = strdup(value);
     if (!config->exec_once[config->exec_once_count]) {
-        fprintf(stderr, "Error: Failed to duplicate exec_once string\n");
-        return;
+      fprintf(stderr, "Error: Failed to duplicate exec_once string\n");
+      return;
     }
-    
+
     config->exec_once_count++;
 
   } else if (strncmp(key, "bind", 4) == 0) {
@@ -1129,9 +1137,12 @@ void parse_config_line(Config *config, const char *line) {
     KeyBinding *binding = &config->key_bindings[config->key_bindings_count];
     memset(binding, 0, sizeof(KeyBinding));
 
-    char mod_str[256], keysym_str[256], func_name[256], arg_value[256] = "none",arg_value2[256] = "none", arg_value3[256] = "none", arg_value4[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str, keysym_str,
-               func_name, arg_value, arg_value2, arg_value3, arg_value4) < 3) {
+    char mod_str[256], keysym_str[256], func_name[256],
+        arg_value[256] = "none", arg_value2[256] = "none",
+        arg_value3[256] = "none", arg_value4[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str,
+               keysym_str, func_name, arg_value, arg_value2, arg_value3,
+               arg_value4) < 3) {
       fprintf(stderr, "Error: Invalid bind format: %s\n", value);
       return;
     }
@@ -1140,7 +1151,8 @@ void parse_config_line(Config *config, const char *line) {
     binding->keysym = parse_keysym(keysym_str);
     binding->arg.v = NULL;
     binding->arg.v2 = NULL;
-    binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2, arg_value3, arg_value4);
+    binding->func = parse_func_name(func_name, &binding->arg, arg_value,
+                                    arg_value2, arg_value3, arg_value4);
     if (!binding->func) {
       if (binding->arg.v) {
         free(binding->arg.v);
@@ -1168,9 +1180,12 @@ void parse_config_line(Config *config, const char *line) {
         &config->mouse_bindings[config->mouse_bindings_count];
     memset(binding, 0, sizeof(MouseBinding));
 
-    char mod_str[256], button_str[256], func_name[256], arg_value[256] = "none", arg_value2[256] = "none", arg_value3[256] = "none", arg_value4[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str, button_str,
-               func_name, arg_value, arg_value2, arg_value3, arg_value4) < 3) {
+    char mod_str[256], button_str[256], func_name[256],
+        arg_value[256] = "none", arg_value2[256] = "none",
+        arg_value3[256] = "none", arg_value4[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str,
+               button_str, func_name, arg_value, arg_value2, arg_value3,
+               arg_value4) < 3) {
       fprintf(stderr, "Error: Invalid mousebind format: %s\n", value);
       return;
     }
@@ -1179,7 +1194,8 @@ void parse_config_line(Config *config, const char *line) {
     binding->button = parse_button(button_str);
     binding->arg.v = NULL;
     binding->arg.v2 = NULL;
-    binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2, arg_value3, arg_value4);
+    binding->func = parse_func_name(func_name, &binding->arg, arg_value,
+                                    arg_value2, arg_value3, arg_value4);
     if (!binding->func) {
       if (binding->arg.v) {
         free(binding->arg.v);
@@ -1205,9 +1221,12 @@ void parse_config_line(Config *config, const char *line) {
     AxisBinding *binding = &config->axis_bindings[config->axis_bindings_count];
     memset(binding, 0, sizeof(AxisBinding));
 
-    char mod_str[256], dir_str[256], func_name[256], arg_value[256] = "none", arg_value2[256] = "none", arg_value3[256] = "none", arg_value4[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str, dir_str, func_name,
-               arg_value, arg_value2, arg_value3, arg_value4) < 3) {
+    char mod_str[256], dir_str[256], func_name[256],
+        arg_value[256] = "none", arg_value2[256] = "none",
+        arg_value3[256] = "none", arg_value4[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str,
+               dir_str, func_name, arg_value, arg_value2, arg_value3,
+               arg_value4) < 3) {
       fprintf(stderr, "Error: Invalid axisbind format: %s\n", value);
       return;
     }
@@ -1216,7 +1235,8 @@ void parse_config_line(Config *config, const char *line) {
     binding->dir = parse_direction(dir_str);
     binding->arg.v = NULL;
     binding->arg.v2 = NULL;
-    binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2, arg_value3, arg_value4);
+    binding->func = parse_func_name(func_name, &binding->arg, arg_value,
+                                    arg_value2, arg_value3, arg_value4);
 
     if (!binding->func) {
       if (binding->arg.v) {
@@ -1247,9 +1267,11 @@ void parse_config_line(Config *config, const char *line) {
     memset(binding, 0, sizeof(GestureBinding));
 
     char mod_str[256], motion_str[256], fingers_count_str[256], func_name[256],
-        arg_value[256] = "none", arg_value2[256] = "none", arg_value3[256] = "none", arg_value4[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str, motion_str,
-               fingers_count_str, func_name, arg_value, arg_value2, arg_value3, arg_value4) < 4) {
+        arg_value[256] = "none", arg_value2[256] = "none",
+        arg_value3[256] = "none", arg_value4[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]",
+               mod_str, motion_str, fingers_count_str, func_name, arg_value,
+               arg_value2, arg_value3, arg_value4) < 4) {
       fprintf(stderr, "Error: Invalid gesturebind format: %s\n", value);
       return;
     }
@@ -1259,7 +1281,8 @@ void parse_config_line(Config *config, const char *line) {
     binding->fingers_count = atoi(fingers_count_str);
     binding->arg.v = NULL;
     binding->arg.v2 = NULL;
-    binding->func = parse_func_name(func_name, &binding->arg, arg_value, arg_value2, arg_value3, arg_value4);
+    binding->func = parse_func_name(func_name, &binding->arg, arg_value,
+                                    arg_value2, arg_value3, arg_value4);
 
     if (!binding->func) {
       if (binding->arg.v) {
@@ -1335,7 +1358,7 @@ void free_baked_points(void) {
 void free_config(void) {
   // 释放内存
   int i;
-  
+
   // 释放 window_rules
   if (config.window_rules) {
     for (int i = 0; i < config.window_rules_count; i++) {
@@ -1471,7 +1494,7 @@ void free_config(void) {
     config.scroller_proportion_preset_count = 0;
   }
 
-  if(config.cursor_theme) {
+  if (config.cursor_theme) {
     free(config.cursor_theme);
     config.cursor_theme = NULL;
   }
@@ -1481,7 +1504,6 @@ void free_config(void) {
 
   // 释放动画资源
   free_baked_points();
-
 }
 
 void override_config(void) {
@@ -1769,7 +1791,7 @@ void reload_config(const Arg *arg) {
     }
   }
 
-   // reset keyboard repeat rate when config change
+  // reset keyboard repeat rate when config change
   wl_list_for_each(kb, &keyboards, link) {
     wlr_keyboard_set_repeat_info(kb->wlr_keyboard, repeat_rate, repeat_delay);
   }
@@ -1791,21 +1813,22 @@ void reload_config(const Arg *arg) {
   }
 
   // reset tag status by tag rules
-  wl_list_for_each(m, &mons, link) { 
+  wl_list_for_each(m, &mons, link) {
     if (!m->wlr_output->enabled) {
       continue;
     }
 
     for (i = 0; i <= LENGTH(tags); i++) {
-  
+
       if (i > 0 && strlen(config.tag_rules[i - 1].layout_name) > 0) {
         for (jk = 0; jk < LENGTH(layouts); jk++) {
-          if (strcmp(layouts[jk].name, config.tag_rules[i - 1].layout_name) == 0) {
+          if (strcmp(layouts[jk].name, config.tag_rules[i - 1].layout_name) ==
+              0) {
             m->pertag->ltidxs[i] = &layouts[jk];
           }
         }
       }
-    }  
+    }
   }
 
   arrange(selmon, false);

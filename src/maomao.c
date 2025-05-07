@@ -203,8 +203,8 @@ typedef struct Client Client;
 struct Client {
   /* Must keep these three elements in this order */
   unsigned int type; /* XDGShell or X11* */
-  struct wlr_box geom, pending, oldgeom,scratch_geom, animainit_geom, overview_backup_geom,
-      current; /* layout-relative, includes border */
+  struct wlr_box geom, pending, oldgeom, scratch_geom, animainit_geom,
+      overview_backup_geom, current; /* layout-relative, includes border */
   Monitor *mon;
   struct wlr_scene_tree *scene;
   struct wlr_scene_rect *border[4]; /* top, bottom, left, right */
@@ -421,7 +421,7 @@ arrange(Monitor *m,
 static void arrangelayer(Monitor *m, struct wl_list *list,
                          struct wlr_box *usable_area, int exclusive);
 static void arrangelayers(Monitor *m);
-static char* get_autostart_path(char*, size_t); // 自启动命令执行
+static char *get_autostart_path(char *, size_t); // 自启动命令执行
 static void axisnotify(struct wl_listener *listener,
                        void *data); // 滚轮事件处理
 static void buttonpress(struct wl_listener *listener,
@@ -496,12 +496,10 @@ static void dwl_ipc_output_set_tags(struct wl_client *client,
 static void dwl_ipc_output_quit(struct wl_client *client,
                                 struct wl_resource *resource);
 static void dwl_ipc_output_dispatch(struct wl_client *client,
-                                struct wl_resource *resource,
-                                const char *dispatch,
-                                const char* arg1,
-                                const char* arg2,
-                                const char* arg3,
-                                const char* arg4);                
+                                    struct wl_resource *resource,
+                                    const char *dispatch, const char *arg1,
+                                    const char *arg2, const char *arg3,
+                                    const char *arg4);
 static void dwl_ipc_output_release(struct wl_client *client,
                                    struct wl_resource *resource);
 static void focusclient(Client *c, int lift);
@@ -1058,15 +1056,15 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
   if (c->iskilling || !client_surface(c)->mapped)
     return;
 
-  if(clip_box.width > c->animation.current.width) {
+  if (clip_box.width > c->animation.current.width) {
     clip_box.width = c->animation.current.width;
   }
 
-  if(clip_box.height > c->animation.current.height) {
+  if (clip_box.height > c->animation.current.height) {
     clip_box.height = c->animation.current.height;
   }
 
-  if(!render_border) {
+  if (!render_border) {
     set_rect_size(c->border[0], 0, 0);
     set_rect_size(c->border[1], 0, 0);
     set_rect_size(c->border[2], 0, 0);
@@ -1074,8 +1072,9 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
     return;
   }
 
-  for(i=0;i< config.tag_rules_count;i++) {
-    if(c->tags & (1 << (config.tag_rules[i].id - 1)) && config.tag_rules[i].no_render_border) {
+  for (i = 0; i < config.tag_rules_count; i++) {
+    if (c->tags & (1 << (config.tag_rules[i].id - 1)) &&
+        config.tag_rules[i].no_render_border) {
       set_rect_size(c->border[0], 0, 0);
       set_rect_size(c->border[1], 0, 0);
       set_rect_size(c->border[2], 0, 0);
@@ -1102,21 +1101,28 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
                     clip_box.height - 2 * c->bw);
     } else if (c->animation.current.x + c->animation.current.width >
                c->mon->m.x + c->mon->m.width) {
-      set_rect_size(c->border[3], GEZERO(c->bw - (c->animation.current.x + c->animation.current.width - c->mon->m.x + c->mon->m.width)),
-                    clip_box.height - 2 * c->bw);
+      set_rect_size(
+          c->border[3],
+          GEZERO(c->bw - (c->animation.current.x + c->animation.current.width -
+                          c->mon->m.x + c->mon->m.width)),
+          clip_box.height - 2 * c->bw);
     } else if (c->animation.current.y < c->mon->m.y) {
       set_rect_size(c->border[0], clip_box.width, GEZERO(c->bw - offsety));
     } else if (c->animation.current.y + c->animation.current.height >
                c->mon->m.y + c->mon->m.height) {
-      set_rect_size(c->border[1], clip_box.width, GEZERO(c->bw - (c->animation.current.y + c->animation.current.height - c->mon->m.y + c->mon->m.height)));
+      set_rect_size(
+          c->border[1], clip_box.width,
+          GEZERO(c->bw - (c->animation.current.y + c->animation.current.height -
+                          c->mon->m.y + c->mon->m.height)));
     }
   }
-  
+
   wlr_scene_node_set_position(&c->border[0]->node, offsetx, offsety);
   wlr_scene_node_set_position(&c->border[2]->node, offsetx, c->bw + offsety);
-  wlr_scene_node_set_position(&c->border[1]->node, offsetx, clip_box.height - c->bw + offsety);
-  wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw + offsetx,
-                              c->bw + offsety);
+  wlr_scene_node_set_position(&c->border[1]->node, offsetx,
+                              clip_box.height - c->bw + offsety);
+  wlr_scene_node_set_position(
+      &c->border[3]->node, clip_box.width - c->bw + offsetx, c->bw + offsety);
 }
 
 struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
@@ -1169,11 +1175,11 @@ struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
     wlr_scene_node_set_enabled(&c->scene->node, true);
   }
 
-  if(clip_box->width > c->animation.current.width) {
+  if (clip_box->width > c->animation.current.width) {
     clip_box->width = c->animation.current.width;
   }
 
-  if(clip_box->height > c->animation.current.height) {
+  if (clip_box->height > c->animation.current.height) {
     clip_box->height = c->animation.current.height;
   }
 
@@ -1341,23 +1347,30 @@ void show_scratchpad(Client *c) {
     c->bw = borderpx; // 恢复非全屏的border
   }
 
-  if(c->oldgeom.width)
+  if (c->oldgeom.width)
     c->scratch_geom.width = c->oldgeom.width;
-  if(c->oldgeom.height)
+  if (c->oldgeom.height)
     c->scratch_geom.height = c->oldgeom.height;
 
   /* return if fullscreen */
   if (!c->isfloating) {
     setfloating(c, 1);
-    c->geom.width = c->scratch_geom.width ? c->scratch_geom.width: c->mon->w.width * 0.7;
-    c->geom.height = c->scratch_geom.height? c->scratch_geom.height : c->mon->w.height * 0.8;
+    c->geom.width =
+        c->scratch_geom.width ? c->scratch_geom.width : c->mon->w.width * 0.7;
+    c->geom.height = c->scratch_geom.height ? c->scratch_geom.height
+                                            : c->mon->w.height * 0.8;
     // 重新计算居中的坐标
-    c->geom = c->animainit_geom = c->animation.current = setclient_coordinate_center(c->geom, 0, 0);
+    c->geom = c->animainit_geom = c->animation.current =
+        setclient_coordinate_center(c->geom, 0, 0);
     resize(c, c->geom, 0);
-  } else if(c->geom.width != c->scratch_geom.width || c->geom.height != c->scratch_geom.height) {
-    c->geom.width = c->scratch_geom.width ? c->scratch_geom.width: c->mon->w.width * 0.7;
-    c->geom.height = c->scratch_geom.height? c->scratch_geom.height : c->mon->w.height * 0.8;
-    c->geom = c->animainit_geom = c->animation.current = setclient_coordinate_center(c->geom, 0, 0);
+  } else if (c->geom.width != c->scratch_geom.width ||
+             c->geom.height != c->scratch_geom.height) {
+    c->geom.width =
+        c->scratch_geom.width ? c->scratch_geom.width : c->mon->w.width * 0.7;
+    c->geom.height = c->scratch_geom.height ? c->scratch_geom.height
+                                            : c->mon->w.height * 0.8;
+    c->geom = c->animainit_geom = c->animation.current =
+        setclient_coordinate_center(c->geom, 0, 0);
     resize(c, c->geom, 0);
   }
   c->oldtags = selmon->tagset[selmon->seltags];
@@ -1528,8 +1541,8 @@ void toggle_named_scratch(const Arg *arg) {
         (arg_id && strstr(appid, arg_id) && !arg_title) ||
         (arg_id && strstr(appid, arg_id) && arg_title &&
          strstr(title, arg_title))) {
-        target_client = c;
-        break;
+      target_client = c;
+      break;
     }
   }
 
@@ -1540,7 +1553,7 @@ void toggle_named_scratch(const Arg *arg) {
     if (c->mon != selmon) {
       continue;
     }
-    if(c->is_in_scratchpad && c->is_scratchpad_show && c != target_client) {
+    if (c->is_in_scratchpad && c->is_scratchpad_show && c != target_client) {
       set_minized(c);
     }
   }
@@ -1548,7 +1561,7 @@ void toggle_named_scratch(const Arg *arg) {
   target_client->scratch_geom.width = arg->ui;
   target_client->scratch_geom.height = arg->ui2;
 
-  if(!target_client->is_in_scratchpad)
+  if (!target_client->is_in_scratchpad)
     set_minized(target_client);
   else
     switch_scratch_client_state(target_client);
@@ -1561,8 +1574,8 @@ void toggle_scratchpad(const Arg *arg) {
     if (c->mon != selmon) {
       continue;
     }
-    hit =switch_scratch_client_state(c);
-    if(hit)
+    hit = switch_scratch_client_state(c);
+    if (hit)
       break;
   }
 }
@@ -1593,13 +1606,12 @@ void gpureset(struct wl_listener *listener, void *data) {
   wlr_renderer_destroy(old_drw);
 }
 
-void
-handlesig(int signo)
-{
-	if (signo == SIGCHLD)
-		while (waitpid(-1, NULL, WNOHANG) > 0);
-	else if (signo == SIGINT || signo == SIGTERM)
-		quit(NULL);
+void handlesig(int signo) {
+  if (signo == SIGCHLD)
+    while (waitpid(-1, NULL, WNOHANG) > 0)
+      ;
+  else if (signo == SIGINT || signo == SIGTERM)
+    quit(NULL);
 }
 
 void toggle_hotarea(int x_root, int y_root) {
@@ -1752,8 +1764,10 @@ applyrules(Client *c) {
          strstr(title, r->title))) {
       c->isterm = r->isterm > 0 ? r->isterm : c->isterm;
       c->noswallow = r->noswallow > 0 ? r->noswallow : c->noswallow;
-      c->scratch_geom.width = r->scratch_width > 0 ? r->scratch_width : c->scratch_geom.width;
-      c->scratch_geom.height = r->scratch_height > 0 ? r->scratch_height : c->scratch_geom.height;
+      c->scratch_geom.width =
+          r->scratch_width > 0 ? r->scratch_width : c->scratch_geom.width;
+      c->scratch_geom.height =
+          r->scratch_height > 0 ? r->scratch_height : c->scratch_geom.height;
       c->isfloating = r->isfloating > 0 ? r->isfloating : c->isfloating;
       c->isfullscreen = r->isfullscreen > 0 ? r->isfullscreen : c->isfullscreen;
       c->animation_type_open = r->animation_type_open == NULL
@@ -2021,8 +2035,7 @@ void apply_window_snap(Client *c) {
   snap_left_mon = c->geom.x - c->mon->m.x;
   snap_right_mon = c->mon->m.x + c->mon->m.width - c->geom.x - c->geom.width;
   snap_up_mon = c->geom.y - c->mon->m.y;
-  snap_down_mon =
-      c->mon->m.y + c->mon->m.height - c->geom.y - c->geom.height;
+  snap_down_mon = c->mon->m.y + c->mon->m.height - c->geom.y - c->geom.height;
 
   if (snap_up_mon > 0 && snap_up_mon < snap_up)
     snap_up = snap_up_mon;
@@ -2032,7 +2045,6 @@ void apply_window_snap(Client *c) {
     snap_left = snap_left_mon;
   if (snap_right_mon > 0 && snap_right_mon < snap_right)
     snap_right = snap_right_mon;
-
 
   snap_left_screen = c->geom.x - c->mon->w.x;
   snap_right_screen = c->mon->w.x + c->mon->w.width - c->geom.x - c->geom.width;
@@ -2298,7 +2310,7 @@ void arrangelayers(Monitor *m) {
   }
 }
 
-char* get_autostart_path(char *autostart_path, size_t buf_size) {
+char *get_autostart_path(char *autostart_path, size_t buf_size) {
   const char *maomaoconfig = getenv("MAOMAOCONFIG");
 
   if (maomaoconfig && maomaoconfig[0] != '\0') {
@@ -2309,7 +2321,8 @@ char* get_autostart_path(char *autostart_path, size_t buf_size) {
       fprintf(stderr, "Error: HOME environment variable not set.\n");
       return NULL;
     }
-    snprintf(autostart_path, buf_size, "%s/.config/maomao/autostart.sh", homedir);
+    snprintf(autostart_path, buf_size, "%s/.config/maomao/autostart.sh",
+             homedir);
   }
 
   return autostart_path;
@@ -2636,11 +2649,11 @@ void cleanup(void) {
   xwayland = NULL;
 #endif
 
-	wl_display_destroy_clients(dpy);
-	if (child_pid > 0) {
-		kill(-child_pid, SIGTERM);
-		waitpid(child_pid, NULL, 0);
-	}
+  wl_display_destroy_clients(dpy);
+  if (child_pid > 0) {
+    kill(-child_pid, SIGTERM);
+    waitpid(child_pid, NULL, 0);
+  }
   wlr_xcursor_manager_destroy(cursor_mgr);
 
   destroykeyboardgroup(&kb_group->destroy, NULL);
@@ -3143,7 +3156,8 @@ void createmon(struct wl_listener *listener, void *data) {
 
     if (i > 0 && strlen(config.tag_rules[i - 1].layout_name) > 0) {
       for (jk = 0; jk < LENGTH(layouts); jk++) {
-        if (strcmp(layouts[jk].name, config.tag_rules[i - 1].layout_name) == 0) {
+        if (strcmp(layouts[jk].name, config.tag_rules[i - 1].layout_name) ==
+            0) {
           m->pertag->ltidxs[i] = &layouts[jk];
         }
       }
@@ -3616,17 +3630,17 @@ void dwl_ipc_output_quit(struct wl_client *client,
 }
 
 void dwl_ipc_output_dispatch(struct wl_client *client,
-                             struct wl_resource *resource,
-                             const char *dispatch, const char *arg1,
-                             const char *arg2, const char *arg3, const char *arg4) {
+                             struct wl_resource *resource, const char *dispatch,
+                             const char *arg1, const char *arg2,
+                             const char *arg3, const char *arg4) {
 
   void (*func)(const Arg *);
   Arg arg;
-  func = parse_func_name((char*)dispatch, &arg, (char*)arg1, (char*)arg2, (char*)arg3, (char*)arg4);
-  if(func) {
+  func = parse_func_name((char *)dispatch, &arg, (char *)arg1, (char *)arg2,
+                         (char *)arg3, (char *)arg4);
+  if (func) {
     func(&arg);
   }
-
 }
 
 void dwl_ipc_output_release(struct wl_client *client,
@@ -3672,7 +3686,8 @@ void focusclient(Client *c, int lift) {
 
     // decide whether need to re-arrange
     if (c && selmon->prevsel && !selmon->prevsel->isfloating &&
-        (selmon->prevsel->tags & selmon->tagset[selmon->seltags]) && (c->tags & selmon->tagset[selmon->seltags]) && !c->isfloating &&
+        (selmon->prevsel->tags & selmon->tagset[selmon->seltags]) &&
+        (c->tags & selmon->tagset[selmon->seltags]) && !c->isfloating &&
         !c->isfullscreen &&
         strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
                "scroller") == 0) {
@@ -5148,33 +5163,34 @@ run(char *startup_cmd) {
 
   /* Now that the socket exists and the backend is started, run the startup
    * command */
-  if(!startup_cmd)
-    startup_cmd = get_autostart_path(autostart_temp_path, sizeof(autostart_temp_path));
+  if (!startup_cmd)
+    startup_cmd =
+        get_autostart_path(autostart_temp_path, sizeof(autostart_temp_path));
   if (startup_cmd) {
-		int piperw[2];
-		if (pipe(piperw) < 0)
-			die("startup: pipe:");
-		if ((child_pid = fork()) < 0)
-			die("startup: fork:");
-		if (child_pid == 0) {
-			setsid();
-			dup2(piperw[0], STDIN_FILENO);
-			close(piperw[0]);
-			close(piperw[1]);
-			execl("/bin/sh", "/bin/sh", "-c", startup_cmd, NULL);
-			die("startup: execl:");
-		}
-		dup2(piperw[1], STDOUT_FILENO);
-		close(piperw[1]);
-		close(piperw[0]);
+    int piperw[2];
+    if (pipe(piperw) < 0)
+      die("startup: pipe:");
+    if ((child_pid = fork()) < 0)
+      die("startup: fork:");
+    if (child_pid == 0) {
+      setsid();
+      dup2(piperw[0], STDIN_FILENO);
+      close(piperw[0]);
+      close(piperw[1]);
+      execl("/bin/sh", "/bin/sh", "-c", startup_cmd, NULL);
+      die("startup: execl:");
+    }
+    dup2(piperw[1], STDOUT_FILENO);
+    close(piperw[1]);
+    close(piperw[0]);
   }
 
-	/* Mark stdout as non-blocking to avoid people who does not close stdin
-	 * nor consumes it in their startup script getting dwl frozen */
-	if (fd_set_nonblock(STDOUT_FILENO) < 0)
-		close(STDOUT_FILENO);
+  /* Mark stdout as non-blocking to avoid people who does not close stdin
+   * nor consumes it in their startup script getting dwl frozen */
+  if (fd_set_nonblock(STDOUT_FILENO) < 0)
+    close(STDOUT_FILENO);
 
-	printstatus();
+  printstatus();
 
   /* At this point the outputs are initialized, choose initial selmon based on
    * cursor position, and set default cursor image */
@@ -5194,7 +5210,7 @@ run(char *startup_cmd) {
    * compositor. Starting the backend rigged up all of the necessary event
    * loop configuration to listen to libinput events, DRM events, generate
    * frame events at the refresh rate, and so on. */
-  
+
   wl_display_run(dpy);
 }
 
@@ -5228,11 +5244,11 @@ setfloating(Client *c, int floating) {
   if (!c || !c->mon || !client_surface(c)->mapped || c->iskilling)
     return;
 
-  if(c->isoverlay) {
+  if (c->isoverlay) {
     wlr_scene_node_reparent(&c->scene->node, layers[LyrOverlay]);
   } else {
     wlr_scene_node_reparent(&c->scene->node,
-      layers[c->isfloating ? LyrFloat : LyrTile]);
+                            layers[c->isfloating ? LyrFloat : LyrTile]);
   }
 
   target_box = c->geom;
@@ -5348,12 +5364,12 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
 
   client_set_fullscreen(c, fullscreen);
 
-  if(c->isoverlay) {
+  if (c->isoverlay) {
     wlr_scene_node_reparent(&c->scene->node, layers[LyrOverlay]);
   } else {
-    wlr_scene_node_reparent(&c->scene->node, layers[fullscreen ? LyrFloat
-      : c->isfloating ? LyrFloat
-                      : LyrTile]);
+    wlr_scene_node_reparent(&c->scene->node, layers[fullscreen      ? LyrFloat
+                                                    : c->isfloating ? LyrFloat
+                                                                    : LyrTile]);
   }
 
   if (fullscreen) {
@@ -5999,9 +6015,7 @@ void tagmon(const Arg *arg) {
   }
 }
 
-void overview(Monitor *m) {
-  grid(m);
-}
+void overview(Monitor *m) { grid(m); }
 
 void fibonacci(Monitor *mon, int s) {
   unsigned int i = 0, n = 0, nx, ny, nw, nh;
@@ -6012,13 +6026,13 @@ void fibonacci(Monitor *mon, int s) {
   unsigned int cur_gappov = enablegaps ? mon->gappov : 0;
 
   // Count visible clients
-  wl_list_for_each(c, &clients, link) 
-      if (VISIBLEON(c, mon) && !c->isfloating && !c->iskilling && 
-          !c->isfullscreen && !c->ismaxmizescreen && !c->animation.tagouting) 
-          n++;
-  
+  wl_list_for_each(c, &clients, link) if (VISIBLEON(c, mon) && !c->isfloating &&
+                                          !c->iskilling && !c->isfullscreen &&
+                                          !c->ismaxmizescreen &&
+                                          !c->animation.tagouting) n++;
+
   if (n == 0)
-      return;
+    return;
 
   // Initial dimensions including outer gaps
   nx = mon->w.x + cur_gappoh;
@@ -6028,107 +6042,101 @@ void fibonacci(Monitor *mon, int s) {
 
   // First pass: calculate client geometries
   wl_list_for_each(c, &clients, link) {
-      if (!VISIBLEON(c, mon) || c->isfloating || c->iskilling || 
-          c->isfullscreen || c->ismaxmizescreen || c->animation.tagouting)
-          continue;
+    if (!VISIBLEON(c, mon) || c->isfloating || c->iskilling ||
+        c->isfullscreen || c->ismaxmizescreen || c->animation.tagouting)
+      continue;
 
-      if ((i % 2 && nh / 2 > 2 * c->bw) || (!(i % 2) && nw / 2 > 2 * c->bw)) {
-          if (i < n - 1) {
-              if (i % 2) {
-                  if (i == 1) {
-                      nh = nh * mon->pertag->smfacts[mon->pertag->curtag];
-                  } else {
-                      nh = (nh - cur_gappiv) / 2;
-                  }
-              } else {
-                  nw = (nw - cur_gappih) / 2;
-              }
-              
-              if ((i % 4) == 2 && !s)
-                  nx += nw + cur_gappih;
-              else if ((i % 4) == 3 && !s)
-                  ny += nh + cur_gappiv;
+    if ((i % 2 && nh / 2 > 2 * c->bw) || (!(i % 2) && nw / 2 > 2 * c->bw)) {
+      if (i < n - 1) {
+        if (i % 2) {
+          if (i == 1) {
+            nh = nh * mon->pertag->smfacts[mon->pertag->curtag];
+          } else {
+            nh = (nh - cur_gappiv) / 2;
           }
+        } else {
+          nw = (nw - cur_gappih) / 2;
+        }
 
-          if ((i % 4) == 0) {
-              if (s)
-                  ny += nh + cur_gappiv;
-              else
-                  ny -= nh + cur_gappiv;
-          } else if ((i % 4) == 1)
-              nx += nw + cur_gappih;
-          else if ((i % 4) == 2)
-              ny += nh + cur_gappiv;
-          else if ((i % 4) == 3) {
-              if (s)
-                  nx += nw + cur_gappih;
-              else
-                  nx -= nw + cur_gappih;
-          }
-
-          if (i == 0) {
-              if (n != 1)
-                  nw = (mon->w.width - 2 * cur_gappoh) * mon->pertag->mfacts[mon->pertag->curtag];
-              ny = mon->w.y + cur_gappov;
-          } else if (i == 1) {
-              nw = mon->w.width - 2 * cur_gappoh - nw - cur_gappih;
-          } else if (i == 2) {
-              nh = mon->w.height - 2 * cur_gappov - nh - cur_gappiv;
-          }
-          i++;
+        if ((i % 4) == 2 && !s)
+          nx += nw + cur_gappih;
+        else if ((i % 4) == 3 && !s)
+          ny += nh + cur_gappiv;
       }
 
-      c->geom = (struct wlr_box){.x = nx, .y = ny, .width = nw, .height = nh};
+      if ((i % 4) == 0) {
+        if (s)
+          ny += nh + cur_gappiv;
+        else
+          ny -= nh + cur_gappiv;
+      } else if ((i % 4) == 1)
+        nx += nw + cur_gappih;
+      else if ((i % 4) == 2)
+        ny += nh + cur_gappiv;
+      else if ((i % 4) == 3) {
+        if (s)
+          nx += nw + cur_gappih;
+        else
+          nx -= nw + cur_gappih;
+      }
+
+      if (i == 0) {
+        if (n != 1)
+          nw = (mon->w.width - 2 * cur_gappoh) *
+               mon->pertag->mfacts[mon->pertag->curtag];
+        ny = mon->w.y + cur_gappov;
+      } else if (i == 1) {
+        nw = mon->w.width - 2 * cur_gappoh - nw - cur_gappih;
+      } else if (i == 2) {
+        nh = mon->w.height - 2 * cur_gappov - nh - cur_gappiv;
+      }
+      i++;
+    }
+
+    c->geom = (struct wlr_box){.x = nx, .y = ny, .width = nw, .height = nh};
   }
 
   // Second pass: apply gaps between clients
   wl_list_for_each(c, &clients, link) {
-      if (!VISIBLEON(c, mon) || c->isfloating || c->iskilling || 
-          c->isfullscreen || c->ismaxmizescreen || c->animation.tagouting)
-          continue;
+    if (!VISIBLEON(c, mon) || c->isfloating || c->iskilling ||
+        c->isfullscreen || c->ismaxmizescreen || c->animation.tagouting)
+      continue;
 
-      unsigned int right_gap = 0;
-      unsigned int bottom_gap = 0;
-      Client *nc;
+    unsigned int right_gap = 0;
+    unsigned int bottom_gap = 0;
+    Client *nc;
 
-      wl_list_for_each(nc, &clients, link) {
-          if (!VISIBLEON(nc, mon) || nc->isfloating || nc->iskilling || 
-              nc->isfullscreen || nc->ismaxmizescreen || nc->animation.tagouting)
-              continue;
+    wl_list_for_each(nc, &clients, link) {
+      if (!VISIBLEON(nc, mon) || nc->isfloating || nc->iskilling ||
+          nc->isfullscreen || nc->ismaxmizescreen || nc->animation.tagouting)
+        continue;
 
-          if (c == nc) continue;
+      if (c == nc)
+        continue;
 
-          // Check for right neighbor
-          if (c->geom.y == nc->geom.y && 
-              c->geom.x + c->geom.width == nc->geom.x) {
-              right_gap = cur_gappih;
-          }
-
-          // Check for bottom neighbor
-          if (c->geom.x == nc->geom.x && 
-              c->geom.y + c->geom.height == nc->geom.y) {
-              bottom_gap = cur_gappiv;
-          }
+      // Check for right neighbor
+      if (c->geom.y == nc->geom.y && c->geom.x + c->geom.width == nc->geom.x) {
+        right_gap = cur_gappih;
       }
 
-      resize(c,
-             (struct wlr_box){
-                 .x = c->geom.x,
-                 .y = c->geom.y,
-                 .width = c->geom.width - right_gap,
-                 .height = c->geom.height - bottom_gap
-             },
-             0);
+      // Check for bottom neighbor
+      if (c->geom.x == nc->geom.x && c->geom.y + c->geom.height == nc->geom.y) {
+        bottom_gap = cur_gappiv;
+      }
+    }
+
+    resize(c,
+           (struct wlr_box){.x = c->geom.x,
+                            .y = c->geom.y,
+                            .width = c->geom.width - right_gap,
+                            .height = c->geom.height - bottom_gap},
+           0);
   }
 }
 
-void dwindle(Monitor *mon) {
-  fibonacci(mon, 1);
-}
+void dwindle(Monitor *mon) { fibonacci(mon, 1); }
 
-void spiral(Monitor *mon) {
-  fibonacci(mon, 0);
-}
+void spiral(Monitor *mon) { fibonacci(mon, 0); }
 
 // 网格布局窗口大小和位置计算
 void grid(Monitor *m) {
@@ -6208,7 +6216,8 @@ void grid(Monitor *m) {
   // 处理多余的列
   overcols = n % cols;
   if (overcols) {
-    dx = (m->w.width - overcols * cw - (overcols - 1) * overviewgappi) / 2 - overviewgappo;
+    dx = (m->w.width - overcols * cw - (overcols - 1) * overviewgappi) / 2 -
+         overviewgappo;
   }
 
   // 调整每个客户端的位置和大小
@@ -6241,11 +6250,12 @@ void scroller(Monitor *m) {
   struct wlr_box target_geom;
   int focus_client_index = 0;
   bool need_scroller = false;
-  unsigned int cur_gappih = enablegaps? m->gappih : 0;
-  unsigned int cur_gappoh = enablegaps? m->gappoh : 0;
-  unsigned int cur_gappov = enablegaps? m->gappov : 0;
+  unsigned int cur_gappih = enablegaps ? m->gappih : 0;
+  unsigned int cur_gappoh = enablegaps ? m->gappoh : 0;
+  unsigned int cur_gappov = enablegaps ? m->gappov : 0;
 
-  unsigned int max_client_width = m->w.width - 2 * scroller_structs - cur_gappih;
+  unsigned int max_client_width =
+      m->w.width - 2 * scroller_structs - cur_gappih;
 
   // 第一次遍历，计算 n 的值
   wl_list_for_each(c, &clients, link) {
@@ -6349,15 +6359,16 @@ void scroller(Monitor *m) {
   for (i = 1; i <= focus_client_index; i++) {
     c = tempClients[focus_client_index - i];
     target_geom.width = max_client_width * c->scroller_proportion;
-    target_geom.x = tempClients[focus_client_index - i + 1]->geom.x - cur_gappih -
-                    target_geom.width;
+    target_geom.x = tempClients[focus_client_index - i + 1]->geom.x -
+                    cur_gappih - target_geom.width;
     resize(c, target_geom, 0);
   }
 
   for (i = 1; i < n - focus_client_index; i++) {
     c = tempClients[focus_client_index + i];
     target_geom.width = max_client_width * c->scroller_proportion;
-    target_geom.x = tempClients[focus_client_index + i - 1]->geom.x + cur_gappih +
+    target_geom.x = tempClients[focus_client_index + i - 1]->geom.x +
+                    cur_gappih +
                     tempClients[focus_client_index + i - 1]->geom.width;
     resize(c, target_geom, 0);
   }
@@ -7026,7 +7037,7 @@ void view_in_mon(const Arg *arg, bool want_animation, Monitor *m) {
     if (arg->ui == ~0)
       m->pertag->curtag = 0;
     else {
-      for (i = 0; !(arg->ui & 1 << i) && i <LENGTH(tags) && arg->ui != 0; i++)
+      for (i = 0; !(arg->ui & 1 << i) && i < LENGTH(tags) && arg->ui != 0; i++)
         ;
       m->pertag->curtag = i >= LENGTH(tags) ? LENGTH(tags) : i + 1;
     }
@@ -7362,30 +7373,30 @@ void resizewin(const Arg *arg) {
   if (!c->isfloating)
     togglefloating(NULL);
 
-  switch(arg->ui) {
-    case NUM_TYPE_MINUS:
-      c->geom.width -= arg->i;
-      break;
-    case NUM_TYPE_PLUS:
-      c->geom.width += arg->i;
-      break;
-    default:
-      c->geom.width = arg->i;
-      break;
+  switch (arg->ui) {
+  case NUM_TYPE_MINUS:
+    c->geom.width -= arg->i;
+    break;
+  case NUM_TYPE_PLUS:
+    c->geom.width += arg->i;
+    break;
+  default:
+    c->geom.width = arg->i;
+    break;
   }
 
-  switch(arg->ui2) {
-    case NUM_TYPE_MINUS:
-      c->geom.height -= arg->i2;
-      break;
-    case NUM_TYPE_PLUS:
-      c->geom.height += arg->i2;
-      break;
-    default:
-      c->geom.height = arg->i2;
-      break;
+  switch (arg->ui2) {
+  case NUM_TYPE_MINUS:
+    c->geom.height -= arg->i2;
+    break;
+  case NUM_TYPE_PLUS:
+    c->geom.height += arg->i2;
+    break;
+  default:
+    c->geom.height = arg->i2;
+    break;
   }
-  
+
   c->oldgeom = c->geom;
   resize(c, c->geom, 0);
 }
@@ -7398,34 +7409,33 @@ void movewin(const Arg *arg) {
   if (!c->isfloating)
     togglefloating(NULL);
 
-  switch(arg->ui) {
-    case NUM_TYPE_MINUS:
-      c->geom.x -= arg->i;
-      break;
-    case NUM_TYPE_PLUS:
-      c->geom.x += arg->i;
-      break;
-    default:
-      c->geom.x = arg->i;
-      break;
+  switch (arg->ui) {
+  case NUM_TYPE_MINUS:
+    c->geom.x -= arg->i;
+    break;
+  case NUM_TYPE_PLUS:
+    c->geom.x += arg->i;
+    break;
+  default:
+    c->geom.x = arg->i;
+    break;
   }
 
-  switch(arg->ui2) {
-    case NUM_TYPE_MINUS:
-      c->geom.y -= arg->i2;
-      break;
-    case NUM_TYPE_PLUS:
-      c->geom.y += arg->i2;
-      break;
-    default:
-      c->geom.y = arg->i2;
-      break;
+  switch (arg->ui2) {
+  case NUM_TYPE_MINUS:
+    c->geom.y -= arg->i2;
+    break;
+  case NUM_TYPE_PLUS:
+    c->geom.y += arg->i2;
+    break;
+  default:
+    c->geom.y = arg->i2;
+    break;
   }
 
   c->oldgeom = c->geom;
   resize(c, c->geom, 0);
 }
-
 
 void smartmovewin(const Arg *arg) {
   Client *c, *tc;
