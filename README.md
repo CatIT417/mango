@@ -2,6 +2,8 @@
 
 This project is developed based on [dwl](https://codeberg.org/dwl/dwl/),
 
+"Since many people have asked about the meaning of this compositor's name,  'Maomao' is an online alias I've been using for years - it comes from the first two characters of the Chinese word for 'caterpillar' (毛毛虫). You can basically think of it as meaning 'caterpillar'.
+
 1. **Lightweight & Fast Build**  
    - *Maomao* is as lightweight as *dwl*, and its build can be completed within few seconds. Despite this, *maomao* does not compromise on functionality.  
 
@@ -89,7 +91,7 @@ yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist w
 ## My dotfile
 - depend
 ```
-yay -S lavalauncher-mao-git wlr-dpms sway-audio-idle-inhibit swayidle dimland brightnessctl swayosd wlr-randr grim slurp satty swaylock-effects-git wlogout eww
+yay -S lavalauncher-mao-git wlr-dpms sway-audio-idle-inhibit-git swayidle dimland-git brightnessctl swayosd wlr-randr grim slurp satty swaylock-effects-git wlogout eww
 ```
 ### maomao config
 [maomao-config](https://github.com/DreamMaoMao/dotfile/tree/main/maomao)
