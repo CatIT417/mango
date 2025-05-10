@@ -525,6 +525,10 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
     (*arg).ui = 1 << (atoi(arg_value2) - 1);
   } else if (strcmp(func_name, "quit") == 0) {
     func = quit;
+  } else if (strcmp(func_name, "create_virtual_output") == 0) {
+    func = create_virtual_output;
+  } else if (strcmp(func_name, "destroy_all_virtual_output") == 0) {
+    func = destroy_all_virtual_output;
   } else if (strcmp(func_name, "moveresize") == 0) {
     func = moveresize;
     (*arg).ui = parse_mouse_action(arg_value);

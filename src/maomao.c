@@ -15,7 +15,10 @@
 #include <unistd.h>
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
+#include <wlr/backend/headless.h>
 #include <wlr/backend/libinput.h>
+#include <wlr/backend/multi.h>
+#include <wlr/backend/wayland.h>
 #include <wlr/interfaces/wlr_keyboard.h>
 #include <wlr/render/allocator.h>
 #include <wlr/render/wlr_renderer.h>
@@ -641,6 +644,7 @@ static struct wl_event_loop *event_loop;
 static struct wlr_relative_pointer_manager_v1 *pointer_manager;
 static struct wlr_foreign_toplevel_manager_v1 *foreign_toplevel_manager;
 static struct wlr_backend *backend;
+static struct wlr_backend *headless_backend;
 static struct wlr_scene *scene;
 static struct wlr_scene_tree *layers[NUM_LAYERS];
 static struct wlr_renderer *drw;
@@ -775,8 +779,8 @@ static struct wlr_xwayland *xwayland;
 #endif
 
 #include "client/client.h"
-#include "text_input/ime.h"
 #include "config/parse_config.h"
+#include "text_input/ime.h"
 
 struct vec2 calculate_animation_curve_at(double t, int type) {
   struct vec2 point;
@@ -1891,7 +1895,7 @@ arrange(Monitor *m, bool want_animation) {
         resize(c, c->geom, 0);
 
       } else {
-        if ((c->tags & (1 << (selmon->pertag->prevtag - 1))) &&
+        if ((c->tags & (1 << (m->pertag->prevtag - 1))) &&
             m->pertag->prevtag != 0 && m->pertag->curtag != 0 && animations) {
           c->animation.tagouting = true;
           c->animation.tagining = false;
@@ -5619,6 +5623,67 @@ void handle_foreign_destroy(struct wl_listener *listener, void *data) {
   }
 }
 
+void create_output(struct wlr_backend *backend, void *data) {
+  bool *done = data;
+  if (*done) {
+    return;
+  }
+
+  if (wlr_backend_is_wl(backend)) {
+    wlr_wl_output_create(backend);
+    *done = true;
+  } else if (wlr_backend_is_headless(backend)) {
+    wlr_headless_add_output(backend, 1920, 1080);
+    *done = true;
+  }
+#if WLR_HAS_X11_BACKEND
+  else if (wlr_backend_is_x11(backend)) {
+    wlr_x11_output_create(backend);
+    *done = true;
+  }
+#endif
+}
+
+/**
+ * This command is intended for developer use only.
+ */
+void create_virtual_output(const Arg *arg) {
+
+  if (!wlr_backend_is_multi(backend)) {
+    wlr_log(WLR_ERROR, "Expected a multi backend");
+    return;
+  }
+
+  bool done = false;
+  wlr_multi_for_each_backend(backend, create_output, &done);
+
+  if (!done) {
+    wlr_log(WLR_ERROR, "Failed to create virtual output");
+    return;
+  }
+
+  wlr_log(WLR_INFO, "Virtual output created");
+  return;
+}
+
+void destroy_all_virtual_output(const Arg *arg) {
+
+  if (!wlr_backend_is_multi(backend)) {
+    wlr_log(WLR_ERROR, "Expected a multi backend");
+    return;
+  }
+
+  Monitor *m, *tmp;
+  wl_list_for_each_safe(m, tmp, &mons, link) {
+    if (wlr_output_is_headless(m->wlr_output)) {
+      // if(selmon == m) 
+      //   selmon = NULL;
+      wlr_output_destroy(m->wlr_output);
+      wlr_log(WLR_INFO, "Virtual output destroyed");
+    }
+  }
+}
+
 void setup(void) {
 
   setenv("XCURSOR_SIZE", "24", 1);
@@ -5651,6 +5716,13 @@ void setup(void) {
    * don't). */
   if (!(backend = wlr_backend_autocreate(event_loop, &session)))
     die("couldn't create backend");
+
+  headless_backend = wlr_headless_backend_create(event_loop);
+  if (!headless_backend) {
+    wlr_log(WLR_ERROR, "Failed to create secondary headless backend");
+  } else {
+    wlr_multi_backend_add(backend, headless_backend);
+  }
 
   /* Initialize the scene graph used to lay out windows */
   scene = wlr_scene_create();
