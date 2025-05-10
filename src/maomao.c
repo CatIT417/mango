@@ -700,6 +700,22 @@ static double swipe_dy = 0;
 
 bool render_border = true;
 
+struct vec2 *baked_points_move;
+struct vec2 *baked_points_open;
+struct vec2 *baked_points_tag;
+struct vec2 *baked_points_close;
+
+#include "config/preset_config.h"
+
+struct Pertag {
+  unsigned int curtag, prevtag;    /* current and previous tag */
+  int nmasters[LENGTH(tags) + 1];  /* number of windows in master area */
+  float mfacts[LENGTH(tags) + 1];  /* mfacts per tag */
+  float smfacts[LENGTH(tags) + 1]; /* smfacts per tag */
+  const Layout
+      *ltidxs[LENGTH(tags) + 1]; /* matrix of tags and layouts indexes  */
+};
+
 /* global event handlers */
 static struct zdwl_ipc_manager_v2_interface dwl_manager_implementation = {
     .release = dwl_ipc_manager_release,
@@ -758,28 +774,8 @@ static struct wl_listener xwayland_ready = {.notify = xwaylandready};
 static struct wlr_xwayland *xwayland;
 #endif
 
-/* configuration, allows nested code to access above variables */
-#include "config/preset_config.h"
-
-/* attempt to encapsulate suck into one file */
 #include "client/client.h"
 #include "text_input/ime.h"
-
-struct Pertag {
-  unsigned int curtag, prevtag;    /* current and previous tag */
-  int nmasters[LENGTH(tags) + 1];  /* number of windows in master area */
-  float mfacts[LENGTH(tags) + 1];  /* mfacts per tag */
-  float smfacts[LENGTH(tags) + 1]; /* smfacts per tag */
-  const Layout
-      *ltidxs[LENGTH(tags) + 1]; /* matrix of tags and layouts indexes  */
-};
-
-struct vec2 *baked_points_move;
-struct vec2 *baked_points_open;
-struct vec2 *baked_points_tag;
-struct vec2 *baked_points_close;
-
-// update global variables from config file
 #include "config/parse_config.h"
 
 struct vec2 calculate_animation_curve_at(double t, int type) {
