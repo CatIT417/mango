@@ -1160,7 +1160,7 @@ struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
   offset.x = offsetx;
   offset.y = offsety;
 
-  if ((clip_box->width <= 0 || clip_box->height <= 0) && ISTILED(c)) {
+  if ((clip_box->width <= 0 || clip_box->height <= 0) && (ISTILED(c) || c->animation.tagouting || c->animation.tagining)) {
     c->is_clip_to_hide = true;
     wlr_scene_node_set_enabled(&c->scene->node, false);
   } else if (c->is_clip_to_hide && VISIBLEON(c, c->mon)) {
