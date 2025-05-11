@@ -1097,17 +1097,29 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
                c->mon->m.x + c->mon->m.width) {
       set_rect_size(
           c->border[3],
-          GEZERO(c->bw - (c->animation.current.x + c->animation.current.width -
+          GEZERO(c->bw - GEZERO(c->animation.current.x + c->animation.current.width -
                           c->mon->m.x - c->mon->m.width)),
           clip_box.height - 2 * c->bw);
+      set_rect_size(c->border[0], clip_box.width + c->bw, GEZERO(c->bw - offsety));
+      set_rect_size(
+          c->border[1], clip_box.width + c->bw,
+          GEZERO(c->bw - GEZERO(c->animation.current.y + c->animation.current.height -
+                          c->mon->m.y - c->mon->m.height)));
     } else if (c->animation.current.y < c->mon->m.y) {
       set_rect_size(c->border[0], clip_box.width, GEZERO(c->bw - offsety));
     } else if (c->animation.current.y + c->animation.current.height >
                c->mon->m.y + c->mon->m.height) {
       set_rect_size(
           c->border[1], clip_box.width,
-          GEZERO(c->bw - (c->animation.current.y + c->animation.current.height -
+          GEZERO(c->bw - GEZERO(c->animation.current.y + c->animation.current.height -
                           c->mon->m.y - c->mon->m.height)));
+      set_rect_size(c->border[2], GEZERO(c->bw - offsetx),
+                    clip_box.height - c->bw);
+      set_rect_size(
+          c->border[3],
+          GEZERO(c->bw - GEZERO(c->animation.current.x + c->animation.current.width -
+                          c->mon->m.x - c->mon->m.width)),
+          clip_box.height - c->bw);
     }
   }
 
@@ -1141,7 +1153,7 @@ struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
                c->mon->m.x + c->mon->m.width) {
       clip_box->width = clip_box->width -
                         (c->animation.current.x + c->animation.current.width -
-                         c->mon->m.x - c->mon->m.width);
+                         c->mon->m.x - c->mon->m.width) - c->bw;
     }
 
     if (c->animation.current.y <= c->mon->m.y) {
@@ -1152,8 +1164,7 @@ struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
                c->mon->m.y + c->mon->m.height) {
       clip_box->height = clip_box->height -
                          (c->animation.current.y + c->animation.current.height -
-                          c->mon->m.y - c->mon->m.height) +
-                         c->bw;
+                          c->mon->m.y - c->mon->m.height) - c->bw;
     }
   }
 
