@@ -6329,9 +6329,12 @@ deck(Monitor *m)
 	if (n == 0)
 		return;
 
+	// Calculate master width using mfact from pertag
+	float mfact = m->pertag ? m->pertag->mfacts[m->pertag->curtag] : m->mfact;
+
 	// Calculate master width including outer gaps
 	if (n > m->nmaster)
-		mw = m->nmaster ? round((m->w.width - 2 * cur_gappoh) * m->mfact) : 0;
+		mw = m->nmaster ? round((m->w.width - 2 * cur_gappoh) * mfact) : 0;
 	else
 		mw = m->w.width - 2 * cur_gappoh;
 	
