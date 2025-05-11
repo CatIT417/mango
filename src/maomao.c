@@ -567,6 +567,7 @@ static void tile(Monitor *m);
 static void overview(Monitor *m);
 static void grid(Monitor *m);
 static void scroller(Monitor *m);
+static void deck(Monitor *mon);
 static void dwindle(Monitor *mon);
 static void spiral(Monitor *mon);
 static void unlocksession(struct wl_listener *listener, void *data);
@@ -6308,6 +6309,58 @@ void grid(Monitor *m) {
       i++;
     }
   }
+}
+
+
+void
+deck(Monitor *m)
+{
+	unsigned int mw, my;
+	int i, n = 0;
+	Client *c;
+	unsigned int cur_gappih = enablegaps ? m->gappih : 0;
+	unsigned int cur_gappiv = enablegaps ? m->gappiv : 0;
+	unsigned int cur_gappoh = enablegaps ? m->gappoh : 0;
+	unsigned int cur_gappov = enablegaps ? m->gappov : 0;
+
+	wl_list_for_each(c, &clients, link)
+		if (VISIBLEON(c, m) && !c->isfloating && !c->isfullscreen)
+			n++;
+	if (n == 0)
+		return;
+
+	// Calculate master width including outer gaps
+	if (n > m->nmaster)
+		mw = m->nmaster ? round((m->w.width - 2 * cur_gappoh) * m->mfact) : 0;
+	else
+		mw = m->w.width - 2 * cur_gappoh;
+	
+	i = my = 0;
+	wl_list_for_each(c, &clients, link) {
+		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
+			continue;
+		if (i < m->nmaster) {
+			// Master area clients
+			resize(c, (struct wlr_box){
+				.x = m->w.x + cur_gappoh, 
+				.y = m->w.y + cur_gappov + my, 
+				.width = mw,
+				.height = (m->w.height - cur_gappov - my - cur_gappiv) / (MIN(n, m->nmaster) - i)
+			}, 0);
+			my += c->geom.height + cur_gappiv;
+		} else {
+			// Stack area clients
+			resize(c, (struct wlr_box){
+				.x = m->w.x + mw + cur_gappoh + cur_gappih, 
+				.y = m->w.y + cur_gappov,
+				.width = m->w.width - mw - 2 * cur_gappoh - cur_gappih,
+				.height = m->w.height - 2 * cur_gappov
+			}, 0);
+			if (c == focustop(m))
+				wlr_scene_node_raise_to_top(&c->scene->node);
+		}
+		i++;
+	}
 }
 
 // 滚动布局

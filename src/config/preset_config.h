@@ -90,6 +90,7 @@ Layout layouts[] = {
     {"T", tile, "tile"},         // 堆栈布局
     {"G", grid, "grid"},         {"M", monocle, "monocle"},
     {"D", dwindle, "dwindle"},   {"P", spiral, "spiral"},
+    {"K", deck, "deck"},
 };
 
 /* keyboard */
