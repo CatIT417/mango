@@ -3565,6 +3565,26 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
     zdwl_ipc_output_v2_send_floating(ipc_output->resource,
                                      focused ? focused->isfloating : 0);
   }
+  if (wl_resource_get_version(ipc_output->resource) >=
+      ZDWL_IPC_OUTPUT_V2_FLOATING_SINCE_VERSION) {
+    zdwl_ipc_output_v2_send_x(ipc_output->resource,
+                                     focused ? focused->geom.x : 0);
+  }
+  if (wl_resource_get_version(ipc_output->resource) >=
+      ZDWL_IPC_OUTPUT_V2_FLOATING_SINCE_VERSION) {
+    zdwl_ipc_output_v2_send_y(ipc_output->resource,
+                                     focused ? focused->geom.y : 0);
+  }
+  if (wl_resource_get_version(ipc_output->resource) >=
+      ZDWL_IPC_OUTPUT_V2_FLOATING_SINCE_VERSION) {
+    zdwl_ipc_output_v2_send_width(ipc_output->resource,
+                                     focused ? focused->geom.width : 0);
+  }
+  if (wl_resource_get_version(ipc_output->resource) >=
+      ZDWL_IPC_OUTPUT_V2_FLOATING_SINCE_VERSION) {
+    zdwl_ipc_output_v2_send_height(ipc_output->resource,
+                                     focused ? focused->geom.height : 0);
+  }
   zdwl_ipc_output_v2_send_frame(ipc_output->resource);
 }
 

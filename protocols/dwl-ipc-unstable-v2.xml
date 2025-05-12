@@ -190,6 +190,35 @@ I would probably just submit raphi's patchset but I don't think that would be po
       </description>
       <arg name="is_floating" type="uint" summary="If the selected client is floating. Nonzero is valid, zero invalid"/>
     </event>
+
+    <event name="x" since="2">
+      <description summary="Update the x coordinates">
+          Indicates if x coordinates of the selected client.
+      </description>
+      <arg name="x" type="int" summary="x coordinate of the selected client"/>
+    </event>
+
+    <event name="y" since="2">
+      <description summary="Update the y coordinates">
+          Indicates if y coordinates of the selected client.
+      </description>
+      <arg name="y" type="int" summary="y coordinate of the selected client"/>
+    </event>
+
+    <event name="width" since="2">
+      <description summary="Update the width">
+          Indicates if width of the selected client.
+      </description>
+      <arg name="width" type="int" summary="width of the selected client"/>
+    </event>
+
+    <event name="height" since="2">
+      <description summary="Update the height">
+          Indicates if height of the selected client.
+      </description>
+      <arg name="height" type="int" summary="height of the selected client"/>
+    </event>
+
   </interface>
 
 </protocol>
