@@ -1,3 +1,5 @@
+// TODO: remove this file in the future, replace all global variables with config.xxx
+
 /* speedie's maomao config */
 
 #define COLOR(hex)                                                             \
