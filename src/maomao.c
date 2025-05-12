@@ -1048,6 +1048,9 @@ void set_rect_size(struct wlr_scene_rect *rect, int width, int height) {
 void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
                   int offsety) {
   int i;
+  int num = 0;
+  Client *ec;
+
   if (c->iskilling || !client_surface(c)->mapped)
     return;
 
@@ -1070,6 +1073,24 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
   for (i = 0; i < config.tag_rules_count; i++) {
     if (c->tags & (1 << (config.tag_rules[i].id - 1)) &&
         config.tag_rules[i].no_render_border) {
+      set_rect_size(c->border[0], 0, 0);
+      set_rect_size(c->border[1], 0, 0);
+      set_rect_size(c->border[2], 0, 0);
+      set_rect_size(c->border[3], 0, 0);
+      return;
+    }
+  }
+
+  if(no_border_when_single) {
+    wl_list_for_each(ec, &clients, link) {
+      if (c->iskilling || !client_surface(c)->mapped)
+        continue;
+
+      if (ec != c && ec->tags & c->mon->tagset[c->mon->seltags])
+        num++;
+    }
+
+    if (num == 0) {
       set_rect_size(c->border[0], 0, 0);
       set_rect_size(c->border[1], 0, 0);
       set_rect_size(c->border[2], 0, 0);
