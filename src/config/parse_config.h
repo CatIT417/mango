@@ -1354,7 +1354,7 @@ if (parsed == 8) {
       config->axis_bindings_count++;
     }
 
-  } else if (strncmp(key, "gesturebind", 8) == 0) {
+  } else if (strncmp(key, "gesturebind", 11) == 0) {
     config->gesture_bindings =
         realloc(config->gesture_bindings,
                 (config->gesture_bindings_count + 1) * sizeof(GestureBinding));
