@@ -212,6 +212,9 @@ typedef struct {
 typedef void (*FuncType)(const Arg *);
 Config config;
 
+
+void parse_config_file(Config *config, const char *file_path);
+
 // Helper function to trim whitespace from start and end of a string
 void trim_whitespace(char *str) {
     if (str == NULL || *str == '\0') return;
@@ -1409,18 +1412,40 @@ if (parsed == 8) {
       config->gesture_bindings_count++;
     }
 
+  } else if (strncmp(key, "source", 6) == 0) {
+    parse_config_file(config, value);
   } else {
     fprintf(stderr, "Error: Unknown key: %s\n", key);
   }
 }
 
 void parse_config_file(Config *config, const char *file_path) {
-  FILE *file = fopen(file_path, "r");
-  if (!file) {
-    perror("Error opening file");
-    return;
-  }
+  FILE *file;
+  // 检查路径是否以 ~/ 开头
+  if (file_path[0] == '~' && (file_path[1] == '/' || file_path[1] == '\0')) {
+    const char *home = getenv("HOME");
+    if (!home) {
+        fprintf(stderr, "Error: HOME environment variable not set.\n");
+        return;
+    }
 
+    // 构建完整路径（家目录 + / + 原路径去掉 ~）
+    char full_path[1024];
+    snprintf(full_path, sizeof(full_path), "%s%s", home, file_path + 1);
+
+    file = fopen(full_path, "r");
+    if (!file) {
+        perror("Error opening file");
+        return;
+    }
+  } else {
+    file = fopen(file_path, "r");
+    if (!file) {
+      perror("Error opening file");
+      return;
+    }
+  }
+  
   char line[512];
   while (fgets(line, sizeof(line), file)) {
     if (line[0] == '#' || line[0] == '\n')
