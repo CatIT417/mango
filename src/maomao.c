@@ -1081,7 +1081,7 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
 
   if(hit_no_border) {
     c->bw = 0;
-  } else if(!c->isfullscreen) {
+  } else if(!c->isfullscreen && VISIBLEON(c, c->mon)) {
     c->bw = borderpx;
   }
 
