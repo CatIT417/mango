@@ -91,7 +91,7 @@ yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist w
 ## My dotfile
 - depend
 ```
-yay -S lavalauncher-mao-git wlr-dpms sway-audio-idle-inhibit-git swayidle dimland-git brightnessctl swayosd wlr-randr grim slurp satty swaylock-effects-git wlogout eww
+yay -S pamixer lavalauncher-mao-git wlr-dpms sway-audio-idle-inhibit-git swayidle dimland-git brightnessctl swayosd wlr-randr grim slurp satty swaylock-effects-git wlogout eww
 ```
 ### maomao config
 [maomao-config](https://github.com/DreamMaoMao/dotfile/tree/main/maomao)
