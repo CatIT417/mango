@@ -139,6 +139,7 @@ typedef struct {
   unsigned int ov_tab_mode;
   int overviewgappi;
   int overviewgappo;
+  unsigned int cursor_hide_timeout;
 
   unsigned int axis_bind_apply_timeout;
   unsigned int focus_on_activate;
@@ -864,6 +865,8 @@ void parse_config_line(Config *config, const char *line) {
     config->overviewgappi = atoi(value);
   } else if (strcmp(key, "overviewgappo") == 0) {
     config->overviewgappo = atoi(value);
+  } else if (strcmp(key, "cursor_hide_timeout") == 0) {
+    config->cursor_hide_timeout = atoi(value);
   } else if (strcmp(key, "axis_bind_apply_timeout") == 0) {
     config->axis_bind_apply_timeout = atoi(value);
   } else if (strcmp(key, "focus_on_activate") == 0) {
@@ -1691,6 +1694,7 @@ void override_config(void) {
   ov_tab_mode = config.ov_tab_mode;
   overviewgappi = config.overviewgappi;
   overviewgappo = config.overviewgappo;
+  cursor_hide_timeout = config.cursor_hide_timeout;
   axis_bind_apply_timeout = config.axis_bind_apply_timeout;
   focus_on_activate = config.focus_on_activate;
   numlockon = config.numlockon;
@@ -1788,6 +1792,7 @@ void set_value_default() {
   config.borderpx = borderpx;
   config.overviewgappi = overviewgappi; /* overview时 窗口与边缘 缝隙大小 */
   config.overviewgappo = overviewgappo; /* overview时 窗口与窗口 缝隙大小 */
+  config.cursor_hide_timeout = cursor_hide_timeout;
 
   config.warpcursor = warpcursor; /* Warp cursor to focused client */
 
