@@ -1090,7 +1090,7 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
 
     return;    
   } else if(!c->isfullscreen && VISIBLEON(c, c->mon)) {
-    c->bw = borderpx;
+    c->bw = c->isnoborder ? 0 : borderpx; 
   }
 
   wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
@@ -1307,7 +1307,7 @@ void clear_fullscreen_flag(Client *c) {
     c->isfullscreen = 0;
     c->isfloating = 0;
     c->ismaxmizescreen = 0;
-    c->bw = borderpx;
+    c->bw = c->isnoborder ? 0 : borderpx; 
     client_set_fullscreen(c, false);
   }
 }
@@ -1364,7 +1364,7 @@ void show_scratchpad(Client *c) {
   if (c->isfullscreen || c->ismaxmizescreen) {
     c->isfullscreen = 0; // 清除窗口全屏标志
     c->ismaxmizescreen = 0;
-    c->bw = borderpx; // 恢复非全屏的border
+    c->bw = c->isnoborder ? 0 : borderpx; 
   }
 
   if (c->oldgeom.width)
@@ -5291,7 +5291,7 @@ setfloating(Client *c, int floating) {
     if (c->isfullscreen || c->ismaxmizescreen) {
       c->isfullscreen = 0; // 清除窗口全屏标志
       c->ismaxmizescreen = 0;
-      c->bw = borderpx; // 恢复非全屏的border
+      c->bw = c->isnoborder ? 0 : borderpx; 
     }
 
     if (c->need_float_size_reduce && !c->swallowing && !c->is_open_animation) {
@@ -5370,7 +5370,7 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
     resize(c, maxmizescreen_box, 0);
     c->ismaxmizescreen = 1;
   } else {
-    c->bw = borderpx;
+    c->bw = c->isnoborder ? 0 : borderpx; 
     c->ismaxmizescreen = 0;
     c->isfullscreen = 0;
     client_set_fullscreen(c, false);
@@ -5420,7 +5420,7 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
     c->isfullscreen = 1;
     // c->isfloating = 0;
   } else {
-    c->bw = borderpx;
+    c->bw = c->isnoborder ? 0 : borderpx; 
     c->isfullscreen = 0;
     c->isfullscreen = 0;
     c->ismaxmizescreen = 0;
@@ -6149,14 +6149,10 @@ void overview_backup(Client *c) {
     c->isfloating = 0;
   }
   if (c->isfullscreen || c->ismaxmizescreen) {
-    // if (c->bw == 0) { // 真全屏窗口清除x11全屏属性
-    //   XChangeProperty(dpy, c->win, netatom[NetWMState], XA_ATOM, 32,
-    //                   PropModeReplace, (unsigned char *)0, 0);
-    // }
     c->isfullscreen = 0; // 清除窗口全屏标志
     c->ismaxmizescreen = 0;
   }
-  c->bw = borderpx; // 恢复非全屏的border
+  c->bw = c->isnoborder ? 0 : borderpx; 
 }
 
 // overview切回到普通视图还原窗口的状态
@@ -6190,9 +6186,9 @@ void overview_restore(Client *c, const Arg *arg) {
     }
   }
 
-  if (c->bw == 0 && !c->isnoborder &&
+  if (c->bw == 0 &&
       !c->isfullscreen) { // 如果是在ov模式中创建的窗口,没有bw记录
-    c->bw = borderpx;
+    c->bw = c->isnoborder ? 0 : borderpx; 
   }
 }
 
