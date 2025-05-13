@@ -7363,16 +7363,16 @@ void activatex11(struct wl_listener *listener, void *data) {
   if (c && c->swallowing)
     return;
 
+  if (c->isminied) {
+    c->isminied = 0;
+    c->tags = c->mini_restore_tag;
+    c->is_scratchpad_show = 0;
+    c->is_in_scratchpad = 0;
+    wlr_foreign_toplevel_handle_v1_set_minimized(c->foreign_toplevel, false);
+    setborder_color(c);
+  }
+
   if (focus_on_activate && c != selmon->sel) {
-    if (c->isminied) {
-      c->isminied = 0;
-      c->tags = c->mini_restore_tag;
-      c->is_scratchpad_show = 0;
-      c->is_in_scratchpad = 0;
-      wlr_foreign_toplevel_handle_v1_set_minimized(c->foreign_toplevel, false);
-      wlr_foreign_toplevel_handle_v1_set_activated(c->foreign_toplevel, true);
-      setborder_color(c);
-    }
     view(&(Arg){.ui = c->tags}, true);
     wlr_xwayland_surface_activate(c->surface.xwayland, 1);
     focusclient(c, 1);
