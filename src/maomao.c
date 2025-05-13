@@ -3733,7 +3733,7 @@ void focusclient(Client *c, int lift) {
   if (c && c->animation.tagouting && !c->animation.tagouting)
     return;
 
-  if (c && client_is_x11(c) && !client_surface_wants_focus(c)) {
+  if (c && !client_surface_wants_focus(c)) {
     return;
   }
 
