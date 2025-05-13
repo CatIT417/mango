@@ -368,7 +368,7 @@ static inline int client_surface_wants_focus(Client *c) {
 #ifdef XWAYLAND
   if (client_is_x11(c)) {
     struct wlr_xwayland_surface *surface = c->surface.xwayland;
-  // 处理不需要焦点的窗口类型
+    // 处理不需要焦点的窗口类型
     const uint32_t no_focus_types[] = {
         WLR_XWAYLAND_NET_WM_WINDOW_TYPE_COMBO,
         WLR_XWAYLAND_NET_WM_WINDOW_TYPE_DND,
@@ -379,17 +379,17 @@ static inline int client_surface_wants_focus(Client *c) {
         WLR_XWAYLAND_NET_WM_WINDOW_TYPE_SPLASH,
         WLR_XWAYLAND_NET_WM_WINDOW_TYPE_DESKTOP,
         WLR_XWAYLAND_NET_WM_WINDOW_TYPE_TOOLTIP,
-        WLR_XWAYLAND_NET_WM_WINDOW_TYPE_UTILITY
-    };
+        WLR_XWAYLAND_NET_WM_WINDOW_TYPE_UTILITY};
     // 检查窗口类型是否需要禁止焦点
-    for (size_t i = 0; i < sizeof(no_focus_types)/sizeof(no_focus_types[0]); ++i) {
-        if (wlr_xwayland_surface_has_window_type(surface, no_focus_types[i])) {
-            return 0;
-        }
+    for (size_t i = 0; i < sizeof(no_focus_types) / sizeof(no_focus_types[0]);
+         ++i) {
+      if (wlr_xwayland_surface_has_window_type(surface, no_focus_types[i])) {
+        return 0;
+      }
     }
   }
 #endif
-    return 1;
+  return 1;
 }
 
 static inline int client_wants_focus(Client *c) {

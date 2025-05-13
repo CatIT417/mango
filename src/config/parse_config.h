@@ -214,55 +214,55 @@ typedef struct {
 typedef void (*FuncType)(const Arg *);
 Config config;
 
-
 void parse_config_file(Config *config, const char *file_path);
 
 // Helper function to trim whitespace from start and end of a string
 void trim_whitespace(char *str) {
-    if (str == NULL || *str == '\0') return;
+  if (str == NULL || *str == '\0')
+    return;
 
-    // Trim leading space
-    char *start = str;
-    while (isspace((unsigned char)*start)) {
-        start++;
-    }
+  // Trim leading space
+  char *start = str;
+  while (isspace((unsigned char)*start)) {
+    start++;
+  }
 
-    // Trim trailing space
-    char *end = str + strlen(str) - 1;
-    while (end > start && isspace((unsigned char)*end)) {
-        end--;
-    }
-    
-    // Null-terminate the trimmed string
-    *(end + 1) = '\0';
+  // Trim trailing space
+  char *end = str + strlen(str) - 1;
+  while (end > start && isspace((unsigned char)*end)) {
+    end--;
+  }
 
-    // Move the trimmed part to the beginning if needed
-    if (start != str) {
-        memmove(str, start, end - start + 2); // +2 to include null terminator
-    }
+  // Null-terminate the trimmed string
+  *(end + 1) = '\0';
+
+  // Move the trimmed part to the beginning if needed
+  if (start != str) {
+    memmove(str, start, end - start + 2); // +2 to include null terminator
+  }
 }
 
 int parse_double_array(const char *input, double *output, int max_count) {
-    char *dup = strdup(input); // 复制一份用于修改
-    char *token;
-    int count = 0;
+  char *dup = strdup(input); // 复制一份用于修改
+  char *token;
+  int count = 0;
 
-    token = strtok(dup, ",");
-    while (token != NULL && count < max_count) {
-        trim_whitespace(token);       // 对每一个分割后的 token 去除前后空格
-        char *endptr;
-        double val = strtod(token, &endptr);
-        if (endptr == token || *endptr != '\0') {
-            fprintf(stderr, "Error: Invalid number in array: %s\n", token);
-            free(dup);
-            return -1; // 解析失败
-        }
-        output[count++] = val;
-        token = strtok(NULL, ",");
+  token = strtok(dup, ",");
+  while (token != NULL && count < max_count) {
+    trim_whitespace(token); // 对每一个分割后的 token 去除前后空格
+    char *endptr;
+    double val = strtod(token, &endptr);
+    if (endptr == token || *endptr != '\0') {
+      fprintf(stderr, "Error: Invalid number in array: %s\n", token);
+      free(dup);
+      return -1; // 解析失败
     }
+    output[count++] = val;
+    token = strtok(NULL, ",");
+  }
 
-    free(dup);
-    return count;
+  free(dup);
+  return count;
 }
 
 // 清理字符串中的不可见字符（包括 \r, \n, 空格等）
@@ -697,22 +697,26 @@ void parse_config_line(Config *config, const char *line) {
   } else if (strcmp(key, "animation_curve_move") == 0) {
     int num = parse_double_array(value, config->animation_curve_move, 4);
     if (num != 4) {
-        fprintf(stderr, "Error: Failed to parse animation_curve_move: %s\n", value);
+      fprintf(stderr, "Error: Failed to parse animation_curve_move: %s\n",
+              value);
     }
   } else if (strcmp(key, "animation_curve_open") == 0) {
     int num = parse_double_array(value, config->animation_curve_open, 4);
     if (num != 4) {
-        fprintf(stderr, "Error: Failed to parse animation_curve_open: %s\n", value);  
+      fprintf(stderr, "Error: Failed to parse animation_curve_open: %s\n",
+              value);
     }
   } else if (strcmp(key, "animation_curve_tag") == 0) {
     int num = parse_double_array(value, config->animation_curve_tag, 4);
     if (num != 4) {
-        fprintf(stderr, "Error: Failed to parse animation_curve_tag: %s\n", value); 
+      fprintf(stderr, "Error: Failed to parse animation_curve_tag: %s\n",
+              value);
     }
   } else if (strcmp(key, "animation_curve_close") == 0) {
     int num = parse_double_array(value, config->animation_curve_close, 4);
     if (num != 4) {
-        fprintf(stderr, "Error: Failed to parse animation_curve_close: %s\n", value); 
+      fprintf(stderr, "Error: Failed to parse animation_curve_close: %s\n",
+              value);
     }
   } else if (strcmp(key, "scroller_structs") == 0) {
     config->scroller_structs = atoi(value);
@@ -728,8 +732,8 @@ void parse_config_line(Config *config, const char *line) {
     config->focus_cross_monitor = atoi(value);
   } else if (strcmp(key, "focus_cross_tag") == 0) {
     config->focus_cross_tag = atoi(value);
-  }  else if (strcmp(key, "no_border_when_single") == 0) {
-    config->no_border_when_single= atoi(value);
+  } else if (strcmp(key, "no_border_when_single") == 0) {
+    config->no_border_when_single = atoi(value);
   } else if (strcmp(key, "snap_distance") == 0) {
     config->snap_distance = atoi(value);
   } else if (strcmp(key, "enable_floating_snap") == 0) {
@@ -1113,58 +1117,61 @@ void parse_config_line(Config *config, const char *line) {
     }
     config->window_rules_count++;
   } else if (strcmp(key, "monitorrule") == 0) {
-config->monitor_rules =
-    realloc(config->monitor_rules,
-            (config->monitor_rules_count + 1) * sizeof(ConfigMonitorRule));
-if (!config->monitor_rules) {
-    fprintf(stderr, "Error: Failed to allocate memory for monitor rules\n");
-    return;
-}
-
-ConfigMonitorRule *rule = &config->monitor_rules[config->monitor_rules_count];
-memset(rule, 0, sizeof(ConfigMonitorRule));
-
-// 临时存储每个字段的原始字符串
-char raw_name[256], raw_layout[256];
-char raw_mfact[256], raw_nmaster[256], raw_rr[256];
-char raw_scale[256], raw_x[256], raw_y[256];
-
-// 先读取所有字段为字符串
-int parsed = sscanf(value, "%255[^,],%255[^,],%255[^,],%255[^,],%255[^,],%255[^,],%255[^,],%255s",
-                   raw_name, raw_mfact, raw_nmaster, raw_layout, 
-                   raw_rr, raw_scale, raw_x, raw_y);
-
-if (parsed == 8) {
-    // 修剪每个字段的空格
-    trim_whitespace(raw_name);
-    trim_whitespace(raw_mfact);
-    trim_whitespace(raw_nmaster);
-    trim_whitespace(raw_layout);
-    trim_whitespace(raw_rr);
-    trim_whitespace(raw_scale);
-    trim_whitespace(raw_x);
-    trim_whitespace(raw_y);
-    
-    // 转换修剪后的字符串为特定类型
-    rule->name = strdup(raw_name);
-    rule->layout = strdup(raw_layout);
-    rule->mfact = atof(raw_mfact);
-    rule->nmaster = atoi(raw_nmaster);
-    rule->rr = atoi(raw_rr);
-    rule->scale = atof(raw_scale);
-    rule->x = atoi(raw_x);
-    rule->y = atoi(raw_y);
-
-    if (!rule->name || !rule->layout) {
-        if (rule->name)
-            free((void *)rule->name);
-        if (rule->layout)
-            free((void *)rule->layout);
-        fprintf(stderr, "Error: Failed to allocate memory for monitor rule\n");
-        return;
+    config->monitor_rules =
+        realloc(config->monitor_rules,
+                (config->monitor_rules_count + 1) * sizeof(ConfigMonitorRule));
+    if (!config->monitor_rules) {
+      fprintf(stderr, "Error: Failed to allocate memory for monitor rules\n");
+      return;
     }
 
-    config->monitor_rules_count++;
+    ConfigMonitorRule *rule =
+        &config->monitor_rules[config->monitor_rules_count];
+    memset(rule, 0, sizeof(ConfigMonitorRule));
+
+    // 临时存储每个字段的原始字符串
+    char raw_name[256], raw_layout[256];
+    char raw_mfact[256], raw_nmaster[256], raw_rr[256];
+    char raw_scale[256], raw_x[256], raw_y[256];
+
+    // 先读取所有字段为字符串
+    int parsed = sscanf(
+        value,
+        "%255[^,],%255[^,],%255[^,],%255[^,],%255[^,],%255[^,],%255[^,],%255s",
+        raw_name, raw_mfact, raw_nmaster, raw_layout, raw_rr, raw_scale, raw_x,
+        raw_y);
+
+    if (parsed == 8) {
+      // 修剪每个字段的空格
+      trim_whitespace(raw_name);
+      trim_whitespace(raw_mfact);
+      trim_whitespace(raw_nmaster);
+      trim_whitespace(raw_layout);
+      trim_whitespace(raw_rr);
+      trim_whitespace(raw_scale);
+      trim_whitespace(raw_x);
+      trim_whitespace(raw_y);
+
+      // 转换修剪后的字符串为特定类型
+      rule->name = strdup(raw_name);
+      rule->layout = strdup(raw_layout);
+      rule->mfact = atof(raw_mfact);
+      rule->nmaster = atoi(raw_nmaster);
+      rule->rr = atoi(raw_rr);
+      rule->scale = atof(raw_scale);
+      rule->x = atoi(raw_x);
+      rule->y = atoi(raw_y);
+
+      if (!rule->name || !rule->layout) {
+        if (rule->name)
+          free((void *)rule->name);
+        if (rule->layout)
+          free((void *)rule->layout);
+        fprintf(stderr, "Error: Failed to allocate memory for monitor rule\n");
+        return;
+      }
+
+      config->monitor_rules_count++;
     } else {
       fprintf(stderr, "Error: Invalid monitorrule format: %s\n", value);
     }
@@ -1393,7 +1400,7 @@ if (parsed == 8) {
     trim_whitespace(func_name);
     trim_whitespace(arg_value);
     trim_whitespace(arg_value2);
-    trim_whitespace(arg_value3);    
+    trim_whitespace(arg_value3);
     trim_whitespace(arg_value4);
 
     binding->mod = parse_mod(mod_str);
@@ -1431,8 +1438,8 @@ void parse_config_file(Config *config, const char *file_path) {
   if (file_path[0] == '~' && (file_path[1] == '/' || file_path[1] == '\0')) {
     const char *home = getenv("HOME");
     if (!home) {
-        fprintf(stderr, "Error: HOME environment variable not set.\n");
-        return;
+      fprintf(stderr, "Error: HOME environment variable not set.\n");
+      return;
     }
 
     // 构建完整路径（家目录 + / + 原路径去掉 ~）
@@ -1441,8 +1448,8 @@ void parse_config_file(Config *config, const char *file_path) {
 
     file = fopen(full_path, "r");
     if (!file) {
-        perror("Error opening file");
-        return;
+      perror("Error opening file");
+      return;
     }
   } else {
     file = fopen(file_path, "r");
@@ -1451,7 +1458,7 @@ void parse_config_file(Config *config, const char *file_path) {
       return;
     }
   }
-  
+
   char line[512];
   while (fgets(line, sizeof(line), file)) {
     if (line[0] == '#' || line[0] == '\n')
@@ -1679,7 +1686,7 @@ void override_config(void) {
   scroller_focus_center = config.scroller_focus_center;
   focus_cross_monitor = config.focus_cross_monitor;
   focus_cross_tag = config.focus_cross_tag;
-  no_border_when_single= config.no_border_when_single;
+  no_border_when_single = config.no_border_when_single;
   snap_distance = config.snap_distance;
   enable_floating_snap = config.enable_floating_snap;
   swipe_min_threshold = config.swipe_min_threshold;
@@ -1779,7 +1786,7 @@ void set_value_default() {
   config.scroller_prefer_center = scroller_prefer_center;
   config.focus_cross_monitor = focus_cross_monitor;
   config.focus_cross_tag = focus_cross_tag;
-  config.no_border_when_single= no_border_when_single;
+  config.no_border_when_single = no_border_when_single;
   config.snap_distance = snap_distance;
   config.enable_floating_snap = enable_floating_snap;
   config.swipe_min_threshold = swipe_min_threshold;

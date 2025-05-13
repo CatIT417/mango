@@ -717,10 +717,10 @@ struct vec2 *baked_points_close;
 static struct wl_event_source *hide_source;
 static bool cursor_hidden = false;
 static struct {
-	enum wp_cursor_shape_device_v1_shape shape;
-	struct wlr_surface *surface;
-	int hotspot_x;
-	int hotspot_y;
+  enum wp_cursor_shape_device_v1_shape shape;
+  struct wlr_surface *surface;
+  int hotspot_x;
+  int hotspot_y;
 } last_cursor;
 
 #include "config/preset_config.h"
@@ -794,8 +794,8 @@ static struct wlr_xwayland *xwayland;
 
 #include "client/client.h"
 #include "config/parse_config.h"
-#include "text_input/ime.h"
 #include "layout/layout.h"
+#include "text_input/ime.h"
 
 struct vec2 calculate_animation_curve_at(double t, int type) {
   struct vec2 point;
@@ -1077,7 +1077,7 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
 
   if (!render_border) {
     hit_no_border = true;
-  } 
+  }
 
   for (i = 0; i < config.tag_rules_count; i++) {
     if (c->tags & (1 << (config.tag_rules[i].id - 1)) &&
@@ -1086,11 +1086,11 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
     }
   }
 
-  if(no_border_when_single  && c->mon->visible_clients == 1) {
+  if (no_border_when_single && c->mon->visible_clients == 1) {
     hit_no_border = true;
   }
 
-  if(hit_no_border && smartgaps) {
+  if (hit_no_border && smartgaps) {
     c->bw = 0;
   } else if (hit_no_border && !smartgaps) {
     set_rect_size(c->border[0], 0, 0);
@@ -1099,9 +1099,9 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
     set_rect_size(c->border[3], 0, 0);
     wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
 
-    return;    
-  } else if(!c->isfullscreen && VISIBLEON(c, c->mon)) {
-    c->bw = c->isnoborder ? 0 : borderpx; 
+    return;
+  } else if (!c->isfullscreen && VISIBLEON(c, c->mon)) {
+    c->bw = c->isnoborder ? 0 : borderpx;
   }
 
   wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
@@ -1122,31 +1122,32 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
                     clip_box.height - 2 * c->bw);
     } else if (c->animation.current.x + c->animation.current.width >
                c->mon->m.x + c->mon->m.width) {
-      set_rect_size(
-          c->border[3],
-          GEZERO(c->bw - GEZERO(c->animation.current.x + c->animation.current.width -
-                          c->mon->m.x - c->mon->m.width)),
-          clip_box.height - 2 * c->bw);
-      set_rect_size(c->border[0], clip_box.width + c->bw, GEZERO(c->bw - offsety));
-      set_rect_size(
-          c->border[1], clip_box.width + c->bw,
-          GEZERO(c->bw - GEZERO(c->animation.current.y + c->animation.current.height -
-                          c->mon->m.y - c->mon->m.height)));
+      set_rect_size(c->border[3],
+                    GEZERO(c->bw - GEZERO(c->animation.current.x +
+                                          c->animation.current.width -
+                                          c->mon->m.x - c->mon->m.width)),
+                    clip_box.height - 2 * c->bw);
+      set_rect_size(c->border[0], clip_box.width + c->bw,
+                    GEZERO(c->bw - offsety));
+      set_rect_size(c->border[1], clip_box.width + c->bw,
+                    GEZERO(c->bw - GEZERO(c->animation.current.y +
+                                          c->animation.current.height -
+                                          c->mon->m.y - c->mon->m.height)));
     } else if (c->animation.current.y < c->mon->m.y) {
       set_rect_size(c->border[0], clip_box.width, GEZERO(c->bw - offsety));
     } else if (c->animation.current.y + c->animation.current.height >
                c->mon->m.y + c->mon->m.height) {
-      set_rect_size(
-          c->border[1], clip_box.width,
-          GEZERO(c->bw - GEZERO(c->animation.current.y + c->animation.current.height -
-                          c->mon->m.y - c->mon->m.height)));
+      set_rect_size(c->border[1], clip_box.width,
+                    GEZERO(c->bw - GEZERO(c->animation.current.y +
+                                          c->animation.current.height -
+                                          c->mon->m.y - c->mon->m.height)));
       set_rect_size(c->border[2], GEZERO(c->bw - offsetx),
                     clip_box.height - c->bw);
-      set_rect_size(
-          c->border[3],
-          GEZERO(c->bw - GEZERO(c->animation.current.x + c->animation.current.width -
-                          c->mon->m.x - c->mon->m.width)),
-          clip_box.height - c->bw);
+      set_rect_size(c->border[3],
+                    GEZERO(c->bw - GEZERO(c->animation.current.x +
+                                          c->animation.current.width -
+                                          c->mon->m.x - c->mon->m.width)),
+                    clip_box.height - c->bw);
     }
   }
 
@@ -1180,7 +1181,8 @@ struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
                c->mon->m.x + c->mon->m.width) {
       clip_box->width = clip_box->width -
                         (c->animation.current.x + c->animation.current.width -
-                         c->mon->m.x - c->mon->m.width) - c->bw;
+                         c->mon->m.x - c->mon->m.width) -
+                        c->bw;
     }
 
     if (c->animation.current.y <= c->mon->m.y) {
@@ -1191,14 +1193,16 @@ struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
                c->mon->m.y + c->mon->m.height) {
       clip_box->height = clip_box->height -
                          (c->animation.current.y + c->animation.current.height -
-                          c->mon->m.y - c->mon->m.height) - c->bw;
+                          c->mon->m.y - c->mon->m.height) -
+                         c->bw;
     }
   }
 
   offset.x = offsetx;
   offset.y = offsety;
 
-  if ((clip_box->width <= 0 || clip_box->height <= 0) && (ISTILED(c) || c->animation.tagouting || c->animation.tagining)) {
+  if ((clip_box->width <= 0 || clip_box->height <= 0) &&
+      (ISTILED(c) || c->animation.tagouting || c->animation.tagining)) {
     c->is_clip_to_hide = true;
     wlr_scene_node_set_enabled(&c->scene->node, false);
   } else if (c->is_clip_to_hide && VISIBLEON(c, c->mon)) {
@@ -1318,7 +1322,7 @@ void clear_fullscreen_flag(Client *c) {
     c->isfullscreen = 0;
     c->isfloating = 0;
     c->ismaxmizescreen = 0;
-    c->bw = c->isnoborder ? 0 : borderpx; 
+    c->bw = c->isnoborder ? 0 : borderpx;
     client_set_fullscreen(c, false);
   }
 }
@@ -1375,7 +1379,7 @@ void show_scratchpad(Client *c) {
   if (c->isfullscreen || c->ismaxmizescreen) {
     c->isfullscreen = 0; // 清除窗口全屏标志
     c->ismaxmizescreen = 0;
-    c->bw = c->isnoborder ? 0 : borderpx; 
+    c->bw = c->isnoborder ? 0 : borderpx;
   }
 
   if (c->oldgeom.width)
@@ -1758,7 +1762,8 @@ applyrulesgeom(Client *c) {
       c->geom.width = r->width > 0 ? r->width : c->geom.width;
       c->geom.height = r->height > 0 ? r->height : c->geom.height;
       // 重新计算居中的坐标
-      if(r->offsetx || r->offsety || (!client_is_x11(c) || client_surface_wants_focus(c)))
+      if (r->offsetx || r->offsety ||
+          (!client_is_x11(c) || client_surface_wants_focus(c)))
         c->geom = setclient_coordinate_center(c->geom, r->offsetx, r->offsety);
       hit = r->height > 0 || r->width > 0 || r->offsetx != 0 || r->offsety != 0
                 ? 1
@@ -1821,8 +1826,10 @@ applyrules(Client *c) {
         c->geom.width = r->width > 0 ? r->width : c->geom.width;
         c->geom.height = r->height > 0 ? r->height : c->geom.height;
         // 重新计算居中的坐标
-        if(r->offsetx || r->offsety || (!client_is_x11(c) || client_surface_wants_focus(c)))
-          c->geom = setclient_coordinate_center(c->geom, r->offsetx, r->offsety);
+        if (r->offsetx || r->offsety ||
+            (!client_is_x11(c) || client_surface_wants_focus(c)))
+          c->geom =
+              setclient_coordinate_center(c->geom, r->offsetx, r->offsety);
       }
     }
   }
@@ -1887,7 +1894,7 @@ arrange(Monitor *m, bool want_animation) {
         focusclient(c, 0);
     }
 
-    if (c->mon == m) { 
+    if (c->mon == m) {
       if (VISIBLEON(c, m)) {
         m->visible_clients++;
 
@@ -2641,11 +2648,11 @@ void setcursorshape(struct wl_listener *listener, void *data) {
    * actually has pointer focus first. If so, we can tell the cursor to
    * use the provided cursor shape. */
   if (event->seat_client == seat->pointer_state.focused_client) {
-  	last_cursor.shape = event->shape;
-  	last_cursor.surface = NULL;
-  	if (!cursor_hidden)
-  		wlr_cursor_set_xcursor(cursor, cursor_mgr,
-  				wlr_cursor_shape_v1_name(event->shape));
+    last_cursor.shape = event->shape;
+    last_cursor.surface = NULL;
+    if (!cursor_hidden)
+      wlr_cursor_set_xcursor(cursor, cursor_mgr,
+                             wlr_cursor_shape_v1_name(event->shape));
   }
 }
 
@@ -3605,22 +3612,22 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
   if (wl_resource_get_version(ipc_output->resource) >=
       ZDWL_IPC_OUTPUT_V2_FLOATING_SINCE_VERSION) {
     zdwl_ipc_output_v2_send_x(ipc_output->resource,
-                                     focused ? focused->geom.x : 0);
+                              focused ? focused->geom.x : 0);
   }
   if (wl_resource_get_version(ipc_output->resource) >=
       ZDWL_IPC_OUTPUT_V2_FLOATING_SINCE_VERSION) {
     zdwl_ipc_output_v2_send_y(ipc_output->resource,
-                                     focused ? focused->geom.y : 0);
+                              focused ? focused->geom.y : 0);
   }
   if (wl_resource_get_version(ipc_output->resource) >=
       ZDWL_IPC_OUTPUT_V2_FLOATING_SINCE_VERSION) {
     zdwl_ipc_output_v2_send_width(ipc_output->resource,
-                                     focused ? focused->geom.width : 0);
+                                  focused ? focused->geom.width : 0);
   }
   if (wl_resource_get_version(ipc_output->resource) >=
       ZDWL_IPC_OUTPUT_V2_FLOATING_SINCE_VERSION) {
     zdwl_ipc_output_v2_send_height(ipc_output->resource,
-                                     focused ? focused->geom.height : 0);
+                                   focused ? focused->geom.height : 0);
   }
   zdwl_ipc_output_v2_send_frame(ipc_output->resource);
 }
@@ -3726,7 +3733,7 @@ void focusclient(Client *c, int lift) {
   if (c && c->animation.tagouting && !c->animation.tagouting)
     return;
 
-  if(c && client_is_x11(c) && !client_surface_wants_focus(c)) {
+  if (c && client_is_x11(c) && !client_surface_wants_focus(c)) {
     return;
   }
 
@@ -4303,7 +4310,7 @@ mapnotify(struct wl_listener *listener, void *data) {
 
   client_get_geometry(c, &c->geom);
 
-  if(client_is_unmanaged(c) || !client_surface_wants_focus(c)) {
+  if (client_is_unmanaged(c) || !client_surface_wants_focus(c)) {
     c->bw = 0;
     c->isnoborder = 1;
   } else {
@@ -5286,15 +5293,15 @@ void setcursor(struct wl_listener *listener, void *data) {
    * use the provided surface as the cursor image. It will set the
    * hardware cursor on the output that it's currently on and continue to
    * do so as the cursor moves between outputs. */
-    if (event->seat_client == seat->pointer_state.focused_client) {
-    	last_cursor.shape = 0;
-    	last_cursor.surface = event->surface;
-    	last_cursor.hotspot_x = event->hotspot_x;
-    	last_cursor.hotspot_y = event->hotspot_y;
-    	if (!cursor_hidden)
-    		wlr_cursor_set_surface(cursor, event->surface,
-    				event->hotspot_x, event->hotspot_y);
-    }
+  if (event->seat_client == seat->pointer_state.focused_client) {
+    last_cursor.shape = 0;
+    last_cursor.surface = event->surface;
+    last_cursor.hotspot_x = event->hotspot_x;
+    last_cursor.hotspot_y = event->hotspot_y;
+    if (!cursor_hidden)
+      wlr_cursor_set_surface(cursor, event->surface, event->hotspot_x,
+                             event->hotspot_y);
+  }
 }
 
 void // 0.5
@@ -5322,7 +5329,7 @@ setfloating(Client *c, int floating) {
     if (c->isfullscreen || c->ismaxmizescreen) {
       c->isfullscreen = 0; // 清除窗口全屏标志
       c->ismaxmizescreen = 0;
-      c->bw = c->isnoborder ? 0 : borderpx; 
+      c->bw = c->isnoborder ? 0 : borderpx;
     }
 
     if (c->need_float_size_reduce && !c->swallowing && !c->is_open_animation) {
@@ -5330,7 +5337,7 @@ setfloating(Client *c, int floating) {
       target_box.width = target_box.width * 0.8;
     }
     // 重新计算居中的坐标
-    if(!client_is_x11(c) || client_surface_wants_focus(c))
+    if (!client_is_x11(c) || client_surface_wants_focus(c))
       target_box = setclient_coordinate_center(target_box, 0, 0);
     backup_box = c->geom;
     hit = applyrulesgeom(c);
@@ -5401,7 +5408,7 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
     resize(c, maxmizescreen_box, 0);
     c->ismaxmizescreen = 1;
   } else {
-    c->bw = c->isnoborder ? 0 : borderpx; 
+    c->bw = c->isnoborder ? 0 : borderpx;
     c->ismaxmizescreen = 0;
     c->isfullscreen = 0;
     client_set_fullscreen(c, false);
@@ -5451,7 +5458,7 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
     c->isfullscreen = 1;
     // c->isfloating = 0;
   } else {
-    c->bw = c->isnoborder ? 0 : borderpx; 
+    c->bw = c->isnoborder ? 0 : borderpx;
     c->isfullscreen = 0;
     c->isfullscreen = 0;
     c->ismaxmizescreen = 0;
@@ -5749,7 +5756,7 @@ void destroy_all_virtual_output(const Arg *arg) {
   Monitor *m, *tmp;
   wl_list_for_each_safe(m, tmp, &mons, link) {
     if (wlr_output_is_headless(m->wlr_output)) {
-      // if(selmon == m) 
+      // if(selmon == m)
       //   selmon = NULL;
       wlr_output_destroy(m->wlr_output);
       wlr_log(WLR_INFO, "Virtual output destroyed");
@@ -5952,7 +5959,7 @@ void setup(void) {
   wl_signal_add(&cursor_shape_mgr->events.request_set_shape,
                 &request_set_cursor_shape);
   hide_source = wl_event_loop_add_timer(wl_display_get_event_loop(dpy),
-  		hidecursor, cursor);
+                                        hidecursor, cursor);
 
   /*
    * Configures a seat, which is a single "seat" at which a user sits and
@@ -6152,8 +6159,6 @@ void tagmon(const Arg *arg) {
 
 void overview(Monitor *m) { grid(m); }
 
-
-
 // 目标窗口有其他窗口和它同个tag就返回0
 unsigned int want_restore_fullscreen(Client *target_client) {
   Client *c = NULL;
@@ -6185,7 +6190,7 @@ void overview_backup(Client *c) {
     c->isfullscreen = 0; // 清除窗口全屏标志
     c->ismaxmizescreen = 0;
   }
-  c->bw = c->isnoborder ? 0 : borderpx; 
+  c->bw = c->isnoborder ? 0 : borderpx;
 }
 
 // overview切回到普通视图还原窗口的状态
@@ -6219,9 +6224,8 @@ void overview_restore(Client *c, const Arg *arg) {
     }
   }
 
-  if (c->bw == 0 &&
-      !c->isfullscreen) { // 如果是在ov模式中创建的窗口,没有bw记录
-    c->bw = c->isnoborder ? 0 : borderpx; 
+  if (c->bw == 0 && !c->isfullscreen) { // 如果是在ov模式中创建的窗口,没有bw记录
+    c->bw = c->isnoborder ? 0 : borderpx;
   }
 }
 
@@ -6271,30 +6275,26 @@ void set_proportion(const Arg *arg) {
   }
 }
 
-void
-handlecursoractivity(void)
-{
-	wl_event_source_timer_update(hide_source, cursor_hide_timeout * 1000);
+void handlecursoractivity(void) {
+  wl_event_source_timer_update(hide_source, cursor_hide_timeout * 1000);
 
-	if (!cursor_hidden)
-		return;
+  if (!cursor_hidden)
+    return;
 
-	cursor_hidden = false;
+  cursor_hidden = false;
 
-	if (last_cursor.shape)
-		wlr_cursor_set_xcursor(cursor, cursor_mgr,
-				wlr_cursor_shape_v1_name(last_cursor.shape));
-	else
-		wlr_cursor_set_surface(cursor, last_cursor.surface,
-				last_cursor.hotspot_x, last_cursor.hotspot_y);
+  if (last_cursor.shape)
+    wlr_cursor_set_xcursor(cursor, cursor_mgr,
+                           wlr_cursor_shape_v1_name(last_cursor.shape));
+  else
+    wlr_cursor_set_surface(cursor, last_cursor.surface, last_cursor.hotspot_x,
+                           last_cursor.hotspot_y);
 }
 
-int
-hidecursor(void *data)
-{
-	wlr_cursor_unset_image(cursor);
-	cursor_hidden = true;
-	return 1;
+int hidecursor(void *data) {
+  wlr_cursor_unset_image(cursor);
+  cursor_hidden = true;
+  return 1;
 }
 
 void increase_proportion(const Arg *arg) {
@@ -6361,7 +6361,6 @@ void toggleoverview(const Arg *arg) {
     focusstack(&(Arg){.i = 1});
   }
 }
-
 
 void togglefloating(const Arg *arg) {
   Client *sel = focustop(selmon);
