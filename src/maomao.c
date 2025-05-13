@@ -4286,6 +4286,13 @@ mapnotify(struct wl_listener *listener, void *data) {
 
   client_get_geometry(c, &c->geom);
 
+  if(client_is_unmanaged(c) || !client_surface_wants_focus(c)) {
+    c->bw = 0;
+    c->isnoborder = 1;
+  } else {
+    c->bw = borderpx;
+  }
+
   /* Handle unmanaged clients first so we can return prior create borders */
   if (client_is_unmanaged(c)) {
     /* Unmanaged clients always are floating */
@@ -7361,8 +7368,6 @@ void createnotifyx11(struct wl_listener *listener, void *data) {
   c = xsurface->data = ecalloc(1, sizeof(*c));
   c->surface.xwayland = xsurface;
   c->type = X11;
-  c->bw = client_is_unmanaged(c) ? 0 : borderpx;
-
   /* Listen to the various events it can emit */
   LISTEN(&xsurface->events.associate, &c->associate, associatex11);
   LISTEN(&xsurface->events.destroy, &c->destroy, destroynotify);
