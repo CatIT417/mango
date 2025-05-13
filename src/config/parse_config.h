@@ -330,33 +330,61 @@ long int parse_color(const char *hex_str) {
 }
 
 xkb_keysym_t normalize_keysym(xkb_keysym_t sym) {
-  // 首先转换为小写
+  // 首先转换为小写（主要影响字母键）
   sym = xkb_keysym_to_lower(sym);
 
   // 将数字小键盘键转换为普通数字键
   switch (sym) {
-  case XKB_KEY_KP_0:
-    return XKB_KEY_0;
-  case XKB_KEY_KP_1:
-    return XKB_KEY_1;
-  case XKB_KEY_KP_2:
-    return XKB_KEY_2;
-  case XKB_KEY_KP_3:
-    return XKB_KEY_3;
-  case XKB_KEY_KP_4:
-    return XKB_KEY_4;
-  case XKB_KEY_KP_5:
-    return XKB_KEY_5;
-  case XKB_KEY_KP_6:
-    return XKB_KEY_6;
-  case XKB_KEY_KP_7:
-    return XKB_KEY_7;
-  case XKB_KEY_KP_8:
-    return XKB_KEY_8;
-  case XKB_KEY_KP_9:
-    return XKB_KEY_9;
-  default:
-    return sym;
+    // 小键盘数字转换
+    case XKB_KEY_KP_0: 
+    case XKB_KEY_KP_Insert:  // KP_0 和 KP_Insert 是同一个键
+      return XKB_KEY_0;
+    case XKB_KEY_KP_1: 
+    case XKB_KEY_KP_End:     // KP_1 和 KP_End 是同一个键
+      return XKB_KEY_1;
+    case XKB_KEY_KP_2: 
+    case XKB_KEY_KP_Down:    // KP_2 和 KP_Down 是同一个键
+      return XKB_KEY_2;
+    case XKB_KEY_KP_3: 
+    case XKB_KEY_KP_Page_Down: // KP_3 和 KP_Page_Down 是同一个键
+      return XKB_KEY_3;
+    case XKB_KEY_KP_4: 
+    case XKB_KEY_KP_Left:    // KP_4 和 KP_Left 是同一个键
+      return XKB_KEY_4;
+    case XKB_KEY_KP_5: 
+    case XKB_KEY_KP_Begin:   // KP_5 和 KP_Begin 是同一个键
+      return XKB_KEY_5;
+    case XKB_KEY_KP_6: 
+    case XKB_KEY_KP_Right:   // KP_6 和 KP_Right 是同一个键
+      return XKB_KEY_6;
+    case XKB_KEY_KP_7: 
+    case XKB_KEY_KP_Home:    // KP_7 和 KP_Home 是同一个键
+      return XKB_KEY_7;
+    case XKB_KEY_KP_8: 
+    case XKB_KEY_KP_Up:      // KP_8 和 KP_Up 是同一个键
+      return XKB_KEY_8;
+    case XKB_KEY_KP_9: 
+    case XKB_KEY_KP_Page_Up: // KP_9 和 KP_Page_Up 是同一个键
+      return XKB_KEY_9;
+
+    // 将 Shift+数字 的符号转换回基础数字
+    case XKB_KEY_exclam:    return XKB_KEY_1;      // !
+    case XKB_KEY_at:        return XKB_KEY_2;      // @
+    case XKB_KEY_numbersign:return XKB_KEY_3;      // #
+    case XKB_KEY_dollar:    return XKB_KEY_4;      // $
+    case XKB_KEY_percent:   return XKB_KEY_5;      // %
+    case XKB_KEY_asciicircum: return XKB_KEY_6;    // ^
+    case XKB_KEY_ampersand: return XKB_KEY_7;      // &
+    case XKB_KEY_asterisk:  return XKB_KEY_8;      // *
+    case XKB_KEY_parenleft: return XKB_KEY_9;      // (
+    case XKB_KEY_parenright:return XKB_KEY_0;      // )
+
+    // 其他布局可能需要的变体（如欧洲键盘）
+    case XKB_KEY_quotedbl:  return XKB_KEY_2;      // "
+    case XKB_KEY_section:   return XKB_KEY_6;      // §
+    case XKB_KEY_degree:    return XKB_KEY_0;      // °
+
+    default: return sym;
   }
 }
 
