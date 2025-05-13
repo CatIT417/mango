@@ -5299,7 +5299,7 @@ setfloating(Client *c, int floating) {
       target_box.width = target_box.width * 0.8;
     }
     // 重新计算居中的坐标
-    if(!client_is_x11(c))
+    if(client_is_x11(c) && client_surface_wants_focus(c))
       target_box = setclient_coordinate_center(target_box, 0, 0);
     backup_box = c->geom;
     hit = applyrulesgeom(c);
