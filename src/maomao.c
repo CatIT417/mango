@@ -3707,6 +3707,10 @@ void focusclient(Client *c, int lift) {
   if (c && c->animation.tagouting && !c->animation.tagouting)
     return;
 
+  if(c && client_is_x11(c) && !client_surface_wants_focus(c)) {
+    return;
+  }
+
   /* Raise client in stacking order if requested */
   if (c && lift)
     wlr_scene_node_raise_to_top(&c->scene->node); // 将视图提升到顶层
