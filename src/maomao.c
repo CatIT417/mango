@@ -2556,12 +2556,14 @@ void place_drag_tile_client(Client *c) {
       }
     }
   }
-  if(closest_client) {
+  if(closest_client && closest_client->link.prev != &c->link) {
     wl_list_remove(&c->link);
     c->link.next = &closest_client->link;
     c->link.prev = closest_client->link.prev;
     closest_client->link.prev->next = &c->link;
     closest_client->link.prev = &c->link;
+  } else if(closest_client) {
+    exchange_two_client(c, closest_client);
   }
   setfloating(c, 0);
 }
