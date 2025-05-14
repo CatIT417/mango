@@ -273,6 +273,7 @@ struct Client {
   Client *swallowing, *swallowedby;
   bool is_clip_to_hide;
   bool drag_to_tile;
+  bool fake_no_border;
 };
 
 typedef struct {
@@ -1093,16 +1094,18 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
 
   if (hit_no_border && smartgaps) {
     c->bw = 0;
+    c->fake_no_border = true;
   } else if (hit_no_border && !smartgaps) {
     set_rect_size(c->border[0], 0, 0);
     set_rect_size(c->border[1], 0, 0);
     set_rect_size(c->border[2], 0, 0);
     set_rect_size(c->border[3], 0, 0);
     wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
-
+    c->fake_no_border = true;
     return;
   } else if (!c->isfullscreen && VISIBLEON(c, c->mon)) {
     c->bw = c->isnoborder ? 0 : borderpx;
+    c->fake_no_border = false;
   }
 
   wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
@@ -2045,7 +2048,7 @@ void apply_window_snap(Client *c) {
       snap_right_screen = 0;
   int snap_up_mon = 0, snap_down_mon = 0, snap_left_mon = 0, snap_right_mon = 0;
 
-  unsigned int cbw = !render_border ? c->bw : 0;
+  unsigned int cbw = !render_border || c->fake_no_border ? borderpx: 0;
   unsigned int tcbw;
   unsigned int cx,cy,cw,ch,tcx,tcy,tcw,tch;
   cx = c->geom.x + cbw;
@@ -2064,7 +2067,7 @@ void apply_window_snap(Client *c) {
     if (tc && tc->isfloating && !tc->iskilling && client_surface(tc)->mapped &&
         VISIBLEON(tc, c->mon)) {
 
-      tcbw = !render_border ? tc->bw : 0;
+      tcbw = !render_border || tc->fake_no_border ? borderpx: 0;
       tcx = tc->geom.x + tcbw;
       tcy = tc->geom.y + tcbw;
       tcw = tc->geom.width - 2 * tcbw;
@@ -4410,6 +4413,7 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->scroller_proportion = scroller_default_proportion;
   c->is_open_animation = true;
   c->drag_to_tile = false;
+  c->fake_no_border = false;
 
   if (new_is_master &&
       strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
