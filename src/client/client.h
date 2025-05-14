@@ -363,7 +363,7 @@ static inline void client_set_suspended(Client *c, int suspended) {
   wlr_xdg_toplevel_set_suspended(c->surface.xdg->toplevel, suspended);
 }
 
-static inline int client_surface_wants_focus(Client *c) {
+static inline int client_should_ignore_focus(Client *c) {
 
 #ifdef XWAYLAND
   if (client_is_x11(c)) {
@@ -384,12 +384,12 @@ static inline int client_surface_wants_focus(Client *c) {
     for (size_t i = 0; i < sizeof(no_focus_types) / sizeof(no_focus_types[0]);
          ++i) {
       if (wlr_xwayland_surface_has_window_type(surface, no_focus_types[i])) {
-        return 0;
+        return 1;
       }
     }
   }
 #endif
-  return 1;
+  return 0;
 }
 
 static inline int client_wants_focus(Client *c) {

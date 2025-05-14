@@ -1763,7 +1763,7 @@ applyrulesgeom(Client *c) {
       c->geom.height = r->height > 0 ? r->height : c->geom.height;
       // 重新计算居中的坐标
       if (r->offsetx || r->offsety ||
-          (!client_is_x11(c) || client_surface_wants_focus(c)))
+          (!client_is_x11(c) || !client_should_ignore_focus(c)))
         c->geom = setclient_coordinate_center(c->geom, r->offsetx, r->offsety);
       hit = r->height > 0 || r->width > 0 || r->offsetx != 0 || r->offsety != 0
                 ? 1
@@ -1827,7 +1827,7 @@ applyrules(Client *c) {
         c->geom.height = r->height > 0 ? r->height : c->geom.height;
         // 重新计算居中的坐标
         if (r->offsetx || r->offsety ||
-            (!client_is_x11(c) || client_surface_wants_focus(c)))
+            (!client_is_x11(c) || !client_should_ignore_focus(c)))
           c->geom =
               setclient_coordinate_center(c->geom, r->offsetx, r->offsety);
       }
@@ -3733,7 +3733,7 @@ void focusclient(Client *c, int lift) {
   if (c && c->animation.tagouting && !c->animation.tagouting)
     return;
 
-  if (c && !client_surface_wants_focus(c)) {
+  if (c && client_should_ignore_focus(c)) {
     return;
   }
 
@@ -3877,7 +3877,7 @@ Client * // 0.5
 focustop(Monitor *m) {
   Client *c;
   wl_list_for_each(c, &fstack, flink) {
-    if (c->iskilling || !client_surface_wants_focus(c))
+    if (c->iskilling || client_should_ignore_focus(c))
       continue;
     if (VISIBLEON(c, m))
       return c;
@@ -4310,7 +4310,7 @@ mapnotify(struct wl_listener *listener, void *data) {
 
   client_get_geometry(c, &c->geom);
 
-  if (client_is_unmanaged(c) || !client_surface_wants_focus(c)) {
+  if (client_is_unmanaged(c) || client_should_ignore_focus(c)) {
     c->bw = 0;
     c->isnoborder = 1;
   } else {
@@ -5337,7 +5337,7 @@ setfloating(Client *c, int floating) {
       target_box.width = target_box.width * 0.8;
     }
     // 重新计算居中的坐标
-    if (!client_is_x11(c) || client_surface_wants_focus(c))
+    if (!client_is_x11(c) || !client_should_ignore_focus(c))
       target_box = setclient_coordinate_center(target_box, 0, 0);
     backup_box = c->geom;
     hit = applyrulesgeom(c);
