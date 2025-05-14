@@ -7370,6 +7370,10 @@ void activatex11(struct wl_listener *listener, void *data) {
     c->is_in_scratchpad = 0;
     wlr_foreign_toplevel_handle_v1_set_minimized(c->foreign_toplevel, false);
     setborder_color(c);
+    if (VISIBLEON(c, c->mon)) {
+      wlr_scene_node_set_enabled(&c->scene->node, true);
+      client_set_suspended(c, false);
+    }
   }
 
   if (focus_on_activate && c != selmon->sel) {
