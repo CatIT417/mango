@@ -3877,7 +3877,7 @@ Client * // 0.5
 focustop(Monitor *m) {
   Client *c;
   wl_list_for_each(c, &fstack, flink) {
-    if (c->iskilling)
+    if (c->iskilling || !client_surface_wants_focus(c))
       continue;
     if (VISIBLEON(c, m))
       return c;
