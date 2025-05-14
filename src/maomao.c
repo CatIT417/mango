@@ -1311,9 +1311,9 @@ void applybounds(Client *c, struct wlr_box *bbox) {
     c->geom.x = bbox->x + bbox->width - c->geom.width;
   if (c->geom.y >= bbox->y + bbox->height)
     c->geom.y = bbox->y + bbox->height - c->geom.height;
-  if (c->geom.x <= bbox->x)
+  if (c->geom.x + c->geom.width <= bbox->x)
     c->geom.x = bbox->x;
-  if (c->geom.y <= bbox->y)
+  if (c->geom.y + c->geom.height <= bbox->y)
     c->geom.y = bbox->y;
 }
 
@@ -2045,6 +2045,14 @@ void apply_window_snap(Client *c) {
       snap_right_screen = 0;
   int snap_up_mon = 0, snap_down_mon = 0, snap_left_mon = 0, snap_right_mon = 0;
 
+  unsigned int cbw = !render_border ? c->bw : 0;
+  unsigned int tcbw;
+  unsigned int cx,cy,cw,ch,tcx,tcy,tcw,tch;
+  cx = c->geom.x + cbw;
+  cy = c->geom.y + cbw;
+  cw = c->geom.width - 2 * cbw;
+  ch = c->geom.height - 2 * cbw;
+
   Client *tc;
   if (!c || !c->mon || !client_surface(c)->mapped || c->iskilling)
     return;
@@ -2056,10 +2064,16 @@ void apply_window_snap(Client *c) {
     if (tc && tc->isfloating && !tc->iskilling && client_surface(tc)->mapped &&
         VISIBLEON(tc, c->mon)) {
 
-      snap_left_temp = c->geom.x - tc->geom.x - tc->geom.width;
-      snap_right_temp = tc->geom.x - c->geom.x - c->geom.width;
-      snap_up_temp = c->geom.y - tc->geom.y - tc->geom.height;
-      snap_down_temp = tc->geom.y - c->geom.y - c->geom.height;
+      tcbw = !render_border ? tc->bw : 0;
+      tcx = tc->geom.x + tcbw;
+      tcy = tc->geom.y + tcbw;
+      tcw = tc->geom.width - 2 * tcbw;
+      tch = tc->geom.height - 2 * tcbw;
+
+      snap_left_temp = cx - tcx - tcw;
+      snap_right_temp = tcx- cx - cw;
+      snap_up_temp = cy - tcy - tch;
+      snap_down_temp = tcy - cy - ch;
 
       if (snap_left_temp < snap_left && snap_left_temp >= 0) {
         snap_left = snap_left_temp;
@@ -2076,10 +2090,10 @@ void apply_window_snap(Client *c) {
     }
   }
 
-  snap_left_mon = c->geom.x - c->mon->m.x;
-  snap_right_mon = c->mon->m.x + c->mon->m.width - c->geom.x - c->geom.width;
-  snap_up_mon = c->geom.y - c->mon->m.y;
-  snap_down_mon = c->mon->m.y + c->mon->m.height - c->geom.y - c->geom.height;
+  snap_left_mon = cx - c->mon->m.x;
+  snap_right_mon = c->mon->m.x + c->mon->m.width - cx - cw;
+  snap_up_mon = cy - c->mon->m.y;
+  snap_down_mon = c->mon->m.y + c->mon->m.height - cy - ch;
 
   if (snap_up_mon > 0 && snap_up_mon < snap_up)
     snap_up = snap_up_mon;
@@ -2090,11 +2104,11 @@ void apply_window_snap(Client *c) {
   if (snap_right_mon > 0 && snap_right_mon < snap_right)
     snap_right = snap_right_mon;
 
-  snap_left_screen = c->geom.x - c->mon->w.x;
-  snap_right_screen = c->mon->w.x + c->mon->w.width - c->geom.x - c->geom.width;
-  snap_up_screen = c->geom.y - c->mon->w.y;
+  snap_left_screen = cx - c->mon->w.x;
+  snap_right_screen = c->mon->w.x + c->mon->w.width - cx - cw;
+  snap_up_screen = cy - c->mon->w.y;
   snap_down_screen =
-      c->mon->w.y + c->mon->w.height - c->geom.y - c->geom.height;
+      c->mon->w.y + c->mon->w.height - cy - ch;
 
   if (snap_up_screen > 0 && snap_up_screen < snap_up)
     snap_up = snap_up_screen;
@@ -2122,7 +2136,7 @@ void apply_window_snap(Client *c) {
   }
 
   c->oldgeom = c->geom;
-  resize(c, c->geom, 1);
+  resize(c, c->geom, 0);
 }
 
 Client *find_client_by_direction(Client *tc, const Arg *arg, bool findfloating,
