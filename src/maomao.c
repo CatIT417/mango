@@ -7356,6 +7356,7 @@ void smartresizewin(const Arg *arg) {
 #ifdef XWAYLAND
 void activatex11(struct wl_listener *listener, void *data) {
   Client *c = wl_container_of(listener, c, activate);
+  bool need_arrange = false;
 
   if (!c || c->iskilling || !c->foreign_toplevel || client_is_unmanaged(c))
     return;
@@ -7371,8 +7372,7 @@ void activatex11(struct wl_listener *listener, void *data) {
     wlr_foreign_toplevel_handle_v1_set_minimized(c->foreign_toplevel, false);
     setborder_color(c);
     if (VISIBLEON(c, c->mon)) {
-      wlr_scene_node_set_enabled(&c->scene->node, true);
-      client_set_suspended(c, false);
+      need_arrange = true;
     }
   }
 
@@ -7380,14 +7380,18 @@ void activatex11(struct wl_listener *listener, void *data) {
     view(&(Arg){.ui = c->tags}, true);
     wlr_xwayland_surface_activate(c->surface.xwayland, 1);
     focusclient(c, 1);
+    need_arrange = false;
   } else if (c != focustop(selmon)) {
-    if (client_surface(c)->mapped)
-      client_set_border_color(
-          c,
-          urgentcolor); // 在使用窗口剪切补丁后,这里启动gdm-settings的字体更改那里点击就会崩溃,增加过滤条件为是toplevel窗口后似乎已经解决
     c->isurgent = 1;
-    printstatus();
+    if (client_surface(c)->mapped)
+      client_set_border_color(c, urgentcolor); 
   }
+
+  if (need_arrange){
+    arrange(c->mon,false);
+  }
+
+  printstatus();
 }
 
 void configurex11(struct wl_listener *listener, void *data) {
