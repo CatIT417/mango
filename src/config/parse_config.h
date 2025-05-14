@@ -1961,6 +1961,7 @@ void reload_config(const Arg *arg) {
   Keyboard *kb;
   parse_config();
   init_baked_points();
+  handlecursoractivity();
   run_exec();
 
   // reset border width when config change
