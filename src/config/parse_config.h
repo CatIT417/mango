@@ -338,34 +338,24 @@ xkb_keysym_t normalize_keysym(xkb_keysym_t sym) {
   switch (sym) {
     // 小键盘数字转换
     case XKB_KEY_KP_0: 
-    case XKB_KEY_KP_Insert:  // KP_0 和 KP_Insert 是同一个键
       return XKB_KEY_0;
     case XKB_KEY_KP_1: 
-    case XKB_KEY_KP_End:     // KP_1 和 KP_End 是同一个键
       return XKB_KEY_1;
     case XKB_KEY_KP_2: 
-    case XKB_KEY_KP_Down:    // KP_2 和 KP_Down 是同一个键
       return XKB_KEY_2;
     case XKB_KEY_KP_3: 
-    case XKB_KEY_KP_Page_Down: // KP_3 和 KP_Page_Down 是同一个键
       return XKB_KEY_3;
     case XKB_KEY_KP_4: 
-    case XKB_KEY_KP_Left:    // KP_4 和 KP_Left 是同一个键
       return XKB_KEY_4;
     case XKB_KEY_KP_5: 
-    case XKB_KEY_KP_Begin:   // KP_5 和 KP_Begin 是同一个键
       return XKB_KEY_5;
     case XKB_KEY_KP_6: 
-    case XKB_KEY_KP_Right:   // KP_6 和 KP_Right 是同一个键
       return XKB_KEY_6;
     case XKB_KEY_KP_7: 
-    case XKB_KEY_KP_Home:    // KP_7 和 KP_Home 是同一个键
       return XKB_KEY_7;
     case XKB_KEY_KP_8: 
-    case XKB_KEY_KP_Up:      // KP_8 和 KP_Up 是同一个键
       return XKB_KEY_8;
     case XKB_KEY_KP_9: 
-    case XKB_KEY_KP_Page_Up: // KP_9 和 KP_Page_Up 是同一个键
       return XKB_KEY_9;
 
     // 将 Shift+数字 的符号转换回基础数字
