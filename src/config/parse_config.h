@@ -122,6 +122,7 @@ typedef struct {
   int no_border_when_single;
   int snap_distance;
   int enable_floating_snap;
+  int drag_tile_to_tile;
   unsigned int swipe_min_threshold;
   float *scroller_proportion_preset;
   int scroller_proportion_preset_count;
@@ -766,6 +767,8 @@ void parse_config_line(Config *config, const char *line) {
     config->snap_distance = atoi(value);
   } else if (strcmp(key, "enable_floating_snap") == 0) {
     config->enable_floating_snap = atoi(value);
+  } else if (strcmp(key, "drag_tile_to_tile") == 0) {
+    config->drag_tile_to_tile = atoi(value);
   } else if (strcmp(key, "swipe_min_threshold") == 0) {
     config->swipe_min_threshold = atoi(value);
   } else if (strcmp(key, "scroller_proportion_preset") == 0) {
@@ -1716,6 +1719,7 @@ void override_config(void) {
   focus_cross_tag = config.focus_cross_tag;
   no_border_when_single = config.no_border_when_single;
   snap_distance = config.snap_distance;
+  drag_tile_to_tile = config.drag_tile_to_tile;
   enable_floating_snap = config.enable_floating_snap;
   swipe_min_threshold = config.swipe_min_threshold;
   scroller_prefer_center = config.scroller_prefer_center;
@@ -1816,6 +1820,7 @@ void set_value_default() {
   config.focus_cross_tag = focus_cross_tag;
   config.no_border_when_single = no_border_when_single;
   config.snap_distance = snap_distance;
+  config.drag_tile_to_tile = drag_tile_to_tile;
   config.enable_floating_snap = enable_floating_snap;
   config.swipe_min_threshold = swipe_min_threshold;
 

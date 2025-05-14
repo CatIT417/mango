@@ -272,6 +272,7 @@ struct Client {
   pid_t pid;
   Client *swallowing, *swallowedby;
   bool is_clip_to_hide;
+  bool drag_to_tile;
 };
 
 typedef struct {
@@ -2537,12 +2538,41 @@ void hold_end(struct wl_listener *listener, void *data) {
                                         event->time_msec, event->cancelled);
 }
 
+void place_drag_tile_client(Client *c) {
+  Client *tc = NULL;
+  Client *closest_client = NULL;
+  long min_distant = LONG_MAX;
+  long temp_distant;
+  unsigned int x,y;
+
+  wl_list_for_each(tc, &clients, link) {
+    if (tc != c && ISTILED(tc) && VISIBLEON(tc, c->mon)) {
+      x = tc->geom.x + tc->geom.width / 2 - cursor->x;
+      y = tc->geom.y + tc->geom.height / 2 - cursor->y;
+      temp_distant = x * x + y * y;
+      if (temp_distant < min_distant) {
+        min_distant = temp_distant;
+        closest_client = tc;
+      }
+    }
+  }
+  if(closest_client) {
+    wl_list_remove(&c->link);
+    c->link.next = &closest_client->link;
+    c->link.prev = closest_client->link.prev;
+    closest_client->link.prev->next = &c->link;
+    closest_client->link.prev = &c->link;
+  }
+  setfloating(c, 0);
+}
+
 void // 鼠标按键事件
 buttonpress(struct wl_listener *listener, void *data) {
   struct wlr_pointer_button_event *event = data;
   struct wlr_keyboard *keyboard;
   uint32_t mods;
   Client *c;
+  Client *tmpc;
   int ji;
   const MouseBinding *b;
   struct wlr_surface *surface;
@@ -2605,8 +2635,14 @@ buttonpress(struct wl_listener *listener, void *data) {
       reset_foreign_tolevel(grabc);
       selmon->prevsel = selmon->sel;
       selmon->sel = grabc;
-      apply_window_snap(grabc);
+      tmpc = grabc;
       grabc = NULL;
+      if(tmpc->drag_to_tile && drag_tile_to_tile){
+        place_drag_tile_client(tmpc);
+      } else {
+        apply_window_snap(tmpc);
+      }
+      tmpc->drag_to_tile = false;
       return;
     } else {
       cursor_mode = CurNormal;
@@ -4357,6 +4393,7 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->need_output_flush = 0;
   c->scroller_proportion = scroller_default_proportion;
   c->is_open_animation = true;
+  c->drag_to_tile = false;
 
   if (new_is_master &&
       strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
@@ -4628,6 +4665,7 @@ moveresize(const Arg *arg) {
 
   /* Float the window and tell motionnotify to grab it */
   if (grabc->isfloating == 0) {
+    grabc->drag_to_tile = true;
     setfloating(grabc, 1);
   }
 

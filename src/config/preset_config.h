@@ -57,6 +57,7 @@ int focus_cross_tag = 0;
 int no_border_when_single = 0;
 int snap_distance = 30;
 int enable_floating_snap = 0;
+int drag_tile_to_tile = 0;
 unsigned int cursor_size = 24;
 unsigned int cursor_hide_timeout = 0;
 
