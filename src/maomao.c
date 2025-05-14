@@ -1413,6 +1413,7 @@ void show_scratchpad(Client *c) {
     resize(c, c->geom, 0);
   }
   c->oldtags = selmon->tagset[selmon->seltags];
+  c->is_clip_to_hide = false;
   show_hide_client(c);
   setborder_color(c);
 }
@@ -1600,9 +1601,10 @@ void toggle_named_scratch(const Arg *arg) {
   target_client->scratch_geom.width = arg->ui;
   target_client->scratch_geom.height = arg->ui2;
 
-  if (!target_client->is_in_scratchpad)
+  if (!target_client->is_in_scratchpad) {
     set_minized(target_client);
-  else
+    switch_scratch_client_state(target_client);
+  } else
     switch_scratch_client_state(target_client);
 }
 
