@@ -1554,13 +1554,10 @@ void toggle_render_border(const Arg *arg) {
   arrange(selmon, false);
 }
 
-void toggle_named_scratch(const Arg *arg) {
-  Client *c = NULL;
+Client *get_client_by_id_or_title(const char *arg_id, const char *arg_title) {
   Client *target_client = NULL;
   const char *appid, *title;
-  char *arg_id = arg->v;
-  char *arg_title = arg->v2;
-
+  Client *c = NULL;
   wl_list_for_each(c, &clients, link) {
     if (c->mon != selmon) {
       continue;
@@ -1585,6 +1582,16 @@ void toggle_named_scratch(const Arg *arg) {
       break;
     }
   }
+  return target_client;
+}
+
+void toggle_named_scratch(const Arg *arg) {
+  Client *target_client = NULL;
+  Client *c = NULL;
+  char *arg_id = arg->v;
+  char *arg_title = arg->v2;
+
+  target_client = get_client_by_id_or_title(arg_id, arg_title);
 
   if (!target_client)
     return;
@@ -2050,9 +2057,9 @@ void apply_window_snap(Client *c) {
       snap_right_screen = 0;
   int snap_up_mon = 0, snap_down_mon = 0, snap_left_mon = 0, snap_right_mon = 0;
 
-  unsigned int cbw = !render_border || c->fake_no_border ? borderpx: 0;
+  unsigned int cbw = !render_border || c->fake_no_border ? borderpx : 0;
   unsigned int tcbw;
-  unsigned int cx,cy,cw,ch,tcx,tcy,tcw,tch;
+  unsigned int cx, cy, cw, ch, tcx, tcy, tcw, tch;
   cx = c->geom.x + cbw;
   cy = c->geom.y + cbw;
   cw = c->geom.width - 2 * cbw;
@@ -2069,14 +2076,14 @@ void apply_window_snap(Client *c) {
     if (tc && tc->isfloating && !tc->iskilling && client_surface(tc)->mapped &&
         VISIBLEON(tc, c->mon)) {
 
-      tcbw = !render_border || tc->fake_no_border ? borderpx: 0;
+      tcbw = !render_border || tc->fake_no_border ? borderpx : 0;
       tcx = tc->geom.x + tcbw;
       tcy = tc->geom.y + tcbw;
       tcw = tc->geom.width - 2 * tcbw;
       tch = tc->geom.height - 2 * tcbw;
 
       snap_left_temp = cx - tcx - tcw;
-      snap_right_temp = tcx- cx - cw;
+      snap_right_temp = tcx - cx - cw;
       snap_up_temp = cy - tcy - tch;
       snap_down_temp = tcy - cy - ch;
 
@@ -2112,8 +2119,7 @@ void apply_window_snap(Client *c) {
   snap_left_screen = cx - c->mon->w.x;
   snap_right_screen = c->mon->w.x + c->mon->w.width - cx - cw;
   snap_up_screen = cy - c->mon->w.y;
-  snap_down_screen =
-      c->mon->w.y + c->mon->w.height - cy - ch;
+  snap_down_screen = c->mon->w.y + c->mon->w.height - cy - ch;
 
   if (snap_up_screen > 0 && snap_up_screen < snap_up)
     snap_up = snap_up_screen;
@@ -2562,7 +2568,7 @@ void place_drag_tile_client(Client *c) {
   Client *closest_client = NULL;
   long min_distant = LONG_MAX;
   long temp_distant;
-  unsigned int x,y;
+  unsigned int x, y;
 
   wl_list_for_each(tc, &clients, link) {
     if (tc != c && ISTILED(tc) && VISIBLEON(tc, c->mon)) {
@@ -2575,13 +2581,13 @@ void place_drag_tile_client(Client *c) {
       }
     }
   }
-  if(closest_client && closest_client->link.prev != &c->link) {
+  if (closest_client && closest_client->link.prev != &c->link) {
     wl_list_remove(&c->link);
     c->link.next = &closest_client->link;
     c->link.prev = closest_client->link.prev;
     closest_client->link.prev->next = &c->link;
     closest_client->link.prev = &c->link;
-  } else if(closest_client) {
+  } else if (closest_client) {
     exchange_two_client(c, closest_client);
   }
   setfloating(c, 0);
@@ -2658,7 +2664,7 @@ buttonpress(struct wl_listener *listener, void *data) {
       selmon->sel = grabc;
       tmpc = grabc;
       grabc = NULL;
-      if(tmpc->drag_to_tile && drag_tile_to_tile){
+      if (tmpc->drag_to_tile && drag_tile_to_tile) {
         place_drag_tile_client(tmpc);
       } else {
         apply_window_snap(tmpc);
@@ -7444,11 +7450,11 @@ void activatex11(struct wl_listener *listener, void *data) {
   } else if (c != focustop(selmon)) {
     c->isurgent = 1;
     if (client_surface(c)->mapped)
-      client_set_border_color(c, urgentcolor); 
+      client_set_border_color(c, urgentcolor);
   }
 
-  if (need_arrange){
-    arrange(c->mon,false);
+  if (need_arrange) {
+    arrange(c->mon, false);
   }
 
   printstatus();
