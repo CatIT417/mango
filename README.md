@@ -68,7 +68,7 @@ yay -S maomaowm-git
 
 ## other
 ```bash
-yay -S wlroots-git
+yay -S wlroots-0.19-git
 git clone https://github.com/DreamMaoMao/maomaowm.git
 cd maomaowm
 meson build -Dprefix=/usr
