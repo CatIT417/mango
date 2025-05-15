@@ -27,6 +27,7 @@ typedef struct {
   const char *animation_type_close;
   int isnoborder;
   int isopensilent;
+  int isunglobal;
   int isglobal;
   int monitor;
   int offsetx;
@@ -1060,6 +1061,7 @@ void parse_config_line(Config *config, const char *line) {
     rule->isfullscreen = -1;
     rule->isnoborder = -1;
     rule->isopensilent = -1;
+    rule->isunglobal = -1;
     rule->isglobal = -1;
     rule->isterm = -1;
     rule->noswallow = -1;
@@ -1119,6 +1121,8 @@ void parse_config_line(Config *config, const char *line) {
           rule->isnoborder = atoi(val);
         } else if (strcmp(key, "isopensilent") == 0) {
           rule->isopensilent = atoi(val);
+        } else if (strcmp(key, "isunglobal") == 0) {
+          rule->isunglobal = atoi(val);
         } else if (strcmp(key, "isglobal") == 0) {
           rule->isglobal = atoi(val);
         } else if (strcmp(key, "isterm") == 0) {

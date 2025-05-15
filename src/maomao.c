@@ -1832,6 +1832,7 @@ applyrules(Client *c) {
       c->isnoborder = r->isnoborder > 0 ? r->isnoborder : c->isnoborder;
       c->isopensilent = r->isopensilent > 0 ? r->isopensilent : c->isopensilent;
       c->isglobal = r->isglobal > 0 ? r->isglobal : c->isglobal;
+      c->isglobal = r->isunglobal > 0 && (client_is_unmanaged(c) || client_should_ignore_focus(c)) ? r->isunglobal : c->isglobal;
       newtags = r->tags > 0 ? r->tags | newtags : newtags;
       i = 0;
       wl_list_for_each(m, &mons, link) if (r->monitor == i++) mon = m;
