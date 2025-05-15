@@ -1831,6 +1831,7 @@ applyrules(Client *c) {
                                    : c->scroller_proportion;
       c->isnoborder = r->isnoborder > 0 ? r->isnoborder : c->isnoborder;
       c->isopensilent = r->isopensilent > 0 ? r->isopensilent : c->isopensilent;
+      c->isglobal = r->isglobal > 0 ? r->isglobal : c->isglobal;
       newtags = r->tags > 0 ? r->tags | newtags : newtags;
       i = 0;
       wl_list_for_each(m, &mons, link) if (r->monitor == i++) mon = m;
@@ -1884,6 +1885,7 @@ applyrules(Client *c) {
   }
 
   setfullscreen(c, fullscreen_state_backup);
+  setborder_color(c);
 }
 
 void // 17
