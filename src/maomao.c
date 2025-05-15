@@ -6395,7 +6395,7 @@ void toggleoverview(const Arg *arg) {
 
   if (selmon->isoverview) {
     wl_list_for_each(c, &clients,
-                     link) if (c && c->mon == selmon && !c->isminied) {
+                     link) if (c && c->mon == selmon && !client_is_unmanaged(c) && !client_should_ignore_focus(c) && !c->isminied) {
       visible_client_number++;
     }
     if (visible_client_number > 0) {
