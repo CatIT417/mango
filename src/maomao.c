@@ -1909,7 +1909,10 @@ arrange(Monitor *m, bool want_animation) {
 
     if (c->mon == m) {
       if (VISIBLEON(c, m)) {
-        m->visible_clients++;
+
+        if(!client_is_unmanaged(c) && !client_should_ignore_focus(c)) {
+          m->visible_clients++;
+        }
 
         if (!c->is_clip_to_hide ||
             strcmp(c->mon->pertag->ltidxs[c->mon->pertag->curtag]->name,
