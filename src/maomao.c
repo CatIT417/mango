@@ -1416,6 +1416,8 @@ void show_scratchpad(Client *c) {
   }
   c->oldtags = selmon->tagset[selmon->seltags];
   c->is_clip_to_hide = false;
+  wl_list_remove(&c->link);               // 从原来位置移除
+  wl_list_insert(clients.prev->next, &c->link); // 插入开头
   show_hide_client(c);
   setborder_color(c);
 }
