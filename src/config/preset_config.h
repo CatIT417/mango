@@ -120,6 +120,8 @@ int trackpad_natural_scrolling = 0;
 int disable_while_typing = 1;
 int left_handed = 0;
 int middle_button_emulation = 0;
+int single_scratchpad = 1;
+
 /* You can choose between:
 LIBINPUT_CONFIG_SCROLL_NO_SCROLL
 LIBINPUT_CONFIG_SCROLL_2FG

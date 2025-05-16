@@ -264,6 +264,7 @@ struct Client {
   int isopensilent;
   int isopenscratchpad;
   int iskilling;
+  int isnamedscratchpand;
   struct wlr_box bounds;
   bool is_open_animation;
   bool is_restoring_from_ov;
@@ -1362,6 +1363,7 @@ void restore_minized(const Arg *arg) {
     selmon->sel->isminied = 0;
     selmon->sel->is_scratchpad_show = 0;
     selmon->sel->is_in_scratchpad = 0;
+    selmon->sel->isnamedscratchpand = 0;
     setborder_color(selmon->sel);
     return;
   }
@@ -1372,6 +1374,7 @@ void restore_minized(const Arg *arg) {
       show_hide_client(c);
       c->is_scratchpad_show = 0;
       c->is_in_scratchpad = 0;
+      c->isnamedscratchpand = 0;
       setborder_color(c);
       break;
     }
@@ -1593,7 +1596,7 @@ void apply_named_scratchpad(Client *target_client) {
     if (c->mon != selmon) {
       continue;
     }
-    if (c->is_in_scratchpad && c->is_scratchpad_show && c != target_client) {
+    if (single_scratchpad && c->is_in_scratchpad && c->is_scratchpad_show && c != target_client) {
       set_minized(c);
     }
   }
@@ -1618,6 +1621,7 @@ void toggle_named_scratchpad(const Arg *arg) {
     return;
   }
 
+  target_client->isnamedscratchpand = 1;
   target_client->scratchpad_geom.width = arg->ui;
   target_client->scratchpad_geom.height = arg->ui2;
 
@@ -1627,13 +1631,26 @@ void toggle_named_scratchpad(const Arg *arg) {
 void toggle_scratchpad(const Arg *arg) {
   Client *c;
   bool hit = false;
-  wl_list_for_each(c, &clients, link) {
+  Client *tmp = NULL;
+  wl_list_for_each_safe(c, tmp, &clients, link) {
     if (c->mon != selmon) {
       continue;
     }
-    hit = switch_scratchpad_client_state(c);
+
+    if(single_scratchpad && c->isnamedscratchpand && !c->isminied) {
+      set_minized(c);
+      continue;
+    }
+
+    if(c->isnamedscratchpand)
+      continue;
+
     if (hit)
-      break;
+      continue;
+
+    hit = switch_scratchpad_client_state(c);
+
+
   }
 }
 
@@ -1829,6 +1846,9 @@ applyrules(Client *c) {
 
       if(c->isopenscratchpad)
           c->isfloating = 1;
+
+      if(c->isopenscratchpad == 2)
+          c->isnamedscratchpand = 1;
 
       if (c->isfloating) {
         c->geom.width = r->width > 0 ? r->width : c->geom.width;
@@ -4415,6 +4435,7 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->isminied = 0;
   c->isoverlay = 0;
   c->is_in_scratchpad = 0;
+  c->isnamedscratchpand = 0;
   c->is_scratchpad_show = 0;
   c->need_float_size_reduce = 0;
   c->is_clip_to_hide = 0;
@@ -5418,6 +5439,7 @@ setfloating(Client *c, int floating) {
     c->need_float_size_reduce = 1;
     c->is_scratchpad_show = 0;
     c->is_in_scratchpad = 0;
+    c->isnamedscratchpand = 0;
     // 让当前tag中的全屏窗口退出全屏参与平铺
     wl_list_for_each(fc, &clients, link) if (fc && fc != c &&
                                              c->tags & fc->tags &&
@@ -5738,6 +5760,7 @@ void handle_foreign_activate_request(struct wl_listener *listener, void *data) {
 
   if (c->isminied) {
     c->is_in_scratchpad = 0;
+    c->isnamedscratchpand = 0;
     c->is_scratchpad_show = 0;
     setborder_color(c);
     show_hide_client(c);
@@ -6478,6 +6501,7 @@ void togglefullscreen(const Arg *arg) {
 
   sel->is_scratchpad_show = 0;
   sel->is_in_scratchpad = 0;
+  sel->isnamedscratchpand = 0;
 }
 
 void togglemaxmizescreen(const Arg *arg) {
@@ -6495,6 +6519,7 @@ void togglemaxmizescreen(const Arg *arg) {
 
   sel->is_scratchpad_show = 0;
   sel->is_in_scratchpad = 0;
+  sel->isnamedscratchpand = 0;
 }
 
 void togglegaps(const Arg *arg) {
@@ -7154,6 +7179,7 @@ void toggleglobal(const Arg *arg) {
   if (selmon->sel->is_in_scratchpad) {
     selmon->sel->is_in_scratchpad = 0;
     selmon->sel->is_scratchpad_show = 0;
+    selmon->sel->isnamedscratchpand = 0;
   }
   selmon->sel->isglobal ^= 1;
   //   selmon->sel->tags =
@@ -7449,6 +7475,7 @@ void activatex11(struct wl_listener *listener, void *data) {
     c->tags = c->mini_restore_tag;
     c->is_scratchpad_show = 0;
     c->is_in_scratchpad = 0;
+    c->isnamedscratchpand = 0;
     wlr_foreign_toplevel_handle_v1_set_minimized(c->foreign_toplevel, false);
     setborder_color(c);
     if (VISIBLEON(c, c->mon)) {
