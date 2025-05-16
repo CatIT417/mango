@@ -1614,7 +1614,7 @@ void toggle_named_scratchpad(const Arg *arg) {
 
   target_client = get_client_by_id_or_title(arg_id, arg_title);
 
-  if (!target_client) {
+  if (!target_client && arg->v3) {
     Arg arg_spawn = {.v = arg->v3};
     spawn(&arg_spawn);
     return;
