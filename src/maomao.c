@@ -6104,6 +6104,10 @@ void setup(void) {
 }
 
 void spawn(const Arg *arg) {
+
+  if(!arg->v)
+    return;
+
   if (fork() == 0) {
     // 1. 忽略可能导致 coredump 的信号
     signal(SIGSEGV, SIG_IGN);
