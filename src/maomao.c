@@ -6127,28 +6127,35 @@ void setup(void) {
 
 void spawn(const Arg *arg) {
   if (fork() == 0) {
+    // 1. 忽略可能导致 coredump 的信号
+    signal(SIGSEGV, SIG_IGN);
+    signal(SIGABRT, SIG_IGN);
+    signal(SIGILL, SIG_IGN);
+
     dup2(STDERR_FILENO, STDOUT_FILENO);
     setsid();
 
-    // 将 arg->v 拆分为字符串数组
-    char *argv[64]; // 假设最多有 64 个参数
+    // 2. 解析参数
+    char *argv[64];
     int argc = 0;
     char *token = strtok((char *)arg->v, " ");
     while (token != NULL && argc < 63) {
-      // 扩展 ~ 为家目录路径
       wordexp_t p;
       if (wordexp(token, &p, 0) == 0) {
         argv[argc++] = p.we_wordv[0];
       } else {
-        argv[argc++] = token; // 如果扩展失败，使用原始 token
+        argv[argc++] = token;
       }
       token = strtok(NULL, " ");
     }
-    argv[argc] = NULL; // execvp 需要以 NULL 结尾的数组
+    argv[argc] = NULL;
 
-    // 执行命令
+    // 3. 执行命令
     execvp(argv[0], argv);
-    die("dwl: execvp %s failed:", argv[0]);
+    
+    // 4. execvp 失败时：打印错误并直接退出（避免 coredump）
+    wlr_log(WLR_ERROR, "dwl: execvp '%s' failed: %s\n", argv[0], strerror(errno));
+    _exit(EXIT_FAILURE);  // 使用 _exit 避免缓冲区刷新等操作
   }
 }
 
