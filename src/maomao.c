@@ -415,8 +415,6 @@ typedef struct {
 } SessionLock;
 
 /* function declarations */
-static void logtofile(const char *fmt, ...); // 日志函数
-static void lognumtofile(float num);         // 日志函数
 static void applybounds(
     Client *c,
     struct wlr_box *bbox); // 设置边界规则,能让一些窗口拥有比较适合的大小
@@ -1741,26 +1739,6 @@ setclient_coordinate_center(struct wlr_box geom, int offsetx, int offsety) {
   return tempbox;
 }
 /* function implementations */
-
-void logtofile(const char *fmt, ...) {
-  char buf[256];
-  char cmd[256];
-  va_list ap;
-  va_start(ap, fmt);
-  vsprintf((char *)buf, fmt, ap);
-  va_end(ap);
-  unsigned int i = strlen((const char *)buf);
-
-  sprintf(cmd, "echo '%.*s' >> ~/log", i, buf);
-  system(cmd);
-}
-
-/* function implementations */
-void lognumtofile(float num) {
-  char cmd[256];
-  sprintf(cmd, "echo '%f' >> ~/log", num);
-  system(cmd);
-}
 
 int // 0.5 custom
 applyrulesgeom(Client *c) {
