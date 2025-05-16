@@ -27,6 +27,7 @@ typedef struct {
   const char *animation_type_close;
   int isnoborder;
   int isopensilent;
+  int isopenscratchpad;
   int isunglobal;
   int isglobal;
   int monitor;
@@ -36,8 +37,8 @@ typedef struct {
   int height;
   int isterm;
   int noswallow;
-  int scratch_width;
-  int scratch_height;
+  int scratchpad_width;
+  int scratchpad_height;
   uint32_t passmod;
   xkb_keysym_t keysym;
   KeyBinding globalkeybinding;
@@ -504,11 +505,12 @@ unsigned int parse_num_type(char *str) {
 }
 
 FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
-                         char *arg_value2, char *arg_value3, char *arg_value4) {
+                         char *arg_value2, char *arg_value3, char *arg_value4, char *arg_value5) {
 
   FuncType func = NULL;
   (*arg).v = NULL;
   (*arg).v2 = NULL;
+  (*arg).v3 = NULL;
 
   if (strcmp(func_name, "focusstack") == 0) {
     func = focusstack;
@@ -648,10 +650,11 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
         (*arg).ui == NUM_TYPE_DEFAULT ? atoi(arg_value) : atoi(arg_value + 1);
     (*arg).i2 = (*arg).ui2 == NUM_TYPE_DEFAULT ? atoi(arg_value2)
                                                : atoi(arg_value2 + 1);
-  } else if (strcmp(func_name, "toggle_named_scratch") == 0) {
-    func = toggle_named_scratch;
+  } else if (strcmp(func_name, "toggle_named_scratchpad") == 0) {
+    func = toggle_named_scratchpad;
     (*arg).v = strdup(arg_value);
     (*arg).v2 = strdup(arg_value2);
+    (*arg).v3 = strdup(arg_value5);
     (*arg).ui = arg_value3 ? atoi(arg_value3) : 0;
     (*arg).ui2 = arg_value4 ? atoi(arg_value4) : 0;
   } else {
@@ -1061,6 +1064,7 @@ void parse_config_line(Config *config, const char *line) {
     rule->isfullscreen = -1;
     rule->isnoborder = -1;
     rule->isopensilent = -1;
+    rule->isopenscratchpad = -1;
     rule->isunglobal = -1;
     rule->isglobal = -1;
     rule->isterm = -1;
@@ -1068,8 +1072,8 @@ void parse_config_line(Config *config, const char *line) {
     rule->monitor = -1;
     rule->offsetx = 0;
     rule->offsety = 0;
-    rule->scratch_width = 0;
-    rule->scratch_height = 0;
+    rule->scratchpad_width = 0;
+    rule->scratchpad_height = 0;
     rule->width = -1;
     rule->height = -1;
     rule->animation_type_open = NULL;
@@ -1109,10 +1113,10 @@ void parse_config_line(Config *config, const char *line) {
           rule->offsetx = atoi(val);
         } else if (strcmp(key, "offsety") == 0) {
           rule->offsety = atoi(val);
-        } else if (strcmp(key, "scratch_width") == 0) {
-          rule->scratch_width = atoi(val);
-        } else if (strcmp(key, "scratch_height") == 0) {
-          rule->scratch_height = atoi(val);
+        } else if (strcmp(key, "scratchpad_width") == 0) {
+          rule->scratchpad_width = atoi(val);
+        } else if (strcmp(key, "scratchpad_height") == 0) {
+          rule->scratchpad_height = atoi(val);
         } else if (strcmp(key, "width") == 0) {
           rule->width = atoi(val);
         } else if (strcmp(key, "height") == 0) {
@@ -1121,6 +1125,8 @@ void parse_config_line(Config *config, const char *line) {
           rule->isnoborder = atoi(val);
         } else if (strcmp(key, "isopensilent") == 0) {
           rule->isopensilent = atoi(val);
+        } else if (strcmp(key, "isopenscratchpad") == 0) {
+          rule->isopenscratchpad = atoi(val);
         } else if (strcmp(key, "isunglobal") == 0) {
           rule->isunglobal = atoi(val);
         } else if (strcmp(key, "isglobal") == 0) {
@@ -1264,10 +1270,10 @@ void parse_config_line(Config *config, const char *line) {
 
     char mod_str[256], keysym_str[256], func_name[256],
         arg_value[256] = "none", arg_value2[256] = "none",
-        arg_value3[256] = "none", arg_value4[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str,
+        arg_value3[256] = "none", arg_value4[256] = "none", arg_value5[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str,
                keysym_str, func_name, arg_value, arg_value2, arg_value3,
-               arg_value4) < 3) {
+               arg_value4, arg_value5) < 3) {
       fprintf(stderr, "Error: Invalid bind format: %s\n", value);
       return;
     }
@@ -1278,13 +1284,15 @@ void parse_config_line(Config *config, const char *line) {
     trim_whitespace(arg_value2);
     trim_whitespace(arg_value3);
     trim_whitespace(arg_value4);
+    trim_whitespace(arg_value5);
 
     binding->mod = parse_mod(mod_str);
     binding->keysym = parse_keysym(keysym_str);
     binding->arg.v = NULL;
     binding->arg.v2 = NULL;
+    binding->arg.v3 = NULL;
     binding->func = parse_func_name(func_name, &binding->arg, arg_value,
-                                    arg_value2, arg_value3, arg_value4);
+                                    arg_value2, arg_value3, arg_value4, arg_value5);
     if (!binding->func) {
       if (binding->arg.v) {
         free(binding->arg.v);
@@ -1293,6 +1301,10 @@ void parse_config_line(Config *config, const char *line) {
       if (binding->arg.v2) {
         free(binding->arg.v2);
         binding->arg.v2 = NULL;
+      }
+      if (binding->arg.v3) {
+        free(binding->arg.v3);
+        binding->arg.v3 = NULL;
       }
       fprintf(stderr, "Error: Unknown function in bind: %s\n", func_name);
     } else {
@@ -1314,10 +1326,9 @@ void parse_config_line(Config *config, const char *line) {
 
     char mod_str[256], button_str[256], func_name[256],
         arg_value[256] = "none", arg_value2[256] = "none",
-        arg_value3[256] = "none", arg_value4[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str,
-               button_str, func_name, arg_value, arg_value2, arg_value3,
-               arg_value4) < 3) {
+        arg_value3[256] = "none", arg_value4[256] = "none", arg_value5[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str,
+               button_str, func_name, arg_value, arg_value2, arg_value3, arg_value4, arg_value5) < 3) {
       fprintf(stderr, "Error: Invalid mousebind format: %s\n", value);
       return;
     }
@@ -1328,13 +1339,15 @@ void parse_config_line(Config *config, const char *line) {
     trim_whitespace(arg_value2);
     trim_whitespace(arg_value3);
     trim_whitespace(arg_value4);
+    trim_whitespace(arg_value5);
 
     binding->mod = parse_mod(mod_str);
     binding->button = parse_button(button_str);
     binding->arg.v = NULL;
     binding->arg.v2 = NULL;
+    binding->arg.v3 = NULL;
     binding->func = parse_func_name(func_name, &binding->arg, arg_value,
-                                    arg_value2, arg_value3, arg_value4);
+                                    arg_value2, arg_value3, arg_value4, arg_value5);
     if (!binding->func) {
       if (binding->arg.v) {
         free(binding->arg.v);
@@ -1343,6 +1356,10 @@ void parse_config_line(Config *config, const char *line) {
       if (binding->arg.v2) {
         free(binding->arg.v2);
         binding->arg.v2 = NULL;
+      }
+      if (binding->arg.v3) {
+        free(binding->arg.v3);
+        binding->arg.v3 = NULL;
       }
       fprintf(stderr, "Error: Unknown function in mousebind: %s\n", func_name);
     } else {
@@ -1362,10 +1379,9 @@ void parse_config_line(Config *config, const char *line) {
 
     char mod_str[256], dir_str[256], func_name[256],
         arg_value[256] = "none", arg_value2[256] = "none",
-        arg_value3[256] = "none", arg_value4[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str,
-               dir_str, func_name, arg_value, arg_value2, arg_value3,
-               arg_value4) < 3) {
+        arg_value3[256] = "none", arg_value4[256] = "none", arg_value5[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str,
+               dir_str, func_name, arg_value, arg_value2, arg_value3, arg_value4, arg_value5) < 3) {
       fprintf(stderr, "Error: Invalid axisbind format: %s\n", value);
       return;
     }
@@ -1377,13 +1393,15 @@ void parse_config_line(Config *config, const char *line) {
     trim_whitespace(arg_value2);
     trim_whitespace(arg_value3);
     trim_whitespace(arg_value4);
+    trim_whitespace(arg_value5);
 
     binding->mod = parse_mod(mod_str);
     binding->dir = parse_direction(dir_str);
     binding->arg.v = NULL;
     binding->arg.v2 = NULL;
+    binding->arg.v3 = NULL;
     binding->func = parse_func_name(func_name, &binding->arg, arg_value,
-                                    arg_value2, arg_value3, arg_value4);
+                                    arg_value2, arg_value3, arg_value4, arg_value5);
 
     if (!binding->func) {
       if (binding->arg.v) {
@@ -1393,6 +1411,10 @@ void parse_config_line(Config *config, const char *line) {
       if (binding->arg.v2) {
         free(binding->arg.v2);
         binding->arg.v2 = NULL;
+      }
+      if (binding->arg.v3) {
+        free(binding->arg.v3);
+        binding->arg.v3 = NULL;
       }
       fprintf(stderr, "Error: Unknown function in axisbind: %s\n", func_name);
     } else {
@@ -1415,10 +1437,10 @@ void parse_config_line(Config *config, const char *line) {
 
     char mod_str[256], motion_str[256], fingers_count_str[256], func_name[256],
         arg_value[256] = "none", arg_value2[256] = "none",
-        arg_value3[256] = "none", arg_value4[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]",
+        arg_value3[256] = "none", arg_value4[256] = "none", arg_value5[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]",
                mod_str, motion_str, fingers_count_str, func_name, arg_value,
-               arg_value2, arg_value3, arg_value4) < 4) {
+               arg_value2, arg_value3, arg_value4, arg_value5) < 4) {
       fprintf(stderr, "Error: Invalid gesturebind format: %s\n", value);
       return;
     }
@@ -1431,14 +1453,16 @@ void parse_config_line(Config *config, const char *line) {
     trim_whitespace(arg_value2);
     trim_whitespace(arg_value3);
     trim_whitespace(arg_value4);
+    trim_whitespace(arg_value5);
 
     binding->mod = parse_mod(mod_str);
     binding->motion = parse_direction(motion_str);
     binding->fingers_count = atoi(fingers_count_str);
     binding->arg.v = NULL;
     binding->arg.v2 = NULL;
+    binding->arg.v3 = NULL;
     binding->func = parse_func_name(func_name, &binding->arg, arg_value,
-                                    arg_value2, arg_value3, arg_value4);
+                                    arg_value2, arg_value3, arg_value4, arg_value5);
 
     if (!binding->func) {
       if (binding->arg.v) {
@@ -1448,6 +1472,10 @@ void parse_config_line(Config *config, const char *line) {
       if (binding->arg.v2) {
         free(binding->arg.v2);
         binding->arg.v2 = NULL;
+      }
+      if (binding->arg.v3) {
+        free(binding->arg.v3);
+        binding->arg.v3 = NULL;
       }
       fprintf(stderr, "Error: Unknown function in axisbind: %s\n", func_name);
     } else {
@@ -1578,6 +1606,10 @@ void free_config(void) {
         free((void *)config.key_bindings[i].arg.v2);
         config.key_bindings[i].arg.v2 = NULL;
       }
+      if (config.key_bindings[i].arg.v3) {
+        free((void *)config.key_bindings[i].arg.v3);
+        config.key_bindings[i].arg.v3 = NULL;
+      }
     }
     free(config.key_bindings);
     config.key_bindings = NULL;
@@ -1594,6 +1626,10 @@ void free_config(void) {
       if (config.mouse_bindings[i].arg.v2) {
         free((void *)config.mouse_bindings[i].arg.v2);
         config.mouse_bindings[i].arg.v2 = NULL;
+      }
+      if (config.mouse_bindings[i].arg.v3) {
+        free((void *)config.mouse_bindings[i].arg.v3);
+        config.mouse_bindings[i].arg.v3 = NULL;
       }
     }
     free(config.mouse_bindings);
@@ -1612,6 +1648,10 @@ void free_config(void) {
         free((void *)config.axis_bindings[i].arg.v2);
         config.axis_bindings[i].arg.v2 = NULL;
       }
+      if (config.axis_bindings[i].arg.v3) {
+        free((void *)config.axis_bindings[i].arg.v3);
+        config.axis_bindings[i].arg.v3 = NULL;
+      }
     }
     free(config.axis_bindings);
     config.axis_bindings = NULL;
@@ -1628,6 +1668,10 @@ void free_config(void) {
       if (config.gesture_bindings[i].arg.v2) {
         free((void *)config.gesture_bindings[i].arg.v2);
         config.gesture_bindings[i].arg.v2 = NULL;
+      }
+      if (config.gesture_bindings[i].arg.v3) {
+        free((void *)config.gesture_bindings[i].arg.v3);
+        config.gesture_bindings[i].arg.v3 = NULL;
       }
     }
     free(config.gesture_bindings);

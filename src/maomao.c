@@ -155,6 +155,7 @@ typedef struct {
   float f2;
   char *v;
   char *v2;
+  char *v3;
   unsigned int ui;
   unsigned int ui2;
 } Arg;
@@ -204,7 +205,7 @@ typedef struct Client Client;
 struct Client {
   /* Must keep these three elements in this order */
   unsigned int type; /* XDGShell or X11* */
-  struct wlr_box geom, pending, oldgeom, scratch_geom, animainit_geom,
+  struct wlr_box geom, pending, oldgeom, scratchpad_geom, animainit_geom,
       overview_backup_geom, current; /* layout-relative, includes border */
   Monitor *mon;
   struct wlr_scene_tree *scene;
@@ -261,6 +262,7 @@ struct Client {
   int isglobal;
   int isnoborder;
   int isopensilent;
+  int isopenscratchpad;
   int iskilling;
   struct wlr_box bounds;
   bool is_open_animation;
@@ -503,7 +505,7 @@ static void dwl_ipc_output_dispatch(struct wl_client *client,
                                     struct wl_resource *resource,
                                     const char *dispatch, const char *arg1,
                                     const char *arg2, const char *arg3,
-                                    const char *arg4);
+                                    const char *arg4, const char *arg5);
 static void dwl_ipc_output_release(struct wl_client *client,
                                    struct wl_resource *resource);
 static void focusclient(Client *c, int lift);
@@ -1387,26 +1389,26 @@ void show_scratchpad(Client *c) {
   }
 
   if (c->oldgeom.width)
-    c->scratch_geom.width = c->oldgeom.width;
+    c->scratchpad_geom.width = c->oldgeom.width;
   if (c->oldgeom.height)
-    c->scratch_geom.height = c->oldgeom.height;
+    c->scratchpad_geom.height = c->oldgeom.height;
 
   /* return if fullscreen */
   if (!c->isfloating) {
     setfloating(c, 1);
     c->geom.width =
-        c->scratch_geom.width ? c->scratch_geom.width : c->mon->w.width * 0.7;
-    c->geom.height = c->scratch_geom.height ? c->scratch_geom.height
+        c->scratchpad_geom.width ? c->scratchpad_geom.width : c->mon->w.width * 0.7;
+    c->geom.height = c->scratchpad_geom.height ? c->scratchpad_geom.height
                                             : c->mon->w.height * 0.8;
     // 重新计算居中的坐标
     c->geom = c->animainit_geom = c->animation.current =
         setclient_coordinate_center(c->geom, 0, 0);
     resize(c, c->geom, 0);
-  } else if (c->geom.width != c->scratch_geom.width ||
-             c->geom.height != c->scratch_geom.height) {
+  } else if (c->geom.width != c->scratchpad_geom.width ||
+             c->geom.height != c->scratchpad_geom.height) {
     c->geom.width =
-        c->scratch_geom.width ? c->scratch_geom.width : c->mon->w.width * 0.7;
-    c->geom.height = c->scratch_geom.height ? c->scratch_geom.height
+        c->scratchpad_geom.width ? c->scratchpad_geom.width : c->mon->w.width * 0.7;
+    c->geom.height = c->scratchpad_geom.height ? c->scratchpad_geom.height
                                             : c->mon->w.height * 0.8;
     c->geom = c->animainit_geom = c->animation.current =
         setclient_coordinate_center(c->geom, 0, 0);
@@ -1531,7 +1533,7 @@ void swallow(Client *c, Client *w) {
   }
 }
 
-bool switch_scratch_client_state(Client *c) {
+bool switch_scratchpad_client_state(Client *c) {
   if (c->is_in_scratchpad && c->is_scratchpad_show &&
       (selmon->tagset[selmon->seltags] & c->tags) == 0) {
     unsigned int target = get_tags_first_tag(selmon->tagset[selmon->seltags]);
@@ -1585,17 +1587,8 @@ Client *get_client_by_id_or_title(const char *arg_id, const char *arg_title) {
   return target_client;
 }
 
-void toggle_named_scratch(const Arg *arg) {
-  Client *target_client = NULL;
+void apply_named_scratchpad(Client *target_client) {
   Client *c = NULL;
-  char *arg_id = arg->v;
-  char *arg_title = arg->v2;
-
-  target_client = get_client_by_id_or_title(arg_id, arg_title);
-
-  if (!target_client)
-    return;
-
   wl_list_for_each(c, &clients, link) {
     if (c->mon != selmon) {
       continue;
@@ -1605,14 +1598,30 @@ void toggle_named_scratch(const Arg *arg) {
     }
   }
 
-  target_client->scratch_geom.width = arg->ui;
-  target_client->scratch_geom.height = arg->ui2;
-
   if (!target_client->is_in_scratchpad) {
     set_minized(target_client);
-    switch_scratch_client_state(target_client);
+    switch_scratchpad_client_state(target_client);
   } else
-    switch_scratch_client_state(target_client);
+    switch_scratchpad_client_state(target_client);
+}
+
+void toggle_named_scratchpad(const Arg *arg) {
+  Client *target_client = NULL;
+  char *arg_id = arg->v;
+  char *arg_title = arg->v2;
+
+  target_client = get_client_by_id_or_title(arg_id, arg_title);
+
+  if (!target_client) {
+    Arg arg_spawn = {.v = arg->v3};
+    spawn(&arg_spawn);
+    return;
+  }
+
+  target_client->scratchpad_geom.width = arg->ui;
+  target_client->scratchpad_geom.height = arg->ui2;
+
+  apply_named_scratchpad(target_client);
 }
 
 void toggle_scratchpad(const Arg *arg) {
@@ -1622,7 +1631,7 @@ void toggle_scratchpad(const Arg *arg) {
     if (c->mon != selmon) {
       continue;
     }
-    hit = switch_scratch_client_state(c);
+    hit = switch_scratchpad_client_state(c);
     if (hit)
       break;
   }
@@ -1814,10 +1823,10 @@ applyrules(Client *c) {
          strstr(title, r->title))) {
       c->isterm = r->isterm > 0 ? r->isterm : c->isterm;
       c->noswallow = r->noswallow > 0 ? r->noswallow : c->noswallow;
-      c->scratch_geom.width =
-          r->scratch_width > 0 ? r->scratch_width : c->scratch_geom.width;
-      c->scratch_geom.height =
-          r->scratch_height > 0 ? r->scratch_height : c->scratch_geom.height;
+      c->scratchpad_geom.width =
+          r->scratchpad_width > 0 ? r->scratchpad_width : c->scratchpad_geom.width;
+      c->scratchpad_geom.height =
+          r->scratchpad_height > 0 ? r->scratchpad_height : c->scratchpad_geom.height;
       c->isfloating = r->isfloating > 0 ? r->isfloating : c->isfloating;
       c->isfullscreen = r->isfullscreen > 0 ? r->isfullscreen : c->isfullscreen;
       c->animation_type_open = r->animation_type_open == NULL
@@ -1831,11 +1840,15 @@ applyrules(Client *c) {
                                    : c->scroller_proportion;
       c->isnoborder = r->isnoborder > 0 ? r->isnoborder : c->isnoborder;
       c->isopensilent = r->isopensilent > 0 ? r->isopensilent : c->isopensilent;
+      c->isopenscratchpad = r->isopenscratchpad > 0 ? r->isopenscratchpad : c->isopenscratchpad;
       c->isglobal = r->isglobal > 0 ? r->isglobal : c->isglobal;
       c->isglobal = r->isunglobal > 0 && (client_is_unmanaged(c) || client_should_ignore_focus(c)) ? r->isunglobal : c->isglobal;
       newtags = r->tags > 0 ? r->tags | newtags : newtags;
       i = 0;
       wl_list_for_each(m, &mons, link) if (r->monitor == i++) mon = m;
+
+      if(c->isopenscratchpad)
+          c->isfloating = 1;
 
       if (c->isfloating) {
         c->geom.width = r->width > 0 ? r->width : c->geom.width;
@@ -1843,7 +1856,7 @@ applyrules(Client *c) {
         // 重新计算居中的坐标
         if (r->offsetx || r->offsety ||
             (!client_is_x11(c) || !client_should_ignore_focus(c)))
-          c->geom =
+          c->oldgeom = c->geom =
               setclient_coordinate_center(c->geom, r->offsetx, r->offsety);
       }
     }
@@ -1886,7 +1899,11 @@ applyrules(Client *c) {
   }
 
   setfullscreen(c, fullscreen_state_backup);
-  setborder_color(c);
+  
+  if(c->isopenscratchpad) {
+    apply_named_scratchpad(c);
+    setborder_color(c);
+  }
 }
 
 void // 17
@@ -3770,12 +3787,12 @@ void dwl_ipc_output_quit(struct wl_client *client,
 void dwl_ipc_output_dispatch(struct wl_client *client,
                              struct wl_resource *resource, const char *dispatch,
                              const char *arg1, const char *arg2,
-                             const char *arg3, const char *arg4) {
+                             const char *arg3, const char *arg4, const char *arg5) {
 
   void (*func)(const Arg *);
   Arg arg;
   func = parse_func_name((char *)dispatch, &arg, (char *)arg1, (char *)arg2,
-                         (char *)arg3, (char *)arg4);
+                         (char *)arg3, (char *)arg4, (char *)arg5);
   if (func) {
     func(&arg);
   }
@@ -4456,15 +4473,6 @@ mapnotify(struct wl_listener *listener, void *data) {
   } else {
     applyrules(c);
   }
-
-  if (!c->foreign_toplevel && c->mon)
-    add_foreign_toplevel(c);
-
-  if (selmon->sel && selmon->sel->foreign_toplevel)
-    wlr_foreign_toplevel_handle_v1_set_activated(selmon->sel->foreign_toplevel,
-                                                 false);
-  if (c->foreign_toplevel)
-    wlr_foreign_toplevel_handle_v1_set_activated(c->foreign_toplevel, true);
 
   // make sure the animation is open type
   c->is_open_animation = true;
@@ -5675,6 +5683,15 @@ void setmon(Client *c, Monitor *m, uint32_t newtags, bool focus) {
   }
   if (focus)
     focusclient(focustop(selmon), 1);
+
+  if (!c->foreign_toplevel && c->mon) {
+    add_foreign_toplevel(c);
+    if (selmon->sel && selmon->sel->foreign_toplevel)
+      wlr_foreign_toplevel_handle_v1_set_activated(selmon->sel->foreign_toplevel,
+                                                   false);
+    if (c->foreign_toplevel)
+      wlr_foreign_toplevel_handle_v1_set_activated(c->foreign_toplevel, true);
+  }
 }
 
 void setpsel(struct wl_listener *listener, void *data) {

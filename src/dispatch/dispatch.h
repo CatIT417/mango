@@ -53,7 +53,7 @@ void togglefakefullscreen(const Arg *arg);
 void toggleoverlay(const Arg *arg);
 void movewin(const Arg *arg);
 void resizewin(const Arg *arg);
-void toggle_named_scratch(const Arg *arg);
+void toggle_named_scratchpad(const Arg *arg);
 void toggle_render_border(const Arg *arg);
 void create_virtual_output(const Arg *arg);
 void destroy_all_virtual_output(const Arg *arg);
