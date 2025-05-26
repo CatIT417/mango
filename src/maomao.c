@@ -1274,8 +1274,8 @@ void client_apply_clip(Client *c) {
   scale_data.should_scale = true;
   scale_data.width = clip_box.width - 2 * c->bw;
   scale_data.height = clip_box.height - 2 * c->bw;
-  scale_data.width_scale = (float)scale_data.width / geometry.width;
-  scale_data.height_scale = (float)scale_data.height / geometry.height;
+  scale_data.width_scale = (float)scale_data.width / (geometry.width - offset.x);
+  scale_data.height_scale = (float)scale_data.height / (geometry.height - offset.y);
   buffer_set_effect(c, scale_data);
 }
 
@@ -4915,6 +4915,16 @@ void scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int sx, int sy,
     if (surface_height > scale_data->height &&
         wlr_subsurface_try_from_wlr_surface(surface) == NULL) {
       surface_height = scale_data->height;
+    }
+
+    if (surface_width > scale_data->width &&
+        wlr_subsurface_try_from_wlr_surface(surface) != NULL) {
+        return;
+    }
+
+    if (surface_height > scale_data->height &&
+        wlr_subsurface_try_from_wlr_surface(surface) != NULL) {
+        return;
     }
 
     if (surface_height > 0 && surface_width > 0) {
