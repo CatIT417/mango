@@ -1790,8 +1790,7 @@ applyrulesgeom(Client *c) {
       c->geom.width = r->width > 0 ? r->width : c->geom.width;
       c->geom.height = r->height > 0 ? r->height : c->geom.height;
       // 重新计算居中的坐标
-      if (r->offsetx || r->offsety ||
-          (!client_is_x11(c) || !client_should_ignore_focus(c)))
+      if (r->offsetx || r->offsety)
         c->geom = setclient_coordinate_center(c->geom, r->offsetx, r->offsety);
       hit = r->height > 0 || r->width > 0 || r->offsetx != 0 || r->offsety != 0
                 ? 1
@@ -1864,8 +1863,7 @@ applyrules(Client *c) {
         c->geom.width = r->width > 0 ? r->width : c->geom.width;
         c->geom.height = r->height > 0 ? r->height : c->geom.height;
         // 重新计算居中的坐标
-        if (r->offsetx || r->offsety ||
-            (!client_is_x11(c) || !client_should_ignore_focus(c)))
+        if (r->offsetx || r->offsety)
           c->oldgeom = c->geom =
               setclient_coordinate_center(c->geom, r->offsetx, r->offsety);
       }
