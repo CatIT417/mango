@@ -1848,6 +1848,7 @@ applyrules(Client *c) {
       c->isopensilent = r->isopensilent > 0 ? r->isopensilent : c->isopensilent;
       c->isopenscratchpad = r->isopenscratchpad > 0 ? r->isopenscratchpad : c->isopenscratchpad;
       c->isglobal = r->isglobal > 0 ? r->isglobal : c->isglobal;
+      c->isoverlay = r->isoverlay > 0 ? r->isoverlay : c->isoverlay;
       c->isglobal = r->isunglobal > 0 && (client_is_unmanaged(c) || client_should_ignore_focus(c)) ? r->isunglobal : c->isglobal;
       newtags = r->tags > 0 ? r->tags | newtags : newtags;
       i = 0;
@@ -1911,8 +1912,14 @@ applyrules(Client *c) {
   
   if(c->isopenscratchpad) {
     apply_named_scratchpad(c);
-    setborder_color(c);
   }
+
+  if(c->isoverlay) {
+    wlr_scene_node_reparent(&selmon->sel->scene->node, layers[LyrOverlay]);
+    wlr_scene_node_raise_to_top(&selmon->sel->scene->node);
+  }
+
+  setborder_color(c);
 }
 
 void // 17
