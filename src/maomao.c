@@ -1244,6 +1244,10 @@ void client_apply_clip(Client *c) {
     client_get_clip(c, &clip_box);
     offset = clip_to_hide(c, &clip_box);
     apply_border(c, clip_box, offset.x, offset.y);
+
+    if(clip_box.width <= 0 || clip_box.height <= 0)
+      return;
+
     wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
     buffer_set_effect(c, (animationScale){0, 0, 0, 0, false});
     return;
@@ -1267,9 +1271,12 @@ void client_apply_clip(Client *c) {
   }
 
   offset = clip_to_hide(c, &clip_box);
+  apply_border(c, clip_box, offset.x, offset.y);
+
+  if(clip_box.width <= 0 || clip_box.height <= 0)
+    return;
 
   wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
-  apply_border(c, clip_box, offset.x, offset.y);
 
   scale_data.should_scale = true;
   scale_data.width = clip_box.width - 2 * c->bw;
