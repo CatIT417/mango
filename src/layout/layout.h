@@ -137,7 +137,7 @@ void grid(Monitor *m) {
 
   // 第一次遍历，计算 n 的值
   wl_list_for_each(c, &clients, link) {
-    if (VISIBLEON(c, c->mon) && !client_should_ignore_focus(c) && !c->iskilling && !c->animation.tagouting &&
+    if (VISIBLEON(c, c->mon) && (m->isoverview || ISTILED(c)) && !client_should_ignore_focus(c) && !c->iskilling && !c->animation.tagouting &&
         c->mon == selmon) {
       n++;
     }
@@ -152,7 +152,7 @@ void grid(Monitor *m) {
       c->bw = m->visible_clients == 1 && no_border_when_single && smartgaps
                   ? 0
                   : borderpx;
-      if (VISIBLEON(c, c->mon) && !client_should_ignore_focus(c) && !c->iskilling && !c->animation.tagouting &&
+      if (VISIBLEON(c, c->mon) && (m->isoverview || ISTILED(c)) && !client_should_ignore_focus(c) && !c->iskilling && !c->animation.tagouting &&
           c->mon == selmon) {
         cw = (m->w.width - 2 * overviewgappo) * 0.7;
         ch = (m->w.height - 2 * overviewgappo) * 0.8;
@@ -174,7 +174,7 @@ void grid(Monitor *m) {
       c->bw = m->visible_clients == 1 && no_border_when_single && smartgaps
                   ? 0
                   : borderpx;
-      if (VISIBLEON(c, c->mon) && !client_should_ignore_focus(c) && !c->iskilling && !c->animation.tagouting &&
+      if (VISIBLEON(c, c->mon) && (m->isoverview || ISTILED(c)) && !client_should_ignore_focus(c) && !c->iskilling && !c->animation.tagouting &&
           c->mon == selmon) {
         if (i == 0) {
           c->geom.x = m->w.x + overviewgappo;
@@ -220,7 +220,7 @@ void grid(Monitor *m) {
     c->bw = m->visible_clients == 1 && no_border_when_single && smartgaps
                 ? 0
                 : borderpx;
-    if (VISIBLEON(c, c->mon) && !client_should_ignore_focus(c) && !c->iskilling && !c->animation.tagouting &&
+    if (VISIBLEON(c, c->mon) && (m->isoverview || ISTILED(c)) && !client_should_ignore_focus(c) && !c->iskilling && !c->animation.tagouting &&
         c->mon == selmon) {
       cx = m->w.x + (i % cols) * (cw + overviewgappi);
       cy = m->w.y + (i / cols) * (ch + overviewgappi);
