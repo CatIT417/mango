@@ -615,7 +615,7 @@ static void handle_foreign_close_request(struct wl_listener *listener,
                                          void *data);
 static void handle_foreign_destroy(struct wl_listener *listener, void *data);
 
-static struct wlr_box setclient_coordinate_center(struct wlr_box geom,
+static struct wlr_box setclient_coordinate_center(Client *c, struct wlr_box geom,
                                                   int offsetx, int offsety);
 static unsigned int get_tags_first_tag(unsigned int tags);
 
@@ -638,6 +638,7 @@ static void set_rect_size(struct wlr_scene_rect *rect, int width, int height);
 static Client *center_select(Monitor *m);
 static void handlecursoractivity(void);
 static int hidecursor(void *data);
+static bool check_hit_no_border(Client *c);
 
 #include "dispatch/dispatch.h"
 
@@ -1062,22 +1063,9 @@ void set_rect_size(struct wlr_scene_rect *rect, int width, int height) {
   wlr_scene_rect_set_size(rect, GEZERO(width), GEZERO(height));
 }
 
-void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
-                  int offsety) {
+bool check_hit_no_border(Client *c) {
   int i;
   bool hit_no_border = false;
-
-  if (c->iskilling || !client_surface(c)->mapped)
-    return;
-
-  if (clip_box.width > c->animation.current.width) {
-    clip_box.width = c->animation.current.width;
-  }
-
-  if (clip_box.height > c->animation.current.height) {
-    clip_box.height = c->animation.current.height;
-  }
-
   if (!render_border) {
     hit_no_border = true;
   }
@@ -1092,6 +1080,25 @@ void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
   if (no_border_when_single && c->mon->visible_clients == 1) {
     hit_no_border = true;
   }
+  return hit_no_border;
+}
+
+void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
+                  int offsety) {
+  bool hit_no_border = false;
+
+  if (c->iskilling || !client_surface(c)->mapped)
+    return;
+
+  if (clip_box.width > c->animation.current.width) {
+    clip_box.width = c->animation.current.width;
+  }
+
+  if (clip_box.height > c->animation.current.height) {
+    clip_box.height = c->animation.current.height;
+  }
+
+  hit_no_border = check_hit_no_border(c);
 
   if (hit_no_border && smartgaps) {
     c->bw = 0;
@@ -1412,7 +1419,7 @@ void show_scratchpad(Client *c) {
                                             : c->mon->w.height * 0.8;
     // 重新计算居中的坐标
     c->geom = c->animainit_geom = c->animation.current =
-        setclient_coordinate_center(c->geom, 0, 0);
+        setclient_coordinate_center(c, c->geom, 0, 0);
     resize(c, c->geom, 0);
   } else if (c->geom.width != c->scratchpad_geom.width ||
              c->geom.height != c->scratchpad_geom.height) {
@@ -1421,7 +1428,7 @@ void show_scratchpad(Client *c) {
     c->geom.height = c->scratchpad_geom.height ? c->scratchpad_geom.height
                                             : c->mon->w.height * 0.8;
     c->geom = c->animainit_geom = c->animation.current =
-        setclient_coordinate_center(c->geom, 0, 0);
+        setclient_coordinate_center(c, c->geom, 0, 0);
     resize(c, c->geom, 0);
   }
   c->oldtags = selmon->tagset[selmon->seltags];
@@ -1725,10 +1732,12 @@ void toggle_hotarea(int x_root, int y_root) {
 }
 
 struct wlr_box // 计算客户端居中坐标
-setclient_coordinate_center(struct wlr_box geom, int offsetx, int offsety) {
+setclient_coordinate_center(Client *c, struct wlr_box geom, int offsetx, int offsety) {
   struct wlr_box tempbox;
   int offset = 0;
   int len = 0;
+
+  unsigned int cbw = check_hit_no_border(c) ? c->bw : 0;
 
   tempbox.x = selmon->w.x + (selmon->w.width - geom.width) / 2;
   tempbox.y = selmon->w.y + (selmon->w.height - geom.height) / 2;
@@ -1736,29 +1745,29 @@ setclient_coordinate_center(struct wlr_box geom, int offsetx, int offsety) {
   tempbox.height = geom.height;
 
   if (offsetx != 0) {
-    len = (selmon->w.width - geom.width) / 2 - gappoh;
+    len = selmon->w.width/ 2;
     offset = len * (offsetx / 100.0);
     tempbox.x += offset;
 
     // 限制窗口在屏幕内
     if (tempbox.x < selmon->m.x) {
-      tempbox.x = selmon->m.x;
+      tempbox.x = selmon->m.x - cbw;
     }
     if (tempbox.x + tempbox.width > selmon->m.x + selmon->m.width) {
-      tempbox.x = selmon->m.x + selmon->m.width - tempbox.width;
+      tempbox.x = selmon->m.x + selmon->m.width - tempbox.width + cbw;
     }
   }
   if (offsety != 0) {
-    len = (selmon->w.height - geom.height) / 2 - gappov;
+    len = selmon->w.height;
     offset = len * (offsety / 100.0);
     tempbox.y += offset;
 
     // 限制窗口在屏幕内
     if (tempbox.y < selmon->m.y) {
-      tempbox.y = selmon->m.y;
+      tempbox.y = selmon->m.y - cbw;
     }
     if (tempbox.y + tempbox.height > selmon->m.y + selmon->m.height) {
-      tempbox.y = selmon->m.y + selmon->m.height - tempbox.height;
+      tempbox.y = selmon->m.y + selmon->m.height - tempbox.height + cbw;
     }
   }
 
@@ -1791,7 +1800,7 @@ applyrulesgeom(Client *c) {
       c->geom.height = r->height > 0 ? r->height : c->geom.height;
       // 重新计算居中的坐标
       if (r->offsetx || r->offsety)
-        c->geom = setclient_coordinate_center(c->geom, r->offsetx, r->offsety);
+        c->geom = setclient_coordinate_center(c, c->geom, r->offsetx, r->offsety);
       hit = r->height > 0 || r->width > 0 || r->offsetx != 0 || r->offsety != 0
                 ? 1
                 : 0;
@@ -1865,7 +1874,7 @@ applyrules(Client *c) {
         // 重新计算居中的坐标
         if (r->offsetx || r->offsety)
           c->oldgeom = c->geom =
-              setclient_coordinate_center(c->geom, r->offsetx, r->offsety);
+              setclient_coordinate_center(c, c->geom, r->offsetx, r->offsety);
       }
     }
   }
@@ -5443,7 +5452,7 @@ setfloating(Client *c, int floating) {
     }
     // 重新计算居中的坐标
     if (!client_is_x11(c) || !client_should_ignore_focus(c))
-      target_box = setclient_coordinate_center(target_box, 0, 0);
+      target_box = setclient_coordinate_center(c, target_box, 0, 0);
     backup_box = c->geom;
     hit = applyrulesgeom(c);
     target_box = hit == 1 ? c->geom : target_box;
@@ -6271,7 +6280,7 @@ void tagmon(const Arg *arg) {
       c->geom.height =
           (int)(c->geom.height * c->mon->w.height / selmon->w.height);
       selmon = c->mon;
-      c->geom = setclient_coordinate_center(c->geom, 0, 0);
+      c->geom = setclient_coordinate_center(c, c->geom, 0, 0);
       focusclient(c, 1);
       c->oldgeom = c->geom;
       resize(c, c->geom, 1);
