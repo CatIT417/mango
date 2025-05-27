@@ -1817,6 +1817,7 @@ applyrules(Client *c) {
   int ji;
   const ConfigWinRule *r;
   Monitor *mon = selmon, *m;
+  bool hit_rule_pos = false;
 
   c->isfloating = client_is_float_type(c);
   if (!(appid = client_get_appid(c)))
@@ -1872,11 +1873,19 @@ applyrules(Client *c) {
         c->geom.width = r->width > 0 ? r->width : c->geom.width;
         c->geom.height = r->height > 0 ? r->height : c->geom.height;
         // 重新计算居中的坐标
-        if (r->offsetx || r->offsety)
+        if (r->offsetx || r->offsety) {
+          hit_rule_pos = true;
           c->oldgeom = c->geom =
               setclient_coordinate_center(c, c->geom, r->offsetx, r->offsety);
+        }
       }
     }
+  }
+
+  // if no pos rule hit, use the default pos
+  if(!hit_rule_pos && (!client_is_x11(c) || !client_should_ignore_focus(c))) {
+    c->oldgeom = c->geom =
+        setclient_coordinate_center(c, c->geom, 0, 0);
   }
 
   if (!client_surface(c)->mapped)
