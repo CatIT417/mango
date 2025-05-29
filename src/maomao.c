@@ -2162,13 +2162,13 @@ void apply_window_snap(Client *c) {
   snap_up_mon = cy - c->mon->m.y;
   snap_down_mon = c->mon->m.y + c->mon->m.height - cy - ch;
 
-  if (snap_up_mon > 0 && snap_up_mon < snap_up)
+  if (snap_up_mon >= 0 && snap_up_mon < snap_up)
     snap_up = snap_up_mon;
-  if (snap_down_mon > 0 && snap_down_mon < snap_down)
+  if (snap_down_mon >= 0 && snap_down_mon < snap_down)
     snap_down = snap_down_mon;
-  if (snap_left_mon > 0 && snap_left_mon < snap_left)
+  if (snap_left_mon >= 0 && snap_left_mon < snap_left)
     snap_left = snap_left_mon;
-  if (snap_right_mon > 0 && snap_right_mon < snap_right)
+  if (snap_right_mon >= 0 && snap_right_mon < snap_right)
     snap_right = snap_right_mon;
 
   snap_left_screen = cx - c->mon->w.x;
@@ -2176,13 +2176,13 @@ void apply_window_snap(Client *c) {
   snap_up_screen = cy - c->mon->w.y;
   snap_down_screen = c->mon->w.y + c->mon->w.height - cy - ch;
 
-  if (snap_up_screen > 0 && snap_up_screen < snap_up)
+  if (snap_up_screen >= 0 && snap_up_screen < snap_up)
     snap_up = snap_up_screen;
-  if (snap_down_screen > 0 && snap_down_screen < snap_down)
+  if (snap_down_screen >= 0 && snap_down_screen < snap_down)
     snap_down = snap_down_screen;
-  if (snap_left_screen > 0 && snap_left_screen < snap_left)
+  if (snap_left_screen >= 0 && snap_left_screen < snap_left)
     snap_left = snap_left_screen;
-  if (snap_right_screen > 0 && snap_right_screen < snap_right)
+  if (snap_right_screen >= 0 && snap_right_screen < snap_right)
     snap_right = snap_right_screen;
 
   if (snap_left < snap_right && snap_left < snap_distance) {
