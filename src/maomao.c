@@ -1799,7 +1799,7 @@ applyrulesgeom(Client *c) {
       c->geom.width = r->width > 0 ? r->width : c->geom.width;
       c->geom.height = r->height > 0 ? r->height : c->geom.height;
       // 重新计算居中的坐标
-      if (r->offsetx || r->offsety)
+      if (r->offsetx || r->offsety || r->width || r->height)
         c->geom = setclient_coordinate_center(c, c->geom, r->offsetx, r->offsety);
       hit = r->height > 0 || r->width > 0 || r->offsetx != 0 || r->offsety != 0
                 ? 1
@@ -1873,7 +1873,7 @@ applyrules(Client *c) {
         c->geom.width = r->width > 0 ? r->width : c->geom.width;
         c->geom.height = r->height > 0 ? r->height : c->geom.height;
         // 重新计算居中的坐标
-        if (r->offsetx || r->offsety) {
+        if (r->offsetx || r->offsety || r->width || r->height) {
           hit_rule_pos = true;
           c->oldgeom = c->geom =
               setclient_coordinate_center(c, c->geom, r->offsetx, r->offsety);
@@ -1882,7 +1882,7 @@ applyrules(Client *c) {
     }
   }
 
-  // if no pos rule hit, use the default pos
+  // if no geom rule hit, use the center pos and record the hit size
   if(!hit_rule_pos && (!client_is_x11(c) || !client_should_ignore_focus(c))) {
     c->oldgeom = c->geom =
         setclient_coordinate_center(c, c->geom, 0, 0);
@@ -5455,10 +5455,6 @@ setfloating(Client *c, int floating) {
       c->bw = c->isnoborder ? 0 : borderpx;
     }
 
-    if (c->need_float_size_reduce && !c->swallowing && !c->is_open_animation) {
-      target_box.height = target_box.height * 0.8;
-      target_box.width = target_box.width * 0.8;
-    }
     // 重新计算居中的坐标
     if (!client_is_x11(c) || !client_should_ignore_focus(c))
       target_box = setclient_coordinate_center(c, target_box, 0, 0);
