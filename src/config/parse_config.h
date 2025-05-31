@@ -344,46 +344,60 @@ xkb_keysym_t normalize_keysym(xkb_keysym_t sym) {
 
   // 将数字小键盘键转换为普通数字键
   switch (sym) {
-    // 小键盘数字转换
-    case XKB_KEY_KP_0: 
-      return XKB_KEY_0;
-    case XKB_KEY_KP_1: 
-      return XKB_KEY_1;
-    case XKB_KEY_KP_2: 
-      return XKB_KEY_2;
-    case XKB_KEY_KP_3: 
-      return XKB_KEY_3;
-    case XKB_KEY_KP_4: 
-      return XKB_KEY_4;
-    case XKB_KEY_KP_5: 
-      return XKB_KEY_5;
-    case XKB_KEY_KP_6: 
-      return XKB_KEY_6;
-    case XKB_KEY_KP_7: 
-      return XKB_KEY_7;
-    case XKB_KEY_KP_8: 
-      return XKB_KEY_8;
-    case XKB_KEY_KP_9: 
-      return XKB_KEY_9;
+  // 小键盘数字转换
+  case XKB_KEY_KP_0:
+    return XKB_KEY_0;
+  case XKB_KEY_KP_1:
+    return XKB_KEY_1;
+  case XKB_KEY_KP_2:
+    return XKB_KEY_2;
+  case XKB_KEY_KP_3:
+    return XKB_KEY_3;
+  case XKB_KEY_KP_4:
+    return XKB_KEY_4;
+  case XKB_KEY_KP_5:
+    return XKB_KEY_5;
+  case XKB_KEY_KP_6:
+    return XKB_KEY_6;
+  case XKB_KEY_KP_7:
+    return XKB_KEY_7;
+  case XKB_KEY_KP_8:
+    return XKB_KEY_8;
+  case XKB_KEY_KP_9:
+    return XKB_KEY_9;
 
-    // 将 Shift+数字 的符号转换回基础数字
-    case XKB_KEY_exclam:    return XKB_KEY_1;      // !
-    case XKB_KEY_at:        return XKB_KEY_2;      // @
-    case XKB_KEY_numbersign:return XKB_KEY_3;      // #
-    case XKB_KEY_dollar:    return XKB_KEY_4;      // $
-    case XKB_KEY_percent:   return XKB_KEY_5;      // %
-    case XKB_KEY_asciicircum: return XKB_KEY_6;    // ^
-    case XKB_KEY_ampersand: return XKB_KEY_7;      // &
-    case XKB_KEY_asterisk:  return XKB_KEY_8;      // *
-    case XKB_KEY_parenleft: return XKB_KEY_9;      // (
-    case XKB_KEY_parenright:return XKB_KEY_0;      // )
+  // 将 Shift+数字 的符号转换回基础数字
+  case XKB_KEY_exclam:
+    return XKB_KEY_1; // !
+  case XKB_KEY_at:
+    return XKB_KEY_2; // @
+  case XKB_KEY_numbersign:
+    return XKB_KEY_3; // #
+  case XKB_KEY_dollar:
+    return XKB_KEY_4; // $
+  case XKB_KEY_percent:
+    return XKB_KEY_5; // %
+  case XKB_KEY_asciicircum:
+    return XKB_KEY_6; // ^
+  case XKB_KEY_ampersand:
+    return XKB_KEY_7; // &
+  case XKB_KEY_asterisk:
+    return XKB_KEY_8; // *
+  case XKB_KEY_parenleft:
+    return XKB_KEY_9; // (
+  case XKB_KEY_parenright:
+    return XKB_KEY_0; // )
 
-    // 其他布局可能需要的变体（如欧洲键盘）
-    case XKB_KEY_quotedbl:  return XKB_KEY_2;      // "
-    case XKB_KEY_section:   return XKB_KEY_6;      // §
-    case XKB_KEY_degree:    return XKB_KEY_0;      // °
+  // 其他布局可能需要的变体（如欧洲键盘）
+  case XKB_KEY_quotedbl:
+    return XKB_KEY_2; // "
+  case XKB_KEY_section:
+    return XKB_KEY_6; // §
+  case XKB_KEY_degree:
+    return XKB_KEY_0; // °
 
-    default: return sym;
+  default:
+    return sym;
   }
 }
 
@@ -510,7 +524,8 @@ unsigned int parse_num_type(char *str) {
 }
 
 FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
-                         char *arg_value2, char *arg_value3, char *arg_value4, char *arg_value5) {
+                         char *arg_value2, char *arg_value3, char *arg_value4,
+                         char *arg_value5) {
 
   FuncType func = NULL;
   (*arg).v = NULL;
@@ -1284,10 +1299,11 @@ void parse_config_line(Config *config, const char *line) {
 
     char mod_str[256], keysym_str[256], func_name[256],
         arg_value[256] = "none", arg_value2[256] = "none",
-        arg_value3[256] = "none", arg_value4[256] = "none", arg_value5[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str,
-               keysym_str, func_name, arg_value, arg_value2, arg_value3,
-               arg_value4, arg_value5) < 3) {
+        arg_value3[256] = "none", arg_value4[256] = "none",
+        arg_value5[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]",
+               mod_str, keysym_str, func_name, arg_value, arg_value2,
+               arg_value3, arg_value4, arg_value5) < 3) {
       fprintf(stderr, "Error: Invalid bind format: %s\n", value);
       return;
     }
@@ -1305,8 +1321,9 @@ void parse_config_line(Config *config, const char *line) {
     binding->arg.v = NULL;
     binding->arg.v2 = NULL;
     binding->arg.v3 = NULL;
-    binding->func = parse_func_name(func_name, &binding->arg, arg_value,
-                                    arg_value2, arg_value3, arg_value4, arg_value5);
+    binding->func =
+        parse_func_name(func_name, &binding->arg, arg_value, arg_value2,
+                        arg_value3, arg_value4, arg_value5);
     if (!binding->func) {
       if (binding->arg.v) {
         free(binding->arg.v);
@@ -1340,9 +1357,11 @@ void parse_config_line(Config *config, const char *line) {
 
     char mod_str[256], button_str[256], func_name[256],
         arg_value[256] = "none", arg_value2[256] = "none",
-        arg_value3[256] = "none", arg_value4[256] = "none", arg_value5[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str,
-               button_str, func_name, arg_value, arg_value2, arg_value3, arg_value4, arg_value5) < 3) {
+        arg_value3[256] = "none", arg_value4[256] = "none",
+        arg_value5[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]",
+               mod_str, button_str, func_name, arg_value, arg_value2,
+               arg_value3, arg_value4, arg_value5) < 3) {
       fprintf(stderr, "Error: Invalid mousebind format: %s\n", value);
       return;
     }
@@ -1360,8 +1379,9 @@ void parse_config_line(Config *config, const char *line) {
     binding->arg.v = NULL;
     binding->arg.v2 = NULL;
     binding->arg.v3 = NULL;
-    binding->func = parse_func_name(func_name, &binding->arg, arg_value,
-                                    arg_value2, arg_value3, arg_value4, arg_value5);
+    binding->func =
+        parse_func_name(func_name, &binding->arg, arg_value, arg_value2,
+                        arg_value3, arg_value4, arg_value5);
     if (!binding->func) {
       if (binding->arg.v) {
         free(binding->arg.v);
@@ -1393,9 +1413,11 @@ void parse_config_line(Config *config, const char *line) {
 
     char mod_str[256], dir_str[256], func_name[256],
         arg_value[256] = "none", arg_value2[256] = "none",
-        arg_value3[256] = "none", arg_value4[256] = "none", arg_value5[256] = "none";
-    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]", mod_str,
-               dir_str, func_name, arg_value, arg_value2, arg_value3, arg_value4, arg_value5) < 3) {
+        arg_value3[256] = "none", arg_value4[256] = "none",
+        arg_value5[256] = "none";
+    if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]",
+               mod_str, dir_str, func_name, arg_value, arg_value2, arg_value3,
+               arg_value4, arg_value5) < 3) {
       fprintf(stderr, "Error: Invalid axisbind format: %s\n", value);
       return;
     }
@@ -1414,8 +1436,9 @@ void parse_config_line(Config *config, const char *line) {
     binding->arg.v = NULL;
     binding->arg.v2 = NULL;
     binding->arg.v3 = NULL;
-    binding->func = parse_func_name(func_name, &binding->arg, arg_value,
-                                    arg_value2, arg_value3, arg_value4, arg_value5);
+    binding->func =
+        parse_func_name(func_name, &binding->arg, arg_value, arg_value2,
+                        arg_value3, arg_value4, arg_value5);
 
     if (!binding->func) {
       if (binding->arg.v) {
@@ -1451,7 +1474,8 @@ void parse_config_line(Config *config, const char *line) {
 
     char mod_str[256], motion_str[256], fingers_count_str[256], func_name[256],
         arg_value[256] = "none", arg_value2[256] = "none",
-        arg_value3[256] = "none", arg_value4[256] = "none", arg_value5[256] = "none";
+        arg_value3[256] = "none", arg_value4[256] = "none",
+        arg_value5[256] = "none";
     if (sscanf(value, "%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^,],%[^\n]",
                mod_str, motion_str, fingers_count_str, func_name, arg_value,
                arg_value2, arg_value3, arg_value4, arg_value5) < 4) {
@@ -1475,8 +1499,9 @@ void parse_config_line(Config *config, const char *line) {
     binding->arg.v = NULL;
     binding->arg.v2 = NULL;
     binding->arg.v3 = NULL;
-    binding->func = parse_func_name(func_name, &binding->arg, arg_value,
-                                    arg_value2, arg_value3, arg_value4, arg_value5);
+    binding->func =
+        parse_func_name(func_name, &binding->arg, arg_value, arg_value2,
+                        arg_value3, arg_value4, arg_value5);
 
     if (!binding->func) {
       if (binding->arg.v) {

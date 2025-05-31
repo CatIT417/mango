@@ -615,7 +615,8 @@ static void handle_foreign_close_request(struct wl_listener *listener,
                                          void *data);
 static void handle_foreign_destroy(struct wl_listener *listener, void *data);
 
-static struct wlr_box setclient_coordinate_center(Client *c, struct wlr_box geom,
+static struct wlr_box setclient_coordinate_center(Client *c,
+                                                  struct wlr_box geom,
                                                   int offsetx, int offsety);
 static unsigned int get_tags_first_tag(unsigned int tags);
 
@@ -1252,7 +1253,7 @@ void client_apply_clip(Client *c) {
     offset = clip_to_hide(c, &clip_box);
     apply_border(c, clip_box, offset.x, offset.y);
 
-    if(clip_box.width <= 0 || clip_box.height <= 0)
+    if (clip_box.width <= 0 || clip_box.height <= 0)
       return;
 
     wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
@@ -1280,7 +1281,7 @@ void client_apply_clip(Client *c) {
   offset = clip_to_hide(c, &clip_box);
   apply_border(c, clip_box, offset.x, offset.y);
 
-  if(clip_box.width <= 0 || clip_box.height <= 0)
+  if (clip_box.width <= 0 || clip_box.height <= 0)
     return;
 
   wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
@@ -1288,8 +1289,10 @@ void client_apply_clip(Client *c) {
   scale_data.should_scale = true;
   scale_data.width = clip_box.width - 2 * c->bw;
   scale_data.height = clip_box.height - 2 * c->bw;
-  scale_data.width_scale = (float)scale_data.width / (geometry.width - offset.x);
-  scale_data.height_scale = (float)scale_data.height / (geometry.height - offset.y);
+  scale_data.width_scale =
+      (float)scale_data.width / (geometry.width - offset.x);
+  scale_data.height_scale =
+      (float)scale_data.height / (geometry.height - offset.y);
   buffer_set_effect(c, scale_data);
 }
 
@@ -1413,27 +1416,27 @@ void show_scratchpad(Client *c) {
   /* return if fullscreen */
   if (!c->isfloating) {
     setfloating(c, 1);
-    c->geom.width =
-        c->scratchpad_geom.width ? c->scratchpad_geom.width : c->mon->w.width * 0.7;
+    c->geom.width = c->scratchpad_geom.width ? c->scratchpad_geom.width
+                                             : c->mon->w.width * 0.7;
     c->geom.height = c->scratchpad_geom.height ? c->scratchpad_geom.height
-                                            : c->mon->w.height * 0.8;
+                                               : c->mon->w.height * 0.8;
     // 重新计算居中的坐标
     c->geom = c->animainit_geom = c->animation.current =
         setclient_coordinate_center(c, c->geom, 0, 0);
     resize(c, c->geom, 0);
   } else if (c->geom.width != c->scratchpad_geom.width ||
              c->geom.height != c->scratchpad_geom.height) {
-    c->geom.width =
-        c->scratchpad_geom.width ? c->scratchpad_geom.width : c->mon->w.width * 0.7;
+    c->geom.width = c->scratchpad_geom.width ? c->scratchpad_geom.width
+                                             : c->mon->w.width * 0.7;
     c->geom.height = c->scratchpad_geom.height ? c->scratchpad_geom.height
-                                            : c->mon->w.height * 0.8;
+                                               : c->mon->w.height * 0.8;
     c->geom = c->animainit_geom = c->animation.current =
         setclient_coordinate_center(c, c->geom, 0, 0);
     resize(c, c->geom, 0);
   }
   c->oldtags = selmon->tagset[selmon->seltags];
   c->is_clip_to_hide = false;
-  wl_list_remove(&c->link);               // 从原来位置移除
+  wl_list_remove(&c->link);                     // 从原来位置移除
   wl_list_insert(clients.prev->next, &c->link); // 插入开头
   show_hide_client(c);
   setborder_color(c);
@@ -1612,7 +1615,8 @@ void apply_named_scratchpad(Client *target_client) {
     if (c->mon != selmon) {
       continue;
     }
-    if (single_scratchpad && c->is_in_scratchpad && c->is_scratchpad_show && c != target_client) {
+    if (single_scratchpad && c->is_in_scratchpad && c->is_scratchpad_show &&
+        c != target_client) {
       set_minized(c);
     }
   }
@@ -1653,20 +1657,18 @@ void toggle_scratchpad(const Arg *arg) {
       continue;
     }
 
-    if(single_scratchpad && c->isnamedscratchpand && !c->isminied) {
+    if (single_scratchpad && c->isnamedscratchpand && !c->isminied) {
       set_minized(c);
       continue;
     }
 
-    if(c->isnamedscratchpand)
+    if (c->isnamedscratchpand)
       continue;
 
     if (hit)
       continue;
 
     hit = switch_scratchpad_client_state(c);
-
-
   }
 }
 
@@ -1732,7 +1734,8 @@ void toggle_hotarea(int x_root, int y_root) {
 }
 
 struct wlr_box // 计算客户端居中坐标
-setclient_coordinate_center(Client *c, struct wlr_box geom, int offsetx, int offsety) {
+setclient_coordinate_center(Client *c, struct wlr_box geom, int offsetx,
+                            int offsety) {
   struct wlr_box tempbox;
   int offset = 0;
   int len = 0;
@@ -1745,7 +1748,7 @@ setclient_coordinate_center(Client *c, struct wlr_box geom, int offsetx, int off
   tempbox.height = geom.height;
 
   if (offsetx != 0) {
-    len = selmon->w.width/ 2;
+    len = selmon->w.width / 2;
     offset = len * (offsetx / 100.0);
     tempbox.x += offset;
 
@@ -1792,15 +1795,16 @@ applyrulesgeom(Client *c) {
     if (config.window_rules_count < 1)
       break;
     r = &config.window_rules[ji];
-    if ((regex_match(r->title,title) && !r->id) ||
-        (r->id && regex_match(r->id,appid) && !r->title) ||
-        (r->id && regex_match(r->id,appid) && r->title &&
-         regex_match(r->title,title))) {
+    if ((regex_match(r->title, title) && !r->id) ||
+        (r->id && regex_match(r->id, appid) && !r->title) ||
+        (r->id && regex_match(r->id, appid) && r->title &&
+         regex_match(r->title, title))) {
       c->geom.width = r->width > 0 ? r->width : c->geom.width;
       c->geom.height = r->height > 0 ? r->height : c->geom.height;
       // 重新计算居中的坐标
       if (r->offsetx || r->offsety || r->width || r->height)
-        c->geom = setclient_coordinate_center(c, c->geom, r->offsetx, r->offsety);
+        c->geom =
+            setclient_coordinate_center(c, c->geom, r->offsetx, r->offsety);
       hit = r->height > 0 || r->width > 0 || r->offsetx != 0 || r->offsety != 0
                 ? 1
                 : 0;
@@ -1832,16 +1836,18 @@ applyrules(Client *c) {
       break;
     r = &config.window_rules[ji];
 
-    if ((r->title && regex_match(r->title,title) && !r->id) ||
-        (r->id && regex_match(r->id,appid) && !r->title) ||
-        (r->id && regex_match(r->id,appid) && r->title &&
-         regex_match(r->title,title))) {
+    if ((r->title && regex_match(r->title, title) && !r->id) ||
+        (r->id && regex_match(r->id, appid) && !r->title) ||
+        (r->id && regex_match(r->id, appid) && r->title &&
+         regex_match(r->title, title))) {
       c->isterm = r->isterm > 0 ? r->isterm : c->isterm;
       c->noswallow = r->noswallow > 0 ? r->noswallow : c->noswallow;
-      c->scratchpad_geom.width =
-          r->scratchpad_width > 0 ? r->scratchpad_width : c->scratchpad_geom.width;
-      c->scratchpad_geom.height =
-          r->scratchpad_height > 0 ? r->scratchpad_height : c->scratchpad_geom.height;
+      c->scratchpad_geom.width = r->scratchpad_width > 0
+                                     ? r->scratchpad_width
+                                     : c->scratchpad_geom.width;
+      c->scratchpad_geom.height = r->scratchpad_height > 0
+                                      ? r->scratchpad_height
+                                      : c->scratchpad_geom.height;
       c->isfloating = r->isfloating > 0 ? r->isfloating : c->isfloating;
       c->isfullscreen = r->isfullscreen > 0 ? r->isfullscreen : c->isfullscreen;
       c->animation_type_open = r->animation_type_open == NULL
@@ -1855,19 +1861,23 @@ applyrules(Client *c) {
                                    : c->scroller_proportion;
       c->isnoborder = r->isnoborder > 0 ? r->isnoborder : c->isnoborder;
       c->isopensilent = r->isopensilent > 0 ? r->isopensilent : c->isopensilent;
-      c->isopenscratchpad = r->isopenscratchpad > 0 ? r->isopenscratchpad : c->isopenscratchpad;
+      c->isopenscratchpad =
+          r->isopenscratchpad > 0 ? r->isopenscratchpad : c->isopenscratchpad;
       c->isglobal = r->isglobal > 0 ? r->isglobal : c->isglobal;
       c->isoverlay = r->isoverlay > 0 ? r->isoverlay : c->isoverlay;
-      c->isglobal = r->isunglobal > 0 && (client_is_unmanaged(c) || client_should_ignore_focus(c)) ? r->isunglobal : c->isglobal;
+      c->isglobal = r->isunglobal > 0 && (client_is_unmanaged(c) ||
+                                          client_should_ignore_focus(c))
+                        ? r->isunglobal
+                        : c->isglobal;
       newtags = r->tags > 0 ? r->tags | newtags : newtags;
       i = 0;
       wl_list_for_each(m, &mons, link) if (r->monitor == i++) mon = m;
 
-      if(c->isopenscratchpad)
-          c->isfloating = 1;
+      if (c->isopenscratchpad)
+        c->isfloating = 1;
 
-      if(c->isopenscratchpad == 2)
-          c->isnamedscratchpand = 1;
+      if (c->isopenscratchpad == 2)
+        c->isnamedscratchpand = 1;
 
       if (c->isfloating) {
         c->geom.width = r->width > 0 ? r->width : c->geom.width;
@@ -1883,9 +1893,8 @@ applyrules(Client *c) {
   }
 
   // if no geom rule hit, use the center pos and record the hit size
-  if(!hit_rule_pos && (!client_is_x11(c) || !client_should_ignore_focus(c))) {
-    c->oldgeom = c->geom =
-        setclient_coordinate_center(c, c->geom, 0, 0);
+  if (!hit_rule_pos && (!client_is_x11(c) || !client_should_ignore_focus(c))) {
+    c->oldgeom = c->geom = setclient_coordinate_center(c, c->geom, 0, 0);
   }
 
   if (!client_surface(c)->mapped)
@@ -1919,18 +1928,19 @@ applyrules(Client *c) {
   int fullscreen_state_backup = c->isfullscreen;
   setmon(c, mon, newtags, !c->isopensilent);
 
-  if (!c->isopensilent && selmon && !(c->tags & (1 << (selmon->pertag->curtag - 1)))) {
+  if (!c->isopensilent && selmon &&
+      !(c->tags & (1 << (selmon->pertag->curtag - 1)))) {
     c->animation.from_rule = true;
     view(&(Arg){.ui = c->tags}, true);
   }
 
   setfullscreen(c, fullscreen_state_backup);
-  
-  if(c->isopenscratchpad) {
+
+  if (c->isopenscratchpad) {
     apply_named_scratchpad(c);
   }
 
-  if(c->isoverlay) {
+  if (c->isoverlay) {
     wlr_scene_node_reparent(&selmon->sel->scene->node, layers[LyrOverlay]);
     wlr_scene_node_raise_to_top(&selmon->sel->scene->node);
   }
@@ -1962,7 +1972,7 @@ arrange(Monitor *m, bool want_animation) {
     if (c->mon == m) {
       if (VISIBLEON(c, m)) {
 
-        if(!client_is_unmanaged(c) && !client_should_ignore_focus(c)) {
+        if (!client_is_unmanaged(c) && !client_should_ignore_focus(c)) {
           m->visible_clients++;
         }
 
@@ -3819,7 +3829,8 @@ void dwl_ipc_output_quit(struct wl_client *client,
 void dwl_ipc_output_dispatch(struct wl_client *client,
                              struct wl_resource *resource, const char *dispatch,
                              const char *arg1, const char *arg2,
-                             const char *arg3, const char *arg4, const char *arg5) {
+                             const char *arg3, const char *arg4,
+                             const char *arg5) {
 
   void (*func)(const Arg *);
   Arg arg;
@@ -4484,7 +4495,8 @@ mapnotify(struct wl_listener *listener, void *data) {
              "scroller") != 0)
     // tile at the top
     wl_list_insert(&clients, &c->link); // 新窗口是master,头部入栈
-  else if (selmon && strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
+  else if (selmon &&
+           strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
                   "scroller") == 0 &&
            center_select(selmon)) {
     Client *at_client = center_select(selmon);
@@ -4949,12 +4961,12 @@ void scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int sx, int sy,
 
     if (surface_width > scale_data->width &&
         wlr_subsurface_try_from_wlr_surface(surface) != NULL) {
-        return;
+      return;
     }
 
     if (surface_height > scale_data->height &&
         wlr_subsurface_try_from_wlr_surface(surface) != NULL) {
-        return;
+      return;
     }
 
     if (surface_height > 0 && surface_width > 0) {
@@ -5727,8 +5739,8 @@ void setmon(Client *c, Monitor *m, uint32_t newtags, bool focus) {
   if (!c->foreign_toplevel && c->mon) {
     add_foreign_toplevel(c);
     if (selmon->sel && selmon->sel->foreign_toplevel)
-      wlr_foreign_toplevel_handle_v1_set_activated(selmon->sel->foreign_toplevel,
-                                                   false);
+      wlr_foreign_toplevel_handle_v1_set_activated(
+          selmon->sel->foreign_toplevel, false);
     if (c->foreign_toplevel)
       wlr_foreign_toplevel_handle_v1_set_activated(c->foreign_toplevel, true);
   }
@@ -6166,7 +6178,7 @@ void setup(void) {
 
 void spawn(const Arg *arg) {
 
-  if(!arg->v)
+  if (!arg->v)
     return;
 
   if (fork() == 0) {
@@ -6195,10 +6207,11 @@ void spawn(const Arg *arg) {
 
     // 3. 执行命令
     execvp(argv[0], argv);
-    
+
     // 4. execvp 失败时：打印错误并直接退出（避免 coredump）
-    wlr_log(WLR_ERROR, "dwl: execvp '%s' failed: %s\n", argv[0], strerror(errno));
-    _exit(EXIT_FAILURE);  // 使用 _exit 避免缓冲区刷新等操作
+    wlr_log(WLR_ERROR, "dwl: execvp '%s' failed: %s\n", argv[0],
+            strerror(errno));
+    _exit(EXIT_FAILURE); // 使用 _exit 避免缓冲区刷新等操作
   }
 }
 
@@ -6347,7 +6360,7 @@ void overview_restore(Client *c, const Arg *arg) {
   c->animation.tagining = false;
   c->is_restoring_from_ov = (arg->ui & c->tags & TAGMASK) == 0 ? true : false;
 
-  if(!VISIBLEON(c, c->mon)) {
+  if (!VISIBLEON(c, c->mon)) {
     c->animation.current = c->current = c->pending = c->geom;
     wlr_scene_node_set_enabled(&c->scene->node, false);
     client_set_suspended(c, true);
@@ -6472,8 +6485,10 @@ void toggleoverview(const Arg *arg) {
   unsigned int visible_client_number = 0;
 
   if (selmon->isoverview) {
-    wl_list_for_each(c, &clients,
-                     link) if (c && c->mon == selmon && !client_is_unmanaged(c) && !client_should_ignore_focus(c) && !c->isminied) {
+    wl_list_for_each(c, &clients, link) if (c && c->mon == selmon &&
+                                            !client_is_unmanaged(c) &&
+                                            !client_should_ignore_focus(c) &&
+                                            !c->isminied) {
       visible_client_number++;
     }
     if (visible_client_number > 0) {
@@ -6494,12 +6509,13 @@ void toggleoverview(const Arg *arg) {
   // overview到正常视图,还原之前退出的浮动和全屏窗口状态
   if (selmon->isoverview) {
     wl_list_for_each(c, &clients, link) {
-      if (c && !client_is_unmanaged(c) && !client_should_ignore_focus(c) )
+      if (c && !client_is_unmanaged(c) && !client_should_ignore_focus(c))
         overview_backup(c);
     }
   } else {
     wl_list_for_each(c, &clients, link) {
-      if (c && !c->iskilling && !client_is_unmanaged(c) && !client_should_ignore_focus(c) && client_surface(c)->mapped)
+      if (c && !c->iskilling && !client_is_unmanaged(c) &&
+          !client_should_ignore_focus(c) && client_surface(c)->mapped)
         overview_restore(c, &(Arg){.ui = target});
     }
   }
