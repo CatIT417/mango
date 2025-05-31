@@ -1,7 +1,6 @@
 /*
  * See LICENSE file for copyright and license details.
  */
-#include <execinfo.h>
 #include <getopt.h>
 #include <libinput.h>
 #include <limits.h>
