@@ -1086,17 +1086,17 @@ void parse_config_line(Config *config, const char *line) {
     ConfigWinRule *rule = &config->window_rules[config->window_rules_count];
     memset(rule, 0, sizeof(ConfigWinRule));
 
-    rule->isfloating = -1;
-    rule->isfullscreen = -1;
-    rule->isnoborder = -1;
-    rule->isopensilent = -1;
-    rule->isopenscratchpad = -1;
-    rule->isunglobal = -1;
-    rule->isglobal = -1;
-    rule->isoverlay = -1;
-    rule->isterm = -1;
-    rule->noswallow = -1;
-    rule->monitor = -1;
+    rule->isfloating = 0;
+    rule->isfullscreen = 0;
+    rule->isnoborder = 0;
+    rule->isopensilent = 0;
+    rule->isopenscratchpad = 0;
+    rule->isunglobal = 0;
+    rule->isglobal = 0;
+    rule->isoverlay = 0;
+    rule->isterm = 0;
+    rule->noswallow = 0;
+    rule->monitor = 0;
     rule->offsetx = 0;
     rule->offsety = 0;
     rule->scratchpad_width = 0;
