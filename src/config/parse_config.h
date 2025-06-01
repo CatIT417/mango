@@ -2094,7 +2094,7 @@ void reload_config(const Arg *arg) {
 
     for (i = 0; i <= LENGTH(tags); i++) {
 
-      if (i > 0 && strlen(config.tag_rules[i - 1].layout_name) > 0) {
+      if (i > 0 && config.tag_rules && strlen(config.tag_rules[i - 1].layout_name) > 0) {
         for (jk = 0; jk < LENGTH(layouts); jk++) {
           if (strcmp(layouts[jk].name, config.tag_rules[i - 1].layout_name) ==
               0) {
