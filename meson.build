@@ -1,5 +1,5 @@
 project('maomao', ['c', 'cpp'],
-  version : '0.0.0'  # 这个版本号将被 Git tag 覆盖
+  version : '0.5.5'  # 这个版本号将被 Git tag 覆盖
 )
 
 subdir('protocols')
