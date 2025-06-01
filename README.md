@@ -78,7 +78,7 @@ sudo ninja -C build install
 ## suggest tools
 
 ```
-yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist wl-clipboard wlsunset polkit-gnome swaync
+yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist wl-clipboard wlsunset xfce-polkit swaync
 
 ```
 
@@ -91,7 +91,7 @@ yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist w
 ## My dotfile
 - depend
 ```
-yay -S pamixer lavalauncher-mao-git wlr-dpms sway-audio-idle-inhibit-git swayidle dimland-git brightnessctl swayosd wlr-randr grim slurp satty swaylock-effects-git wlogout eww
+yay -S pamixer lavalauncher-mao-git wlr-dpms sway-audio-idle-inhibit-git swayidle dimland-git brightnessctl swayosd wlr-randr grim slurp satty swaylock-effects-git wlogout
 ```
 ### maomao config
 [maomao-config](https://github.com/DreamMaoMao/dotfile/tree/main/maomao)
@@ -100,7 +100,6 @@ yay -S pamixer lavalauncher-mao-git wlr-dpms sway-audio-idle-inhibit-git swayidl
 [swaylock](https://github.com/DreamMaoMao/dotfile/tree/main/swaylock)
 [wlogout](https://github.com/DreamMaoMao/dotfile/tree/main/wlogout)
 [swaync](https://github.com/DreamMaoMao/dotfile/tree/main/swaync)
-[eww](https://github.com/DreamMaoMao/dotfile/tree/main/eww)
 
 ## Config document
 refer to [wiki](https://github.com/DreamMaoMao/maomaowm/wiki/)
