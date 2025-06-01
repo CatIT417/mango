@@ -1097,7 +1097,7 @@ void parse_config_line(Config *config, const char *line) {
     rule->isoverlay = 0;
     rule->isterm = 0;
     rule->noswallow = 0;
-    rule->monitor = 0;
+    rule->monitor = -1;
     rule->offsetx = 0;
     rule->offsety = 0;
     rule->nofadein = 0;
