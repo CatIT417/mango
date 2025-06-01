@@ -277,6 +277,7 @@ struct Client {
   bool drag_to_tile;
   bool fake_no_border;
   int nofadein;
+  int no_force_center;
 };
 
 typedef struct {
@@ -1742,8 +1743,14 @@ setclient_coordinate_center(Client *c, struct wlr_box geom, int offsetx,
 
   unsigned int cbw = check_hit_no_border(c) ? c->bw : 0;
 
-  tempbox.x = selmon->w.x + (selmon->w.width - geom.width) / 2;
-  tempbox.y = selmon->w.y + (selmon->w.height - geom.height) / 2;
+  if(!c->no_force_center) {
+    tempbox.x = selmon->w.x + (selmon->w.width - geom.width) / 2;
+    tempbox.y = selmon->w.y + (selmon->w.height - geom.height) / 2;
+  } else {
+    tempbox.x = geom.x;
+    tempbox.y = geom.y;
+  }
+
   tempbox.width = geom.width;
   tempbox.height = geom.height;
 
@@ -1843,6 +1850,8 @@ applyrules(Client *c) {
       c->isterm = r->isterm > 0 ? r->isterm : c->isterm;
       c->noswallow = r->noswallow > 0 ? r->noswallow : c->noswallow;
       c->nofadein = r->nofadein > 0 ? r->nofadein : c->nofadein;
+      c->no_force_center = r->no_force_center > 0 ? r->no_force_center
+                                                  : c->no_force_center;
       c->scratchpad_geom.width = r->scratchpad_width > 0
                                      ? r->scratchpad_width
                                      : c->scratchpad_geom.width;
@@ -4491,6 +4500,7 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->drag_to_tile = false;
   c->fake_no_border = false;
   c->nofadein = 0;
+  c->no_force_center = 0;
 
   if (new_is_master && selmon &&
       strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
