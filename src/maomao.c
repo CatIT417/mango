@@ -276,6 +276,7 @@ struct Client {
   bool is_clip_to_hide;
   bool drag_to_tile;
   bool fake_no_border;
+  int nofadein;
 };
 
 typedef struct {
@@ -1011,7 +1012,7 @@ void client_animation_next_tick(Client *c) {
   };
 
   if (!c->iskilling && (c->is_open_animation || c->animation.begin_fade_in) &&
-      animation_fade_in) {
+      animation_fade_in && !c->nofadein) {
     c->animation.begin_fade_in = true;
     client_set_opacity(c, MIN(animation_passed + fadein_begin_opacity, 1.0));
   }
@@ -1841,6 +1842,7 @@ applyrules(Client *c) {
          regex_match(r->title, title))) {
       c->isterm = r->isterm > 0 ? r->isterm : c->isterm;
       c->noswallow = r->noswallow > 0 ? r->noswallow : c->noswallow;
+      c->nofadein = r->nofadein > 0 ? r->nofadein : c->nofadein;
       c->scratchpad_geom.width = r->scratchpad_width > 0
                                      ? r->scratchpad_width
                                      : c->scratchpad_geom.width;
@@ -4488,6 +4490,7 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->is_open_animation = true;
   c->drag_to_tile = false;
   c->fake_no_border = false;
+  c->nofadein = 0;
 
   if (new_is_master && selmon &&
       strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
