@@ -1101,8 +1101,8 @@ void parse_config_line(Config *config, const char *line) {
     rule->offsety = 0;
     rule->scratchpad_width = 0;
     rule->scratchpad_height = 0;
-    rule->width = -1;
-    rule->height = -1;
+    rule->width = 0;
+    rule->height = 0;
     rule->animation_type_open = NULL;
     rule->animation_type_close = NULL;
     rule->scroller_proportion = 0;
