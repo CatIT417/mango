@@ -6372,13 +6372,6 @@ void overview_restore(Client *c, const Arg *arg) {
   c->animation.tagining = false;
   c->is_restoring_from_ov = (arg->ui & c->tags & TAGMASK) == 0 ? true : false;
 
-  if (!VISIBLEON(c, c->mon)) {
-    c->animation.current = c->current = c->pending = c->geom;
-    wlr_scene_node_set_enabled(&c->scene->node, false);
-    client_set_suspended(c, true);
-    return;
-  }
-
   if (c->isfloating) {
     // XRaiseWindow(dpy, c->win); // 提升悬浮窗口到顶层
     resize(c, c->overview_backup_geom, 0);
