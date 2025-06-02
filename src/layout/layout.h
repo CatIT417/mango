@@ -11,10 +11,7 @@ void fibonacci(Monitor *mon, int s) {
   cur_gappoh = smartgaps && mon->visible_clients == 1 ? 0 : cur_gappoh;
   cur_gappov = smartgaps && mon->visible_clients == 1 ? 0 : cur_gappov;
   // Count visible clients
-  wl_list_for_each(c, &clients, link) if (VISIBLEON(c, mon) && !c->isfloating &&
-                                          !c->iskilling && !c->isfullscreen &&
-                                          !c->ismaxmizescreen &&
-                                          !c->animation.tagouting) n++;
+  wl_list_for_each(c, &clients, link) if (VISIBLEON(c, mon) && ISTILED(c)) n++;
 
   if (n == 0)
     return;
@@ -27,8 +24,7 @@ void fibonacci(Monitor *mon, int s) {
 
   // First pass: calculate client geometries
   wl_list_for_each(c, &clients, link) {
-    if (!VISIBLEON(c, mon) || c->isfloating || c->iskilling ||
-        c->isfullscreen || c->ismaxmizescreen || c->animation.tagouting)
+    if (!VISIBLEON(c, mon) || !ISTILED(c))
       continue;
 
     c->bw = mon->visible_clients == 1 && no_border_when_single && smartgaps
@@ -86,8 +82,7 @@ void fibonacci(Monitor *mon, int s) {
 
   // Second pass: apply gaps between clients
   wl_list_for_each(c, &clients, link) {
-    if (!VISIBLEON(c, mon) || c->isfloating || c->iskilling ||
-        c->isfullscreen || c->ismaxmizescreen || c->animation.tagouting)
+    if (!VISIBLEON(c, mon) || !ISTILED(c))
       continue;
 
     unsigned int right_gap = 0;
@@ -95,8 +90,7 @@ void fibonacci(Monitor *mon, int s) {
     Client *nc;
 
     wl_list_for_each(nc, &clients, link) {
-      if (!VISIBLEON(nc, mon) || nc->isfloating || nc->iskilling ||
-          nc->isfullscreen || nc->ismaxmizescreen || nc->animation.tagouting)
+      if (!VISIBLEON(nc, mon) || !ISTILED(nc))
         continue;
 
       if (c == nc)
@@ -137,9 +131,7 @@ void grid(Monitor *m) {
 
   // 第一次遍历，计算 n 的值
   wl_list_for_each(c, &clients, link) {
-    if (VISIBLEON(c, c->mon) && (m->isoverview || ISTILED(c)) &&
-        !client_should_ignore_focus(c) && !c->iskilling &&
-        !c->animation.tagouting && c->mon == selmon) {
+    if (VISIBLEON(c, c->mon) && !c->isunglobal && (m->isoverview || ISTILED(c))) {
       n++;
     }
   }
@@ -153,9 +145,7 @@ void grid(Monitor *m) {
       c->bw = m->visible_clients == 1 && no_border_when_single && smartgaps
                   ? 0
                   : borderpx;
-      if (VISIBLEON(c, c->mon) && (m->isoverview || ISTILED(c)) &&
-          !client_should_ignore_focus(c) && !c->iskilling &&
-          !c->animation.tagouting && c->mon == selmon) {
+      if (VISIBLEON(c, c->mon) && !c->isunglobal && (m->isoverview || ISTILED(c))) {
         cw = (m->w.width - 2 * overviewgappo) * 0.7;
         ch = (m->w.height - 2 * overviewgappo) * 0.8;
         c->geom.x = m->w.x + (m->w.width - cw) / 2;
@@ -176,9 +166,7 @@ void grid(Monitor *m) {
       c->bw = m->visible_clients == 1 && no_border_when_single && smartgaps
                   ? 0
                   : borderpx;
-      if (VISIBLEON(c, c->mon) && (m->isoverview || ISTILED(c)) &&
-          !client_should_ignore_focus(c) && !c->iskilling &&
-          !c->animation.tagouting && c->mon == selmon) {
+      if (VISIBLEON(c, c->mon) && !c->isunglobal && (m->isoverview || ISTILED(c))) {
         if (i == 0) {
           c->geom.x = m->w.x + overviewgappo;
           c->geom.y = m->w.y + (m->w.height - ch) / 2 + overviewgappo;
@@ -223,9 +211,7 @@ void grid(Monitor *m) {
     c->bw = m->visible_clients == 1 && no_border_when_single && smartgaps
                 ? 0
                 : borderpx;
-    if (VISIBLEON(c, c->mon) && (m->isoverview || ISTILED(c)) &&
-        !client_should_ignore_focus(c) && !c->iskilling &&
-        !c->animation.tagouting && c->mon == selmon) {
+    if (VISIBLEON(c, c->mon) && !c->isunglobal && (m->isoverview || ISTILED(c))) {
       cx = m->w.x + (i % cols) * (cw + overviewgappi);
       cy = m->w.y + (i / cols) * (ch + overviewgappi);
       if (overcols && i >= n - overcols) {
@@ -255,8 +241,7 @@ void deck(Monitor *m) {
   cur_gappoh = smartgaps && m->visible_clients == 1 ? 0 : cur_gappoh;
   cur_gappov = smartgaps && m->visible_clients == 1 ? 0 : cur_gappov;
 
-  wl_list_for_each(c, &clients, link) if (VISIBLEON(c, m) && !c->isfloating &&
-                                          !c->isfullscreen) n++;
+  wl_list_for_each(c, &clients, link) if (VISIBLEON(c, m) && ISTILED(c)) n++;
   if (n == 0)
     return;
 
@@ -271,7 +256,7 @@ void deck(Monitor *m) {
 
   i = my = 0;
   wl_list_for_each(c, &clients, link) {
-    if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
+    if (!VISIBLEON(c, m) || !ISTILED(c))
       continue;
     if (i < m->nmaster) {
       // Master area clients
@@ -323,9 +308,7 @@ void scroller(Monitor *m) {
 
   // 第一次遍历，计算 n 的值
   wl_list_for_each(c, &clients, link) {
-    if (VISIBLEON(c, c->mon) && !client_is_unmanaged(c) && !c->isfloating &&
-        !c->isfullscreen && !c->ismaxmizescreen && !c->iskilling &&
-        !c->animation.tagouting && c->mon == m) {
+    if (VISIBLEON(c, c->mon) && ISTILED(c)) {
       n++;
     }
   }
@@ -344,9 +327,7 @@ void scroller(Monitor *m) {
   // 第二次遍历，填充 tempClients
   n = 0;
   wl_list_for_each(c, &clients, link) {
-    if (VISIBLEON(c, c->mon) && !client_is_unmanaged(c) && !c->isfloating &&
-        !c->isfullscreen && !c->ismaxmizescreen && !c->iskilling &&
-        !c->animation.tagouting && c->mon == m) {
+    if (VISIBLEON(c, c->mon) && ISTILED(c)) {
       tempClients[n] = c;
       n++;
     }
@@ -445,9 +426,7 @@ void tile(Monitor *m) {
   Client *c;
 
   wl_list_for_each(c, &clients,
-                   link) if (VISIBLEON(c, m) && !c->animation.tagouting &&
-                             !c->iskilling && !c->isfloating &&
-                             !c->isfullscreen && !c->ismaxmizescreen) n++;
+                   link) if (VISIBLEON(c, m) && ISTILED(c)) n++;
   if (n == 0)
     return;
 
@@ -471,8 +450,7 @@ void tile(Monitor *m) {
   i = 0;
   my = ty = cur_gappoh;
   wl_list_for_each(c, &clients, link) {
-    if (!VISIBLEON(c, m) || c->iskilling || c->animation.tagouting ||
-        c->isfloating || c->isfullscreen || c->ismaxmizescreen)
+    if (!VISIBLEON(c, m) || !ISTILED(c))
       continue;
     if (i < selmon->pertag->nmasters[selmon->pertag->curtag]) {
       r = MIN(n, selmon->pertag->nmasters[selmon->pertag->curtag]) - i;
@@ -504,8 +482,7 @@ monocle(Monitor *m) {
   Client *c;
 
   wl_list_for_each(c, &clients, link) {
-    if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen ||
-        c->ismaxmizescreen || c->iskilling || c->animation.tagouting)
+    if (!VISIBLEON(c, m) || !ISTILED(c))
       continue;
     resize(c, m->w, 0);
   }

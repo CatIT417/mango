@@ -88,8 +88,8 @@
 #define GEZERO(A) ((A) >= 0 ? (A) : 0)
 #define CLEANMASK(mask) (mask & ~WLR_MODIFIER_CAPS)
 #define ISTILED(A)                                                             \
-  (!(A)->isfloating && !(A)->isminied && !(A)->iskilling &&                    \
-   !(A)->isfloating && !(A)->ismaxmizescreen && !(A)->isfullscreen)
+  (!(A)->isfloating && !(A)->isminied && !(A)->iskilling && !client_should_ignore_focus(A) &&                   \
+   !(A)->isunglobal && !(A)->animation.tagouting && !(A)->ismaxmizescreen && !(A)->isfullscreen)
 #define VISIBLEON(C, M)                                                        \
   ((M) && (C)->mon == (M) && ((C)->tags & (M)->tagset[(M)->seltags]))
 #define LENGTH(X) (sizeof X / sizeof X[0])
@@ -278,6 +278,7 @@ struct Client {
   bool fake_no_border;
   int nofadein;
   int no_force_center;
+  int isunglobal;
 };
 
 typedef struct {
@@ -1875,10 +1876,8 @@ applyrules(Client *c) {
           r->isopenscratchpad > 0 ? r->isopenscratchpad : c->isopenscratchpad;
       c->isglobal = r->isglobal > 0 ? r->isglobal : c->isglobal;
       c->isoverlay = r->isoverlay > 0 ? r->isoverlay : c->isoverlay;
-      c->isglobal = r->isunglobal > 0 && (client_is_unmanaged(c) ||
-                                          client_should_ignore_focus(c))
-                        ? r->isunglobal
-                        : c->isglobal;
+      c->isunglobal = r->isunglobal > 0 ? r->isunglobal : c->isunglobal;
+
       newtags = r->tags > 0 ? r->tags | newtags : newtags;
       i = 0;
       wl_list_for_each(m, &mons, link) if (r->monitor == i++) mon = m;
@@ -1973,7 +1972,7 @@ arrange(Monitor *m, bool want_animation) {
     if (c->iskilling)
       continue;
 
-    if (c->mon == m && c->isglobal) {
+    if (c->mon == m && (c->isglobal || c->isunglobal)) {
       c->tags = m->tagset[m->seltags];
       if (selmon->sel == NULL)
         focusclient(c, 0);
@@ -2233,7 +2232,7 @@ Client *find_client_by_direction(Client *tc, const Arg *arg, bool findfloating,
 
   // 第一次遍历，计算客户端数量
   wl_list_for_each(c, &clients, link) {
-    if (c && (findfloating || !c->isfloating) &&
+    if (c && (findfloating || !c->isfloating) && !c->isunglobal &&
         (focus_cross_monitor || c->mon == selmon) &&
         (c->tags & c->mon->tagset[c->mon->seltags])) {
       last++;
@@ -2254,7 +2253,7 @@ Client *find_client_by_direction(Client *tc, const Arg *arg, bool findfloating,
   // 第二次遍历，填充 tempClients
   last = -1;
   wl_list_for_each(c, &clients, link) {
-    if (c && (findfloating || !c->isfloating) &&
+    if (c && (findfloating || !c->isfloating) && !c->isunglobal &&
         (focus_cross_monitor || c->mon == selmon) &&
         (c->tags & c->mon->tagset[c->mon->seltags])) {
       last++;
@@ -4016,7 +4015,7 @@ Client * // 0.5
 focustop(Monitor *m) {
   Client *c;
   wl_list_for_each(c, &fstack, flink) {
-    if (c->iskilling)
+    if (c->iskilling || c->isunglobal)
       continue;
     if (VISIBLEON(c, m))
       return c;
@@ -4487,6 +4486,7 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->isglobal = 0;
   c->isminied = 0;
   c->isoverlay = 0;
+  c->isunglobal = 0;
   c->is_in_scratchpad = 0;
   c->isnamedscratchpand = 0;
   c->is_scratchpad_show = 0;
@@ -5344,7 +5344,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
     c->animainit_geom = c->geom;
   }
 
-  if (c->isglobal && c->isfloating && c->animation.action == TAG) {
+  if ((c->isglobal|| c->isunglobal) && c->isfloating && c->animation.action == TAG) {
     c->animainit_geom = c->geom;
   }
 
@@ -6493,7 +6493,7 @@ void toggleoverview(const Arg *arg) {
     wl_list_for_each(c, &clients, link) if (c && c->mon == selmon &&
                                             !client_is_unmanaged(c) &&
                                             !client_should_ignore_focus(c) &&
-                                            !c->isminied) {
+                                            !c->isminied && !c->isunglobal) {
       visible_client_number++;
     }
     if (visible_client_number > 0) {
@@ -6514,12 +6514,12 @@ void toggleoverview(const Arg *arg) {
   // overview到正常视图,还原之前退出的浮动和全屏窗口状态
   if (selmon->isoverview) {
     wl_list_for_each(c, &clients, link) {
-      if (c && !client_is_unmanaged(c) && !client_should_ignore_focus(c))
+      if (c && !client_is_unmanaged(c) && !client_should_ignore_focus(c) && !c->isunglobal)
         overview_backup(c);
     }
   } else {
     wl_list_for_each(c, &clients, link) {
-      if (c && !c->iskilling && !client_is_unmanaged(c) &&
+      if (c && !c->iskilling && !client_is_unmanaged(c) && !c->isunglobal &&
           !client_should_ignore_focus(c) && client_surface(c)->mapped)
         overview_restore(c, &(Arg){.ui = target});
     }
