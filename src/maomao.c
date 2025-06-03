@@ -3991,7 +3991,7 @@ focusstack(const Arg *arg) {
     return;
   if (arg->i > 0) {
     wl_list_for_each(c, &sel->link, link) {
-      if (&c->link == &clients)
+      if (&c->link == &clients || c->isunglobal)
         continue; /* wrap past the sentinel node */
       if (VISIBLEON(c, selmon))
         break; /* found it */
@@ -4000,7 +4000,7 @@ focusstack(const Arg *arg) {
     wl_list_for_each_reverse(c, &sel->link, link) {
       if (&c->link == &clients)
         continue; /* wrap past the sentinel node */
-      if (VISIBLEON(c, selmon))
+      if (VISIBLEON(c, selmon) || c->isunglobal)
         break; /* found it */
     }
   }
