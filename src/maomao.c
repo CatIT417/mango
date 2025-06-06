@@ -29,6 +29,8 @@
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_drm.h>
 #include <wlr/types/wlr_export_dmabuf_v1.h>
+#include <wlr/types/wlr_ext_image_capture_source_v1.h>
+#include <wlr/types/wlr_ext_image_copy_capture_v1.h>
 #include <wlr/types/wlr_fractional_scale_v1.h>
 #include <wlr/types/wlr_gamma_control_v1.h>
 #include <wlr/types/wlr_idle_inhibit_v1.h>
@@ -6002,6 +6004,8 @@ void setup(void) {
   compositor = wlr_compositor_create(dpy, 6, drw);
   wlr_export_dmabuf_manager_v1_create(dpy);
   wlr_screencopy_manager_v1_create(dpy);
+	wlr_ext_image_copy_capture_manager_v1_create(dpy, 1);
+	wlr_ext_output_image_capture_source_manager_v1_create(dpy, 1);
   wlr_data_control_manager_v1_create(dpy);
   wlr_data_device_manager_create(dpy);
   wlr_primary_selection_v1_device_manager_create(dpy);
