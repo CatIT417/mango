@@ -4,6 +4,7 @@
   libinput,
   libxcb,
   libxkbcommon,
+  pcre2,
   pixman,
   pkg-config,
   stdenv,
@@ -39,6 +40,7 @@ stdenv.mkDerivation {
       libinput
       libxcb
       libxkbcommon
+      pcre2
       pixman
       wayland
       wayland-protocols
