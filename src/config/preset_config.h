@@ -85,6 +85,7 @@ int overviewgappo = 30; /* overview时 窗口与窗口 缝隙大小 */
 float fullscreen_bg[] = {0.1, 0.1, 0.1, 1.0};
 
 int warpcursor = 1; /* Warp cursor to focused client */
+int xwayland_persistence = 1; /* xwayland persistence */
 
 /* layout(s) */
 Layout overviewlayout = {"󰃇", overview, "overview"};

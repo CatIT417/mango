@@ -6179,7 +6179,7 @@ void setup(void) {
    * Initialise the XWayland X server.
    * It will be started when the first X client is started.
    */
-  xwayland = wlr_xwayland_create(dpy, compositor, 1);
+  xwayland = wlr_xwayland_create(dpy, compositor, !xwayland_persistence);
   if (xwayland) {
     wl_signal_add(&xwayland->events.ready, &xwayland_ready);
     wl_signal_add(&xwayland->events.new_surface, &new_xwayland_surface);
