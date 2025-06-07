@@ -37,6 +37,7 @@ typedef struct {
   int width;
   int height;
   int nofadein;
+  int nofadeout;
   int no_force_center;
   int isterm;
   int noswallow;
@@ -1105,6 +1106,7 @@ void parse_config_line(Config *config, const char *line) {
     rule->offsetx = 0;
     rule->offsety = 0;
     rule->nofadein = 0;
+    rule->nofadeout = 0;
     rule->no_force_center = 0;
     rule->scratchpad_width = 0;
     rule->scratchpad_height = 0;
@@ -1147,8 +1149,10 @@ void parse_config_line(Config *config, const char *line) {
           rule->offsetx = atoi(val);
         } else if (strcmp(key, "offsety") == 0) {
           rule->offsety = atoi(val);
-        }  else if (strcmp(key, "nofadein") == 0) {
+        } else if (strcmp(key, "nofadein") == 0) {
           rule->nofadein = atoi(val);
+        } else if (strcmp(key, "nofadeout") == 0) {
+          rule->nofadeout = atoi(val);
         } else if (strcmp(key, "no_force_center") == 0) {
           rule->no_force_center = atoi(val);
         } else if (strcmp(key, "scratchpad_width") == 0) {

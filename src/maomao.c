@@ -279,6 +279,7 @@ struct Client {
   bool drag_to_tile;
   bool fake_no_border;
   int nofadein;
+  int nofadeout;
   int no_force_center;
   int isunglobal;
 };
@@ -958,7 +959,8 @@ void fadeout_client_animation_next_tick(Client *c) {
 
   double opacity = MAX(fadeout_begin_opacity - animation_passed, 0);
 
-  wlr_scene_node_for_each_buffer(&c->scene->node, scene_buffer_apply_opacity,
+  if(!c->nofadeout)
+    wlr_scene_node_for_each_buffer(&c->scene->node, scene_buffer_apply_opacity,
                                  &opacity);
 
   apply_opacity_to_rect_nodes(c, &c->scene->node, animation_passed);
@@ -1853,6 +1855,7 @@ applyrules(Client *c) {
       c->isterm = r->isterm > 0 ? r->isterm : c->isterm;
       c->noswallow = r->noswallow > 0 ? r->noswallow : c->noswallow;
       c->nofadein = r->nofadein > 0 ? r->nofadein : c->nofadein;
+      c->nofadeout = r->nofadeout > 0 ? r->nofadeout : c->nofadeout;
       c->no_force_center = r->no_force_center > 0 ? r->no_force_center
                                                   : c->no_force_center;
       c->scratchpad_geom.width = r->scratchpad_width > 0
@@ -4502,6 +4505,7 @@ mapnotify(struct wl_listener *listener, void *data) {
   c->drag_to_tile = false;
   c->fake_no_border = false;
   c->nofadein = 0;
+  c->nofadeout = 0;
   c->no_force_center = 0;
 
   if (new_is_master && selmon &&
@@ -6676,6 +6680,7 @@ void init_fadeout_client(Client *c) {
   fadeout_cient->animation_type_close = c->animation_type_close;
   fadeout_cient->animation.action = CLOSE;
   fadeout_cient->bw = c->bw;
+  fadeout_cient->nofadeout = c->nofadeout;
 
   // 这里snap节点的坐标设置是使用的相对坐标，所以不能加上原来坐标
   // 这跟普通node有区别
