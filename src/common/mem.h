@@ -47,18 +47,17 @@ char *xstrdup(const char *str);
  * <ptr> before assigning the result.
  */
 #define xstrdup_replace(ptr, str)                                              \
-  do {                                                                         \
-    free(ptr);                                                                 \
-    (ptr) = xstrdup(str);                                                      \
-  } while (0)
+	do {                                                                       \
+		free(ptr);                                                             \
+		(ptr) = xstrdup(str);                                                  \
+	} while (0)
 
 /*
  * Frees memory pointed to by <ptr> and sets <ptr> to NULL.
  * Does nothing if <ptr> is already NULL.
  */
 #define zfree(ptr)                                                             \
-  do {                                                                         \
-    free(ptr);                                                                 \
-    (ptr) = NULL;                                                              \
-  } while (0)
-
+	do {                                                                       \
+		free(ptr);                                                             \
+		(ptr) = NULL;                                                          \
+	} while (0)
