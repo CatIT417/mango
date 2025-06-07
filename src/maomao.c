@@ -7774,11 +7774,9 @@ void xwaylandready(struct wl_listener *listener, void *data) {
 }
 
 static void setgeometrynotify(struct wl_listener *listener, void *data) {
-
 	Client *c = wl_container_of(listener, c, set_geometry);
 
-	struct wlr_xwayland_surface *xsurface = c->surface.xwayland;
-	wlr_scene_node_set_position(&c->scene->node, xsurface->x, xsurface->y);
+	wlr_scene_node_set_position(&c->scene->node, c->surface.xwayland->x, c->surface.xwayland->y);
 	motionnotify(0, NULL, 0, 0, 0, 0);
 }
 #endif
