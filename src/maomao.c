@@ -1814,7 +1814,7 @@ applyrulesgeom(Client *c) {
       c->geom.width = r->width > 0 ? r->width : c->geom.width;
       c->geom.height = r->height > 0 ? r->height : c->geom.height;
       // 重新计算居中的坐标
-      if (r->offsetx || r->offsety || r->width || r->height)
+      if (r->offsetx != 0 || r->offsety != 0 || r->width > 0 || r->height > 0)
         c->geom =
             setclient_coordinate_center(c, c->geom, r->offsetx, r->offsety);
       hit = r->height > 0 || r->width > 0 || r->offsetx != 0 || r->offsety != 0
@@ -1852,11 +1852,11 @@ applyrules(Client *c) {
         (r->id && regex_match(r->id, appid) && !r->title) ||
         (r->id && regex_match(r->id, appid) && r->title &&
          regex_match(r->title, title))) {
-      c->isterm = r->isterm > 0 ? r->isterm : c->isterm;
-      c->noswallow = r->noswallow > 0 ? r->noswallow : c->noswallow;
-      c->nofadein = r->nofadein > 0 ? r->nofadein : c->nofadein;
-      c->nofadeout = r->nofadeout > 0 ? r->nofadeout : c->nofadeout;
-      c->no_force_center = r->no_force_center > 0 ? r->no_force_center
+      c->isterm = r->isterm >= 0 ? r->isterm : c->isterm;
+      c->noswallow = r->noswallow >= 0 ? r->noswallow : c->noswallow;
+      c->nofadein = r->nofadein >= 0 ? r->nofadein : c->nofadein;
+      c->nofadeout = r->nofadeout >= 0 ? r->nofadeout : c->nofadeout;
+      c->no_force_center = r->no_force_center >= 0 ? r->no_force_center
                                                   : c->no_force_center;
       c->scratchpad_geom.width = r->scratchpad_width > 0
                                      ? r->scratchpad_width
@@ -1864,8 +1864,8 @@ applyrules(Client *c) {
       c->scratchpad_geom.height = r->scratchpad_height > 0
                                       ? r->scratchpad_height
                                       : c->scratchpad_geom.height;
-      c->isfloating = r->isfloating > 0 ? r->isfloating : c->isfloating;
-      c->isfullscreen = r->isfullscreen > 0 ? r->isfullscreen : c->isfullscreen;
+      c->isfloating = r->isfloating >= 0 ? r->isfloating : c->isfloating;
+      c->isfullscreen = r->isfullscreen >= 0 ? r->isfullscreen : c->isfullscreen;
       c->animation_type_open = r->animation_type_open == NULL
                                    ? c->animation_type_open
                                    : r->animation_type_open;
@@ -1875,13 +1875,13 @@ applyrules(Client *c) {
       c->scroller_proportion = r->scroller_proportion > 0
                                    ? r->scroller_proportion
                                    : c->scroller_proportion;
-      c->isnoborder = r->isnoborder > 0 ? r->isnoborder : c->isnoborder;
-      c->isopensilent = r->isopensilent > 0 ? r->isopensilent : c->isopensilent;
+      c->isnoborder = r->isnoborder >= 0 ? r->isnoborder : c->isnoborder;
+      c->isopensilent = r->isopensilent >= 0 ? r->isopensilent : c->isopensilent;
       c->isopenscratchpad =
-          r->isopenscratchpad > 0 ? r->isopenscratchpad : c->isopenscratchpad;
-      c->isglobal = r->isglobal > 0 ? r->isglobal : c->isglobal;
-      c->isoverlay = r->isoverlay > 0 ? r->isoverlay : c->isoverlay;
-      c->isunglobal = r->isunglobal > 0 ? r->isunglobal : c->isunglobal;
+          r->isopenscratchpad >= 0 ? r->isopenscratchpad : c->isopenscratchpad;
+      c->isglobal = r->isglobal >= 0 ? r->isglobal : c->isglobal;
+      c->isoverlay = r->isoverlay >= 0 ? r->isoverlay : c->isoverlay;
+      c->isunglobal = r->isunglobal >= 0 ? r->isunglobal : c->isunglobal;
 
       newtags = r->tags > 0 ? r->tags | newtags : newtags;
       i = 0;
@@ -1897,7 +1897,7 @@ applyrules(Client *c) {
         c->geom.width = r->width > 0 ? r->width : c->geom.width;
         c->geom.height = r->height > 0 ? r->height : c->geom.height;
         // 重新计算居中的坐标
-        if (r->offsetx || r->offsety || r->width || r->height) {
+        if (r->offsetx != 0 || r->offsety != 0 || r->width > 0 || r->height > 0) {
           hit_rule_pos = true;
           c->oldgeom = c->geom =
               setclient_coordinate_center(c, c->geom, r->offsetx, r->offsety);
