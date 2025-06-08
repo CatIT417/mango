@@ -7,6 +7,15 @@
 #define SYSCONFDIR "/etc"
 #endif
 
+// 整数版本 - 截断小数部分
+#define CLAMP_INT(x, min, max)                                                 \
+	((int)(x) < (int)(min) ? (int)(min)                                        \
+						   : ((int)(x) > (int)(max) ? (int)(max) : (int)(x)))
+
+// 浮点数版本 - 保留小数部分
+#define CLAMP_FLOAT(x, min, max)                                               \
+	((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
+
 enum { NUM_TYPE_MINUS, NUM_TYPE_PLUS, NUM_TYPE_DEFAULT };
 
 typedef struct {
@@ -823,19 +832,24 @@ void parse_config_line(Config *config, const char *line) {
 			strdup(value); // 复制 value，因为 strtok 会修改原字符串
 		char *token = strtok(value_copy, ",");
 		int i = 0;
+		float value_set;
 
 		while (token != NULL && i < float_count) {
-			if (sscanf(token, "%f", &config->scroller_proportion_preset[i]) !=
-				1) {
+			if (sscanf(token, "%f", &value_set) != 1) {
 				fprintf(stderr,
 						"Error: Invalid float value in "
 						"scroller_proportion_preset: %s\n",
 						token);
 				free(value_copy);
-				free(config->scroller_proportion_preset);  // 释放已分配的内存
-				config->scroller_proportion_preset = NULL; // 防止野指针
+				free(config->scroller_proportion_preset);
+				config->scroller_proportion_preset = NULL;
 				return;
 			}
+
+			// Clamp the value between 0.0 and 1.0 (or your desired range)
+			config->scroller_proportion_preset[i] =
+				CLAMP_FLOAT(value_set, 0.1f, 1.0f);
+
 			token = strtok(NULL, ",");
 			i++;
 		}
@@ -1808,81 +1822,103 @@ void free_config(void) {
 }
 
 void override_config(void) {
-	animations = config.animations;
+	// 动画启用
+	animations = CLAMP_INT(config.animations, 0, 1);
+
+	// 标签动画方向
+	tag_animation_direction = CLAMP_INT(config.tag_animation_direction, 0, 1);
+
+	// 动画淡入淡出设置
+	animation_fade_in = CLAMP_INT(config.animation_fade_in, 0, 1);
+	animation_fade_out = CLAMP_INT(config.animation_fade_out, 0, 1);
+	zoom_initial_ratio = CLAMP_FLOAT(config.zoom_initial_ratio, 0.1f, 1.0f);
+	fadein_begin_opacity = CLAMP_FLOAT(config.fadein_begin_opacity, 0.0f, 1.0f);
+	fadeout_begin_opacity =
+		CLAMP_FLOAT(config.fadeout_begin_opacity, 0.0f, 1.0f);
+
+	// 打开关闭动画类型
 	animation_type_open = config.animation_type_open;
 	animation_type_close = config.animation_type_close;
-	animation_fade_in = config.animation_fade_in;
-	animation_fade_out = config.animation_fade_out;
-	tag_animation_direction = config.tag_animation_direction;
-	zoom_initial_ratio = config.zoom_initial_ratio;
-	fadein_begin_opacity = config.fadein_begin_opacity;
-	fadeout_begin_opacity = config.fadeout_begin_opacity;
-	animation_duration_move = config.animation_duration_move;
-	animation_duration_open = config.animation_duration_open;
-	animation_duration_tag = config.animation_duration_tag;
-	animation_duration_close = config.animation_duration_close;
 
-	// 复制数组类型的变量
-	memcpy(animation_curve_move, config.animation_curve_move,
-		   sizeof(animation_curve_move));
-	memcpy(animation_curve_open, config.animation_curve_open,
-		   sizeof(animation_curve_open));
-	memcpy(animation_curve_tag, config.animation_curve_tag,
-		   sizeof(animation_curve_tag));
-	memcpy(animation_curve_close, config.animation_curve_close,
-		   sizeof(animation_curve_close));
+	// 动画时间限制在合理范围(1-50000ms)
+	animation_duration_move =
+		CLAMP_INT(config.animation_duration_move, 1, 50000);
+	animation_duration_open =
+		CLAMP_INT(config.animation_duration_open, 1, 50000);
+	animation_duration_tag = CLAMP_INT(config.animation_duration_tag, 1, 50000);
+	animation_duration_close =
+		CLAMP_INT(config.animation_duration_close, 1, 50000);
 
-	scroller_structs = config.scroller_structs;
-	scroller_default_proportion = config.scroller_default_proportion;
+	// 滚动布局设置
+	scroller_default_proportion =
+		CLAMP_FLOAT(config.scroller_default_proportion, 0.1f, 1.0f);
 	scroller_default_proportion_single =
-		config.scroller_default_proportion_single;
-	scroller_focus_center = config.scroller_focus_center;
-	focus_cross_monitor = config.focus_cross_monitor;
-	focus_cross_tag = config.focus_cross_tag;
-	single_scratchpad = config.single_scratchpad;
-	xwayland_persistence = config.xwayland_persistence;
-	no_border_when_single = config.no_border_when_single;
-	snap_distance = config.snap_distance;
-	drag_tile_to_tile = config.drag_tile_to_tile;
-	enable_floating_snap = config.enable_floating_snap;
-	swipe_min_threshold = config.swipe_min_threshold;
-	scroller_prefer_center = config.scroller_prefer_center;
+		CLAMP_FLOAT(config.scroller_default_proportion_single, 0.1f, 1.0f);
+	scroller_focus_center = CLAMP_INT(config.scroller_focus_center, 0, 1);
+	scroller_prefer_center = CLAMP_INT(config.scroller_prefer_center, 0, 1);
+	scroller_structs = CLAMP_INT(config.scroller_structs, 0, 1000);
 
-	new_is_master = config.new_is_master;
-	default_mfact = config.default_mfact;
-	default_smfact = config.default_smfact;
-	default_nmaster = config.default_nmaster;
-	hotarea_size = config.hotarea_size;
-	enable_hotarea = config.enable_hotarea;
-	ov_tab_mode = config.ov_tab_mode;
-	overviewgappi = config.overviewgappi;
-	overviewgappo = config.overviewgappo;
-	cursor_hide_timeout = config.cursor_hide_timeout;
-	axis_bind_apply_timeout = config.axis_bind_apply_timeout;
-	focus_on_activate = config.focus_on_activate;
-	numlockon = config.numlockon;
-	bypass_surface_visibility = config.bypass_surface_visibility;
-	sloppyfocus = config.sloppyfocus;
-	warpcursor = config.warpcursor;
-	smartgaps = config.smartgaps;
-	gappih = config.gappih;
-	gappiv = config.gappiv;
-	gappoh = config.gappoh;
-	gappov = config.gappov;
-	borderpx = config.borderpx;
-	repeat_rate = config.repeat_rate;
-	repeat_delay = config.repeat_delay;
-	tap_to_click = config.tap_to_click;
-	tap_and_drag = config.tap_and_drag;
-	drag_lock = config.drag_lock;
-	mouse_natural_scrolling = config.mouse_natural_scrolling;
-	cursor_size = config.cursor_size;
-	trackpad_natural_scrolling = config.trackpad_natural_scrolling;
-	disable_while_typing = config.disable_while_typing;
-	left_handed = config.left_handed;
-	middle_button_emulation = config.middle_button_emulation;
-	accel_profile = config.accel_profile;
-	accel_speed = config.accel_speed;
+	// 主从布局设置
+	default_mfact = CLAMP_FLOAT(config.default_mfact, 0.1f, 0.9f);
+	default_smfact = CLAMP_FLOAT(config.default_smfact, 0.1f, 0.9f);
+	default_nmaster = CLAMP_INT(config.default_nmaster, 1, 1000);
+	new_is_master = CLAMP_INT(config.new_is_master, 0, 1);
+
+	// 概述模式设置
+	hotarea_size = CLAMP_INT(config.hotarea_size, 1, 1000);
+	enable_hotarea = CLAMP_INT(config.enable_hotarea, 0, 1);
+	ov_tab_mode = CLAMP_INT(config.ov_tab_mode, 0, 1);
+	overviewgappi = CLAMP_INT(config.overviewgappi, 0, 1000);
+	overviewgappo = CLAMP_INT(config.overviewgappo, 0, 1000);
+
+	// 杂项设置
+	xwayland_persistence = CLAMP_INT(config.xwayland_persistence, 0, 1);
+	axis_bind_apply_timeout =
+		CLAMP_INT(config.axis_bind_apply_timeout, 0, 1000);
+	focus_on_activate = CLAMP_INT(config.focus_on_activate, 0, 1);
+	bypass_surface_visibility =
+		CLAMP_INT(config.bypass_surface_visibility, 0, 1);
+	sloppyfocus = CLAMP_INT(config.sloppyfocus, 0, 1);
+	warpcursor = CLAMP_INT(config.warpcursor, 0, 1);
+	focus_cross_monitor = CLAMP_INT(config.focus_cross_monitor, 0, 1);
+	focus_cross_tag = CLAMP_INT(config.focus_cross_tag, 0, 1);
+	enable_floating_snap = CLAMP_INT(config.enable_floating_snap, 0, 1);
+	snap_distance = CLAMP_INT(config.snap_distance, 0, 99999);
+	cursor_size = CLAMP_INT(config.cursor_size, 4, 512);
+	no_border_when_single = CLAMP_INT(config.no_border_when_single, 0, 1);
+	cursor_hide_timeout =
+		CLAMP_INT(config.cursor_hide_timeout, 0, 36000); // 0-10小时
+	drag_tile_to_tile = CLAMP_INT(config.drag_tile_to_tile, 0, 1);
+	single_scratchpad = CLAMP_INT(config.single_scratchpad, 0, 1);
+
+	// 键盘设置
+	repeat_rate = CLAMP_INT(config.repeat_rate, 1, 1000);
+	repeat_delay = CLAMP_INT(config.repeat_delay, 1, 20000);
+	numlockon = CLAMP_INT(config.numlockon, 0, 1);
+
+	// 触控板设置
+	tap_to_click = CLAMP_INT(config.tap_to_click, 0, 1);
+	tap_and_drag = CLAMP_INT(config.tap_and_drag, 0, 1);
+	drag_lock = CLAMP_INT(config.drag_lock, 0, 1);
+	trackpad_natural_scrolling =
+		CLAMP_INT(config.trackpad_natural_scrolling, 0, 1);
+	disable_while_typing = CLAMP_INT(config.disable_while_typing, 0, 1);
+	left_handed = CLAMP_INT(config.left_handed, 0, 1);
+	middle_button_emulation = CLAMP_INT(config.middle_button_emulation, 0, 1);
+	swipe_min_threshold = CLAMP_INT(config.swipe_min_threshold, 1, 1000);
+
+	// 鼠标设置
+	mouse_natural_scrolling = CLAMP_INT(config.mouse_natural_scrolling, 0, 1);
+	accel_profile = CLAMP_INT(config.accel_profile, 0, 2);
+	accel_speed = CLAMP_FLOAT(config.accel_speed, -1.0f, 1.0f);
+
+	// 外观设置
+	gappih = CLAMP_INT(config.gappih, 0, 1000);
+	gappiv = CLAMP_INT(config.gappiv, 0, 1000);
+	gappoh = CLAMP_INT(config.gappoh, 0, 1000);
+	gappov = CLAMP_INT(config.gappov, 0, 1000);
+	borderpx = CLAMP_INT(config.borderpx, 0, 200);
+	smartgaps = CLAMP_INT(config.smartgaps, 0, 1);
 
 	// 复制颜色数组
 	memcpy(rootcolor, config.rootcolor, sizeof(rootcolor));
@@ -1894,6 +1930,16 @@ void override_config(void) {
 	memcpy(scratchpadcolor, config.scratchpadcolor, sizeof(scratchpadcolor));
 	memcpy(globalcolor, config.globalcolor, sizeof(globalcolor));
 	memcpy(overlaycolor, config.overlaycolor, sizeof(overlaycolor));
+
+	// 复制动画曲线
+	memcpy(animation_curve_move, config.animation_curve_move,
+		   sizeof(animation_curve_move));
+	memcpy(animation_curve_open, config.animation_curve_open,
+		   sizeof(animation_curve_open));
+	memcpy(animation_curve_tag, config.animation_curve_tag,
+		   sizeof(animation_curve_tag));
+	memcpy(animation_curve_close, config.animation_curve_close,
+		   sizeof(animation_curve_close));
 }
 
 void set_value_default() {
