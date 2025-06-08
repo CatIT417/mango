@@ -4532,8 +4532,7 @@ mapnotify(struct wl_listener *listener, void *data) {
 	if (client_is_unmanaged(c)) {
 		/* Unmanaged clients always are floating */
 		wlr_scene_node_reparent(&c->scene->node, layers[LyrFloat]);
-		wlr_scene_node_set_position(&c->scene->node, c->geom.x,
-									c->geom.y);
+		wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
 		if (client_wants_focus(c)) {
 			focusclient(c, 1);
 			exclusive_focus = c;
@@ -7776,7 +7775,8 @@ void xwaylandready(struct wl_listener *listener, void *data) {
 static void setgeometrynotify(struct wl_listener *listener, void *data) {
 	Client *c = wl_container_of(listener, c, set_geometry);
 
-	wlr_scene_node_set_position(&c->scene->node, c->surface.xwayland->x, c->surface.xwayland->y);
+	wlr_scene_node_set_position(&c->scene->node, c->surface.xwayland->x,
+								c->surface.xwayland->y);
 	motionnotify(0, NULL, 0, 0, 0, 0);
 }
 #endif
