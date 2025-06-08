@@ -68,7 +68,12 @@ yay -S maomaowm-git
 
 ## other
 ```bash
-yay -S wlroots-0.19-git
+# wlroots 0.19.0 release with a fix-patch to avoid crash
+git clone -b 0.19.0-fix  https://github.com/DreamMaoMao/wlroots.git
+cd wlroots
+meson build -Dprefix=/usr
+sudo ninja -C build install
+
 git clone https://github.com/DreamMaoMao/maomaowm.git
 cd maomaowm
 meson build -Dprefix=/usr
