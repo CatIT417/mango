@@ -2938,6 +2938,8 @@ void cleanupmon(struct wl_listener *listener, void *data) {
 	wl_list_remove(&m->frame.link);
 	wl_list_remove(&m->link);
 	wl_list_remove(&m->request_state.link);
+	if (m->lock_surface)
+		destroylocksurface(&m->destroy_lock_surface, NULL);
 	m->wlr_output->data = NULL;
 	wlr_output_layout_remove(output_layout, m->wlr_output);
 	wlr_scene_output_destroy(m->scene_output);
