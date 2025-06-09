@@ -8,6 +8,7 @@
 #include <linux/input-event-codes.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/wait.h>
@@ -306,6 +307,7 @@ typedef struct {
 	int nsyms;
 	const xkb_keysym_t *keysyms; /* invalid if nsyms == 0 */
 	uint32_t mods;				 /* invalid if nsyms == 0 */
+	uint32_t keycode;
 	struct wl_event_source *key_repeat_source;
 
 	struct wl_listener modifiers;
@@ -525,13 +527,13 @@ static void gpureset(struct wl_listener *listener, void *data);
 static int keyrepeat(void *data);
 
 static void inputdevice(struct wl_listener *listener, void *data);
-static int keybinding(uint32_t mods, xkb_keysym_t sym);
+static int keybinding(uint32_t mods, xkb_keysym_t sym, uint32_t keycode);
 static void keypress(struct wl_listener *listener, void *data);
 static void keypressmod(struct wl_listener *listener, void *data);
 static bool keypressglobal(struct wlr_surface *last_surface,
 						   struct wlr_keyboard *keyboard,
 						   struct wlr_keyboard_key_event *event, uint32_t mods,
-						   xkb_keysym_t keysym);
+						   xkb_keysym_t keysym, uint32_t keycode);
 static void locksession(struct wl_listener *listener, void *data);
 static void mapnotify(struct wl_listener *listener, void *data);
 static void maximizenotify(struct wl_listener *listener, void *data);
@@ -4188,13 +4190,13 @@ int keyrepeat(void *data) {
 		1000 / group->wlr_group->keyboard.repeat_info.rate);
 
 	for (i = 0; i < group->nsyms; i++)
-		keybinding(group->mods, group->keysyms[i]);
+		keybinding(group->mods, group->keysyms[i], group->keycode);
 
 	return 0;
 }
 
 int // 17
-keybinding(uint32_t mods, xkb_keysym_t sym) {
+keybinding(uint32_t mods, xkb_keysym_t sym, uint32_t keycode) {
 	/*
 	 * Here we handle compositor keybindings. This is when the compositor is
 	 * processing keys, rather than passing them on to the client for its own
@@ -4208,7 +4210,12 @@ keybinding(uint32_t mods, xkb_keysym_t sym) {
 			break;
 		k = &config.key_bindings[ji];
 		if (CLEANMASK(mods) == CLEANMASK(k->mod) &&
-			normalize_keysym(sym) == normalize_keysym(k->keysym) && k->func) {
+			((k->keysymcode.type == KEY_TYPE_SYM &&
+			  normalize_keysym(sym) ==
+				  normalize_keysym(k->keysymcode.keysym)) ||
+			 (k->keysymcode.type == KEY_TYPE_CODE &&
+			  keycode == k->keysymcode.keycode)) &&
+			k->func) {
 			k->func(&k->arg);
 			handled = 1;
 		}
@@ -4219,7 +4226,7 @@ keybinding(uint32_t mods, xkb_keysym_t sym) {
 bool keypressglobal(struct wlr_surface *last_surface,
 					struct wlr_keyboard *keyboard,
 					struct wlr_keyboard_key_event *event, uint32_t mods,
-					xkb_keysym_t keysym) {
+					xkb_keysym_t keysym, uint32_t keycode) {
 	Client *c = NULL, *lastc = focustop(selmon);
 	uint32_t keycodes[32] = {0};
 	int reset = false;
@@ -4233,11 +4240,14 @@ bool keypressglobal(struct wlr_surface *last_surface,
 			break;
 		r = &config.window_rules[ji];
 
-		if (!r->globalkeybinding.mod || !r->globalkeybinding.keysym)
+		if (!r->globalkeybinding.mod || (!r->globalkeybinding.keysymcode.keysym && !r->globalkeybinding.keysymcode.keycode))
 			continue;
 
 		/* match key only (case insensitive) ignoring mods */
-		if (r->globalkeybinding.keysym == keysym &&
+		if (((r->globalkeybinding.keysymcode.type == KEY_TYPE_SYM &&
+			  r->globalkeybinding.keysymcode.keysym == keysym) ||
+			 (r->globalkeybinding.keysymcode.type == KEY_TYPE_CODE &&
+			  r->globalkeybinding.keysymcode.keycode == keycode)) &&
 			r->globalkeybinding.mod == mods) {
 			wl_list_for_each(c, &clients, link) {
 				if (c && c != lastc) {
@@ -4314,12 +4324,13 @@ void keypress(struct wl_listener *listener, void *data) {
 	 * attempt to process a compositor keybinding. */
 	if (!locked && event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
 		for (i = 0; i < nsyms; i++)
-			handled = keybinding(mods, syms[i]) || handled;
+			handled = keybinding(mods, syms[i], keycode) || handled;
 	}
 
 	if (handled && group->wlr_group->keyboard.repeat_info.delay > 0) {
 		group->mods = mods;
 		group->keysyms = syms;
+		group->keycode = keycode;
 		group->nsyms = nsyms;
 		wl_event_source_timer_update(
 			group->key_repeat_source,
@@ -4344,7 +4355,7 @@ void keypress(struct wl_listener *listener, void *data) {
 	/* passed keys don't get repeated */
 	if (pass && syms)
 		hit_global = keypressglobal(last_surface, &group->wlr_group->keyboard,
-									event, mods, syms[0]);
+									event, mods, syms[0], keycode);
 
 	if (hit_global) {
 		return;

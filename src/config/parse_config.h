@@ -18,9 +18,17 @@
 
 enum { NUM_TYPE_MINUS, NUM_TYPE_PLUS, NUM_TYPE_DEFAULT };
 
+enum { KEY_TYPE_SYM, KEY_TYPE_CODE };
+
+typedef struct {
+	xkb_keysym_t keysym;
+	uint32_t keycode;
+	int type;
+} KeySymCode;
+
 typedef struct {
 	uint32_t mod;
-	xkb_keysym_t keysym;
+	KeySymCode keysymcode;
 	void (*func)(const Arg *);
 	Arg arg;
 } KeyBinding;
@@ -69,16 +77,17 @@ typedef struct {
 	int noswallow;
 } ConfigMonitorRule;
 
-// 定义一个宏来简化默认按键绑定的添加
+// 修改后的宏定义
 #define CHVT(n)                                                                \
 	{                                                                          \
-		WLR_MODIFIER_CTRL | WLR_MODIFIER_ALT, XKB_KEY_XF86Switch_VT_##n, chvt, \
+		WLR_MODIFIER_CTRL | WLR_MODIFIER_ALT,                                  \
+			{.keysym = XKB_KEY_XF86Switch_VT_##n, .type = KEY_TYPE_SYM}, chvt, \
 		{                                                                      \
 			.ui = (n)                                                          \
 		}                                                                      \
 	}
 
-// 默认的按键绑定数组
+// 默认按键绑定数组
 KeyBinding default_key_bindings[] = {CHVT(1), CHVT(2),	CHVT(3),  CHVT(4),
 									 CHVT(5), CHVT(6),	CHVT(7),  CHVT(8),
 									 CHVT(9), CHVT(10), CHVT(11), CHVT(12)};
@@ -502,8 +511,24 @@ uint32_t parse_mod(const char *mod_str) {
 	return mod;
 }
 
-xkb_keysym_t parse_keysym(const char *keysym_str) {
-	return xkb_keysym_from_name(keysym_str, XKB_KEYSYM_NO_FLAGS);
+KeySymCode parse_key(const char *key_str) {
+	KeySymCode kc;
+
+	// 处理 code: 前缀的情况
+	if (strncmp(key_str, "code:", 5) == 0) {
+		char *endptr;
+		xkb_keycode_t keycode = (xkb_keycode_t)strtol(key_str + 5, &endptr, 10);
+		kc.type = KEY_TYPE_CODE;
+		kc.keycode = keycode;
+		return kc;
+	}
+
+	// 普通键名直接转换
+	xkb_keysym_t sym = xkb_keysym_from_name(key_str, XKB_KEYSYM_NO_FLAGS);
+	kc.type = KEY_TYPE_SYM;
+	kc.keycode = 0;
+	kc.keysym = sym;
+	return kc;
 }
 
 int parse_button(const char *str) {
@@ -1260,7 +1285,7 @@ void parse_config_line(Config *config, const char *line) {
 					trim_whitespace(mod_str);
 					trim_whitespace(keysym_str);
 					rule->globalkeybinding.mod = parse_mod(mod_str);
-					rule->globalkeybinding.keysym = parse_keysym(keysym_str);
+					rule->globalkeybinding.keysymcode = parse_key(keysym_str);
 				}
 			}
 			token = strtok(NULL, ",");
@@ -1406,7 +1431,7 @@ void parse_config_line(Config *config, const char *line) {
 		trim_whitespace(arg_value5);
 
 		binding->mod = parse_mod(mod_str);
-		binding->keysym = parse_keysym(keysym_str);
+		binding->keysymcode = parse_key(keysym_str);
 		binding->arg.v = NULL;
 		binding->arg.v2 = NULL;
 		binding->arg.v3 = NULL;
