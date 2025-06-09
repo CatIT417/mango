@@ -107,7 +107,8 @@ struct xkb_rule_names xkb_rules = {
 	/* example:
 	.options = "ctrl:nocaps",
 	*/
-	.options = NULL,
+	.rules = NULL,	 .model = NULL,	  .layout = NULL,
+	.variant = NULL, .options = NULL,
 };
 
 int repeat_rate = 25;
