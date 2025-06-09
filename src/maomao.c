@@ -3397,14 +3397,15 @@ void createmon(struct wl_listener *listener, void *data) {
 		m->pertag->mfacts[i] = m->mfact;
 		m->pertag->smfacts[i] = default_smfact;
 		m->pertag->ltidxs[i] = m->lt;
+	}
 
-		if (i > 0 && config.tag_rules &&
-			strlen(config.tag_rules[i - 1].layout_name) > 0) {
-			for (jk = 0; jk < LENGTH(layouts); jk++) {
-				if (strcmp(layouts[jk].name,
-						   config.tag_rules[i - 1].layout_name) == 0) {
-					m->pertag->ltidxs[i] = &layouts[jk];
-				}
+	// apply tag rule
+	for (i = 1; i <= config.tag_rules_count; i++) {
+		for (jk = 0; jk < LENGTH(layouts); jk++) {
+			if (config.tag_rules_count > 0 &&
+				strcmp(layouts[jk].name, config.tag_rules[i - 1].layout_name) ==
+					0) {
+				m->pertag->ltidxs[config.tag_rules[i - 1].id] = &layouts[jk];
 			}
 		}
 	}

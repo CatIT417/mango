@@ -1097,11 +1097,11 @@ void parse_config_line(Config *config, const char *line) {
 				trim_whitespace(val);
 
 				if (strcmp(key, "id") == 0) {
-					rule->id = atoi(val);
+					rule->id = CLAMP_INT(atoi(val), 1, LENGTH(tags));
 				} else if (strcmp(key, "layout_name") == 0) {
 					rule->layout_name = strdup(val);
 				} else if (strcmp(key, "no_render_border") == 0) {
-					rule->no_render_border = atoi(val);
+					rule->no_render_border = CLAMP_INT(atoi(val), 0, 1);
 				}
 			}
 			token = strtok(NULL, ",");
@@ -2187,15 +2187,14 @@ void reload_config(const Arg *arg) {
 			continue;
 		}
 
-		for (i = 0; i <= LENGTH(tags); i++) {
-
-			if (i > 0 && config.tag_rules &&
-				strlen(config.tag_rules[i - 1].layout_name) > 0) {
-				for (jk = 0; jk < LENGTH(layouts); jk++) {
-					if (strcmp(layouts[jk].name,
-							   config.tag_rules[i - 1].layout_name) == 0) {
-						m->pertag->ltidxs[i] = &layouts[jk];
-					}
+		// apply tag rule
+		for (i = 1; i <= config.tag_rules_count; i++) {
+			for (jk = 0; jk < LENGTH(layouts); jk++) {
+				if (config.tag_rules_count > 0 &&
+					strcmp(layouts[jk].name,
+						   config.tag_rules[i - 1].layout_name) == 0) {
+					m->pertag->ltidxs[config.tag_rules[i - 1].id] =
+						&layouts[jk];
 				}
 			}
 		}
