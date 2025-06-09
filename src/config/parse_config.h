@@ -429,32 +429,74 @@ static bool starts_with_ignore_case(const char *str, const char *prefix) {
 }
 
 uint32_t parse_mod(const char *mod_str) {
+	if (!mod_str || !*mod_str) {
+		return 0;
+	}
+
 	uint32_t mod = 0;
-	char lower_str[64]; // 假设输入的字符串长度不超过 64
-	int i = 0;
+	char input_copy[256];
+	char *token;
+	char *saveptr = NULL;
 
-	// 将 mod_str 转换为全小写
-	for (i = 0; mod_str[i] && i < sizeof(lower_str) - 1; i++) {
-		lower_str[i] = tolower(mod_str[i]);
+	// 复制并转换为小写
+	strncpy(input_copy, mod_str, sizeof(input_copy) - 1);
+	input_copy[sizeof(input_copy) - 1] = '\0';
+	for (char *p = input_copy; *p; p++) {
+		*p = tolower(*p);
 	}
-	lower_str[i] = '\0'; // 确保字符串以 NULL 结尾
 
-	// 检查修饰键，忽略左右键标识（如 "_l" 和 "_r"）
-	if (strstr(lower_str, "super") || strstr(lower_str, "super_l") ||
-		strstr(lower_str, "super_r")) {
-		mod |= WLR_MODIFIER_LOGO;
-	}
-	if (strstr(lower_str, "ctrl") || strstr(lower_str, "ctrl_l") ||
-		strstr(lower_str, "ctrl_r")) {
-		mod |= WLR_MODIFIER_CTRL;
-	}
-	if (strstr(lower_str, "shift") || strstr(lower_str, "shift_l") ||
-		strstr(lower_str, "shift_r")) {
-		mod |= WLR_MODIFIER_SHIFT;
-	}
-	if (strstr(lower_str, "alt") || strstr(lower_str, "alt_l") ||
-		strstr(lower_str, "alt_r")) {
-		mod |= WLR_MODIFIER_ALT;
+	// 分割处理每个部分
+	token = strtok_r(input_copy, "+", &saveptr);
+	while (token != NULL) {
+		// 去除空白
+		while (*token == ' ' || *token == '\t')
+			token++;
+
+		if (strncmp(token, "code:", 5) == 0) {
+			// 处理 code: 形式
+			char *endptr;
+			long keycode = strtol(token + 5, &endptr, 10);
+			if (endptr != token + 5 && (*endptr == '\0' || *endptr == ' ')) {
+				switch (keycode) {
+				case 133:
+				case 134:
+					mod |= WLR_MODIFIER_LOGO;
+					break;
+				case 37:
+				case 105:
+					mod |= WLR_MODIFIER_CTRL;
+					break;
+				case 50:
+				case 62:
+					mod |= WLR_MODIFIER_SHIFT;
+					break;
+				case 64:
+				case 108:
+					mod |= WLR_MODIFIER_ALT;
+					break;
+				}
+			}
+		} else {
+			// 完整的 modifier 检查（保留原始所有检查项）
+			if (strstr(token, "super") || strstr(token, "super_l") ||
+				strstr(token, "super_r")) {
+				mod |= WLR_MODIFIER_LOGO;
+			}
+			if (strstr(token, "ctrl") || strstr(token, "ctrl_l") ||
+				strstr(token, "ctrl_r")) {
+				mod |= WLR_MODIFIER_CTRL;
+			}
+			if (strstr(token, "shift") || strstr(token, "shift_l") ||
+				strstr(token, "shift_r")) {
+				mod |= WLR_MODIFIER_SHIFT;
+			}
+			if (strstr(token, "alt") || strstr(token, "alt_l") ||
+				strstr(token, "alt_r")) {
+				mod |= WLR_MODIFIER_ALT;
+			}
+		}
+
+		token = strtok_r(NULL, "+", &saveptr);
 	}
 
 	return mod;
