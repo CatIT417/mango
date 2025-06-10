@@ -651,6 +651,7 @@ static void handlecursoractivity(void);
 static int hidecursor(void *data);
 static bool check_hit_no_border(Client *c);
 
+#include "data/static_keymap.h"
 #include "dispatch/dispatch.h"
 
 /* variables */
@@ -4242,7 +4243,9 @@ bool keypressglobal(struct wlr_surface *last_surface,
 			break;
 		r = &config.window_rules[ji];
 
-		if (!r->globalkeybinding.mod || (!r->globalkeybinding.keysymcode.keysym && !r->globalkeybinding.keysymcode.keycode))
+		if (!r->globalkeybinding.mod ||
+			(!r->globalkeybinding.keysymcode.keysym &&
+			 !r->globalkeybinding.keysymcode.keycode))
 			continue;
 
 		/* match key only (case insensitive) ignoring mods */
@@ -5736,6 +5739,173 @@ setlayout(const Arg *arg) {
 			return;
 		}
 	}
+}
+
+char *get_layout_abbr(const char *full_name) {
+	// 1. 尝试在映射表中查找
+	for (int i = 0; layout_mappings[i].full_name != NULL; i++) {
+		if (strcmp(full_name, layout_mappings[i].full_name) == 0) {
+			return strdup(layout_mappings[i].abbr);
+		}
+	}
+
+	// 2. 尝试从名称中提取并转换为小写
+	const char *open = strrchr(full_name, '(');
+	const char *close = strrchr(full_name, ')');
+	if (open && close && close > open) {
+		size_t len = close - open - 1;
+		if (len > 0 && len <= 4) {
+			char *abbr = malloc(len + 1);
+			if (abbr) {
+				// 提取并转换为小写
+				for (size_t j = 0; j < len; j++) {
+					abbr[j] = tolower(open[j + 1]);
+				}
+				abbr[len] = '\0';
+				return abbr;
+			}
+		}
+	}
+
+	// 3. 提取前2-3个字母并转换为小写
+	char *abbr = malloc(4);
+	if (abbr) {
+		size_t j = 0;
+		for (size_t i = 0; full_name[i] != '\0' && j < 3; i++) {
+			if (isalpha(full_name[i])) {
+				abbr[j++] = tolower(full_name[i]);
+			}
+		}
+		abbr[j] = '\0';
+
+		// 确保至少2个字符
+		if (j >= 2)
+			return abbr;
+		free(abbr);
+	}
+
+	// 4. 回退方案：使用首字母小写
+	char *fallback = malloc(3);
+	if (fallback) {
+		fallback[0] = tolower(full_name[0]);
+		fallback[1] = full_name[1] ? tolower(full_name[1]) : '\0';
+		fallback[2] = '\0';
+		return fallback;
+	}
+
+	// 5. 最终回退：返回 "xx"
+	return strdup("xx");
+}
+
+void switch_keyboard_layout(const Arg *arg) {
+	if (!kb_group || !kb_group->wlr_group || !seat) {
+		wlr_log(WLR_ERROR, "Invalid keyboard group or seat");
+		return;
+	}
+
+	struct wlr_keyboard *keyboard = &kb_group->wlr_group->keyboard;
+	if (!keyboard || !keyboard->keymap) {
+		wlr_log(WLR_ERROR, "Invalid keyboard or keymap");
+		return;
+	}
+
+	// 1. 获取当前布局和计算下一个布局
+	xkb_layout_index_t current = xkb_state_serialize_layout(
+		keyboard->xkb_state, XKB_STATE_LAYOUT_EFFECTIVE);
+	const int num_layouts = xkb_keymap_num_layouts(keyboard->keymap);
+	if (num_layouts < 2) {
+		wlr_log(WLR_INFO, "Only one layout available");
+		return;
+	}
+	xkb_layout_index_t next = (current + 1) % num_layouts;
+
+	// 2. 创建上下文
+	struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+	if (!context) {
+		wlr_log(WLR_ERROR, "Failed to create XKB context");
+		return;
+	}
+
+	// 3. 分配并获取布局缩写
+	char **layout_ids = calloc(num_layouts, sizeof(char *));
+	if (!layout_ids) {
+		wlr_log(WLR_ERROR, "Failed to allocate layout IDs");
+		goto cleanup_context;
+	}
+
+	for (int i = 0; i < num_layouts; i++) {
+		layout_ids[i] =
+			get_layout_abbr(xkb_keymap_layout_get_name(keyboard->keymap, i));
+		if (!layout_ids[i]) {
+			wlr_log(WLR_ERROR, "Failed to get layout abbreviation");
+			goto cleanup_layouts;
+		}
+	}
+
+	// 4. 直接修改 rules.layout（保持原有逻辑）
+	struct xkb_rule_names rules = xkb_rules;
+	char *layout_buf = (char *)rules.layout; // 假设这是可修改的
+
+	// 清空原有内容（安全方式）
+	size_t layout_buf_size = strlen(layout_buf) + 1;
+	memset(layout_buf, 0, layout_buf_size);
+
+	// 构建新的布局字符串
+	for (int i = 0; i < num_layouts; i++) {
+		const char *layout = layout_ids[(next + i) % num_layouts];
+
+		if (i > 0) {
+			strncat(layout_buf, ",", layout_buf_size - strlen(layout_buf) - 1);
+		}
+
+		if (strchr(layout, ',')) {
+			// 处理包含逗号的布局名
+			char *quoted = malloc(strlen(layout) + 3);
+			if (quoted) {
+				snprintf(quoted, strlen(layout) + 3, "\"%s\"", layout);
+				strncat(layout_buf, quoted,
+						layout_buf_size - strlen(layout_buf) - 1);
+				free(quoted);
+			}
+		} else {
+			strncat(layout_buf, layout,
+					layout_buf_size - strlen(layout_buf) - 1);
+		}
+	}
+
+	// 5. 创建新 keymap
+	struct xkb_keymap *new_keymap =
+		xkb_keymap_new_from_names(context, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+	if (!new_keymap) {
+		wlr_log(WLR_ERROR, "Failed to create keymap for layouts: %s",
+				rules.layout);
+		goto cleanup_layouts;
+	}
+
+	// 6. 应用新 keymap
+	uint32_t depressed = keyboard->modifiers.depressed;
+	uint32_t latched = keyboard->modifiers.latched;
+	uint32_t locked = keyboard->modifiers.locked;
+
+	wlr_keyboard_set_keymap(keyboard, new_keymap);
+	wlr_keyboard_notify_modifiers(keyboard, depressed, latched, locked, 0);
+	keyboard->modifiers.group = 0;
+
+	// 7. 更新 seat
+	wlr_seat_set_keyboard(seat, keyboard);
+	wlr_seat_keyboard_notify_modifiers(seat, &keyboard->modifiers);
+
+	// 8. 清理资源
+	xkb_keymap_unref(new_keymap);
+
+cleanup_layouts:
+	for (int i = 0; i < num_layouts; i++) {
+		free(layout_ids[i]);
+	}
+	free(layout_ids);
+
+cleanup_context:
+	xkb_context_unref(context);
 }
 
 void switch_layout(const Arg *arg) {

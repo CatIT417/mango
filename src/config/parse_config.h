@@ -665,6 +665,8 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
 		(*arg).v = strdup(arg_value);
 	} else if (strcmp(func_name, "switch_layout") == 0) {
 		func = switch_layout;
+	} else if (strcmp(func_name, "switch_keyboard_layout") == 0) {
+		func = switch_keyboard_layout;
 	} else if (strcmp(func_name, "togglefloating") == 0) {
 		func = togglefloating;
 	} else if (strcmp(func_name, "togglefullscreen") == 0) {
@@ -883,7 +885,9 @@ void parse_config_line(Config *config, const char *line) {
 	} else if (!xkb_rules.model && strcmp(key, "xkb_rules_model") == 0) {
 		xkb_rules.model = strdup(value);
 	} else if (!xkb_rules.layout && strcmp(key, "xkb_rules_layout") == 0) {
-		xkb_rules.layout = strdup(value);
+		char *new_layouts_str = malloc(256); // 不要释放，只赋值一次
+		strcpy(new_layouts_str, value);
+		xkb_rules.layout = new_layouts_str;
 	} else if (!xkb_rules.variant && strcmp(key, "xkb_rules_variant") == 0) {
 		xkb_rules.variant = strdup(value);
 	} else if (!xkb_rules.options && strcmp(key, "xkb_rules_options") == 0) {
