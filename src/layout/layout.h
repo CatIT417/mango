@@ -151,7 +151,8 @@ void grid(Monitor *m) {
 					? 0
 					: borderpx;
 			if (VISIBLEON(c, m) && !c->isunglobal &&
-				((m->isoverview && !client_should_ignore_focus(c)) || ISTILED(c))) {
+				((m->isoverview && !client_should_ignore_focus(c)) ||
+				 ISTILED(c))) {
 				cw = (m->w.width - 2 * overviewgappo) * 0.7;
 				ch = (m->w.height - 2 * overviewgappo) * 0.8;
 				c->geom.x = m->w.x + (m->w.width - cw) / 2;
@@ -174,7 +175,8 @@ void grid(Monitor *m) {
 					? 0
 					: borderpx;
 			if (VISIBLEON(c, m) && !c->isunglobal &&
-				((m->isoverview && !client_should_ignore_focus(c)) || ISTILED(c))) {
+				((m->isoverview && !client_should_ignore_focus(c)) ||
+				 ISTILED(c))) {
 				if (i == 0) {
 					c->geom.x = m->w.x + overviewgappo;
 					c->geom.y = m->w.y + (m->w.height - ch) / 2 + overviewgappo;
