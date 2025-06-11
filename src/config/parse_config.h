@@ -880,18 +880,26 @@ void parse_config_line(Config *config, const char *line) {
 		config->drag_tile_to_tile = atoi(value);
 	} else if (strcmp(key, "swipe_min_threshold") == 0) {
 		config->swipe_min_threshold = atoi(value);
-	} else if (!xkb_rules.rules && strcmp(key, "xkb_rules_rules") == 0) {
-		xkb_rules.rules = strdup(value);
-	} else if (!xkb_rules.model && strcmp(key, "xkb_rules_model") == 0) {
-		xkb_rules.model = strdup(value);
-	} else if (!xkb_rules.layout && strcmp(key, "xkb_rules_layout") == 0) {
-		char *new_layouts_str = malloc(256); // 不要释放，只赋值一次
-		strcpy(new_layouts_str, value);
-		xkb_rules.layout = new_layouts_str;
-	} else if (!xkb_rules.variant && strcmp(key, "xkb_rules_variant") == 0) {
-		xkb_rules.variant = strdup(value);
-	} else if (!xkb_rules.options && strcmp(key, "xkb_rules_options") == 0) {
-		xkb_rules.options = strdup(value);
+	} else if (strcmp(key, "xkb_rules_rules") == 0) {
+		strncpy(xkb_rules_rules, value, sizeof(xkb_rules_rules) - 1);
+		xkb_rules_rules[sizeof(xkb_rules_rules) - 1] =
+			'\0'; // 确保字符串以 null 结尾
+	} else if (strcmp(key, "xkb_rules_model") == 0) {
+		strncpy(xkb_rules_model, value, sizeof(xkb_rules_model) - 1);
+		xkb_rules_model[sizeof(xkb_rules_model) - 1] =
+			'\0'; // 确保字符串以 null 结尾
+	} else if (strcmp(key, "xkb_rules_layout") == 0) {
+		strncpy(xkb_rules_layout, value, sizeof(xkb_rules_layout) - 1);
+		xkb_rules_layout[sizeof(xkb_rules_layout) - 1] =
+			'\0'; // 确保字符串以 null 结尾
+	} else if (strcmp(key, "xkb_rules_variant") == 0) {
+		strncpy(xkb_rules_variant, value, sizeof(xkb_rules_variant) - 1);
+		xkb_rules_variant[sizeof(xkb_rules_variant) - 1] =
+			'\0'; // 确保字符串以 null 结尾
+	} else if (strcmp(key, "xkb_rules_options") == 0) {
+		strncpy(xkb_rules_options, value, sizeof(xkb_rules_options) - 1);
+		xkb_rules_options[sizeof(xkb_rules_options) - 1] =
+			'\0'; // 确保字符串以 null 结尾
 	} else if (strcmp(key, "scroller_proportion_preset") == 0) {
 		// 1. 统计 value 中有多少个逗号，确定需要解析的浮点数个数
 		int count = 0; // 初始化为 0
@@ -2230,6 +2238,7 @@ void reload_config(const Arg *arg) {
 	parse_config();
 	init_baked_points();
 	handlecursoractivity();
+	reset_keyboard_layout();
 	run_exec();
 
 	// reset border width when config change

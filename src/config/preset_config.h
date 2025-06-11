@@ -102,13 +102,25 @@ Layout layouts[] = {
 };
 
 /* keyboard */
+
+/*
+	only layout can modify after fisrt init
+	other fields change will be ignored.
+*/
+char xkb_rules_rules[256];
+char xkb_rules_model[256];
+char xkb_rules_layout[256];
+char xkb_rules_variant[256];
+char xkb_rules_options[256];
+
 struct xkb_rule_names xkb_rules = {
 	/* can specify fields: rules, model, layout, variant, options */
 	/* example:
 	.options = "ctrl:nocaps",
 	*/
-	.rules = NULL,	 .model = NULL,	  .layout = NULL,
-	.variant = NULL, .options = NULL,
+	.rules = xkb_rules_rules,	  .model = xkb_rules_model,
+	.layout = xkb_rules_layout,	  .variant = xkb_rules_variant,
+	.options = xkb_rules_options,
 };
 
 int repeat_rate = 25;

@@ -650,6 +650,7 @@ static Client *center_select(Monitor *m);
 static void handlecursoractivity(void);
 static int hidecursor(void *data);
 static bool check_hit_no_border(Client *c);
+static void reset_keyboard_layout(void);
 
 #include "data/static_keymap.h"
 #include "dispatch/dispatch.h"
@@ -5795,6 +5796,89 @@ char *get_layout_abbr(const char *full_name) {
 
 	// 5. 最终回退：返回 "xx"
 	return strdup("xx");
+}
+
+void reset_keyboard_layout(void) {
+	if (!kb_group || !kb_group->wlr_group || !seat) {
+		wlr_log(WLR_ERROR, "Invalid keyboard group or seat");
+		return;
+	}
+
+	struct wlr_keyboard *keyboard = &kb_group->wlr_group->keyboard;
+	if (!keyboard || !keyboard->keymap) {
+		wlr_log(WLR_ERROR, "Invalid keyboard or keymap");
+		return;
+	}
+
+	// Get current layout
+	xkb_layout_index_t current = xkb_state_serialize_layout(
+		keyboard->xkb_state, XKB_STATE_LAYOUT_EFFECTIVE);
+	const int num_layouts = xkb_keymap_num_layouts(keyboard->keymap);
+	if (num_layouts < 1) {
+		wlr_log(WLR_INFO, "No layouts available");
+		return;
+	}
+
+	// Create context
+	struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+	if (!context) {
+		wlr_log(WLR_ERROR, "Failed to create XKB context");
+		return;
+	}
+
+	// Get layout abbreviations
+	char **layout_ids = calloc(num_layouts, sizeof(char *));
+	if (!layout_ids) {
+		wlr_log(WLR_ERROR, "Failed to allocate layout IDs");
+		goto cleanup_context;
+	}
+
+	for (int i = 0; i < num_layouts; i++) {
+		layout_ids[i] =
+			get_layout_abbr(xkb_keymap_layout_get_name(keyboard->keymap, i));
+		if (!layout_ids[i]) {
+			wlr_log(WLR_ERROR, "Failed to get layout abbreviation");
+			goto cleanup_layouts;
+		}
+	}
+
+	// Keep the same rules but just reapply them
+	struct xkb_rule_names rules = xkb_rules;
+
+	// Create new keymap with current rules
+	struct xkb_keymap *new_keymap =
+		xkb_keymap_new_from_names(context, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+	if (!new_keymap) {
+		wlr_log(WLR_ERROR, "Failed to create keymap for layouts: %s",
+				rules.layout);
+		goto cleanup_layouts;
+	}
+
+	// Apply the same keymap (this will reset the layout state)
+	uint32_t depressed = keyboard->modifiers.depressed;
+	uint32_t latched = keyboard->modifiers.latched;
+	uint32_t locked = keyboard->modifiers.locked;
+
+	wlr_keyboard_set_keymap(keyboard, new_keymap);
+
+	wlr_keyboard_notify_modifiers(keyboard, depressed, latched, locked, 0);
+	keyboard->modifiers.group = current; // Keep the same layout index
+
+	// Update seat
+	wlr_seat_set_keyboard(seat, keyboard);
+	wlr_seat_keyboard_notify_modifiers(seat, &keyboard->modifiers);
+
+	// Cleanup
+	xkb_keymap_unref(new_keymap);
+
+cleanup_layouts:
+	for (int i = 0; i < num_layouts; i++) {
+		free(layout_ids[i]);
+	}
+	free(layout_ids);
+
+cleanup_context:
+	xkb_context_unref(context);
 }
 
 void switch_keyboard_layout(const Arg *arg) {
