@@ -2737,6 +2737,7 @@ buttonpress(struct wl_listener *listener, void *data) {
 	Client *tmpc;
 	int ji;
 	const MouseBinding *b;
+	struct wlr_surface *old_pointer_focus_surface = seat->pointer_state.focused_surface;
 
 	handlecursoractivity();
 	wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
@@ -2752,6 +2753,11 @@ buttonpress(struct wl_listener *listener, void *data) {
 		if (toplevel_from_wlr_surface(surface, &c, &l) >= 0) {
 			if (c && (!client_is_unmanaged(c) || client_wants_focus(c)))
 				focusclient(c, 1);
+
+			if (surface != old_pointer_focus_surface) {
+				wlr_seat_pointer_notify_clear_focus(seat);
+				motionnotify(0, NULL, 0, 0, 0, 0);
+			}
 
 			if (l && l->layer_surface->current.keyboard_interactive) {
 				focusclient(NULL, 0);
