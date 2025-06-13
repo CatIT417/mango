@@ -2,18 +2,18 @@
 
 This project is developed based on [dwl](https://codeberg.org/dwl/dwl/),
 
-"Since many people have asked about the meaning of this compositor's name,  'Maomao' is an online alias I've been using for years - it comes from the first two characters of the Chinese word for 'caterpillar' (毛毛虫). You can basically think of it as meaning 'caterpillar'.
+"Since many people have asked about the meaning of this compositor's name, 'Maomao' is an online alias I've been using for years - it comes from the first two characters of the Chinese word for 'caterpillar' (毛毛虫). You can basically think of it as meaning 'caterpillar'.
 
 1. **Lightweight & Fast Build**  
    - *Maomao* is as lightweight as *dwl*, and its build can be completed within few seconds. Despite this, *maomao* does not compromise on functionality.  
 
-2. **Feature Integration**  
-   - In addition to inheriting *dwl*'s core features and common functions found in other compositors, *maomao* also supports unique functionalities from other projects. These include:  
-     - Hyprland’s *animations*,  
-     - Sway’s *additional protocols*,  
-     - Labwc’s *text input method*,  
-     - Niri’s *scrolling layout*.  
-   - However, these are implemented in a deliberately lightweight and simplistic manner to avoid bloated code.  
+2. **Feature Highlights**  
+   - Besides basic WM functionality, maomao provides:
+     - Smooth and customizable animations
+     - Excellent input method support
+     - Flexible window layouts with easy switching
+     - Rich window states: swallow, minimize, maximize, unglobal, global, fakefullscreen, overlay...
+     - Simple yet powerful external configuration
 
 3. **Philosophy**  
    - *Maomao* has no rigid design ideology—you could call it an eclectic hybrid of various compositors.
@@ -26,31 +26,28 @@ Scroller Layout
 
 https://github.com/user-attachments/assets/c9bf9415-fad1-4400-bcdc-3ad2d76de85a
 
+# Features
 
-# maomao based on tags instead of workspace, so it support separate window layout for each tags, with separate tags parameters
+- Tag-based instead of workspace-based (supports separate window layouts for each tag)
+- Supported layouts:
+  - Tile
+  - Scroller  
+  - Monocle
+  - Grid
+  - Dwindle
+  - Spiral
+  - Deck
 
-## support layout
+# Special Features
 
-- tile
-- scroller
-- monocle
-- grid
-- dwindle
-- spiral
-
-# some special feature
-
-- hycov like overview
-- foreign-toplevel protocol(dunst,waybar wlr taskbar)
-- minimize window to waybar(like hych)
-- sway scratchpad (minimize window to scratchpad)
-- window pin mode/ maximize mode
-- text-input-v2/v3 protocol for fcitx5
-- window move/open/close animaition
-- workspaces(tags) switch animaition
-- fade/fadeout animation
-- alt-tab switch window like gnome
-- niri like scroller layout
+- Hycov-like overview
+- Foreign-toplevel protocol support (for dunst, waybar wlr taskbar)
+- Minimize window to waybar (like hych)
+- Sway-style scratchpad and Named scratchpad
+- Text-input-v2/v3 protocol for fcitx5
+- Window animations (move/open/close/tag)
+- Alt-tab window switching
+- scroller layout
 
 # install
 
