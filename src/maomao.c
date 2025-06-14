@@ -1433,33 +1433,31 @@ void client_apply_clip(Client *c) {
 
 bool client_draw_frame(Client *c) {
 
-	if (!c || !client_surface(c)->mapped)
-		return false;
+  if (!c || !client_surface(c)->mapped)
+    return false;
 
-	if (c->isfullscreen)
-		client_set_opacity(c, 1);
-	else if (c == selmon->sel && !c->animation.running) {
-		client_set_opacity(c, c->focused_opacity);
-	} else if (!c->animation.running) {
-		client_set_opacity(c, c->unfocused_opacity);
-	}
+  if(c->isfullscreen) {
+    client_set_opacity(c, 1);
+  } else if(c == selmon->sel && !c->animation.running) {
+    client_set_opacity(c, c->focused_opacity);
+  } else if(!c->animation.running) {
+    client_set_opacity(c, c->unfocused_opacity);
+  }
 
-	if (!c->need_output_flush)
-		return false;
+  if (!c->need_output_flush)
+    return false;
 
-	if (animations && c->animation.running) {
-		client_animation_next_tick(c);
-		client_apply_clip(c);
-	} else {
-		if (!c->is_clip_to_hide)
-			wlr_scene_node_set_position(&c->scene->node, c->pending.x,
-										c->pending.y);
-		c->animainit_geom = c->animation.initial = c->pending = c->current =
-			c->geom;
-		client_apply_clip(c);
-		c->need_output_flush = false;
-	}
-	return true;
+  if (animations && c->animation.running) {
+    client_animation_next_tick(c);
+    client_apply_clip(c);
+  } else {
+    wlr_scene_node_set_position(&c->scene->node, c->pending.x, c->pending.y);
+    c->animainit_geom = c->animation.initial = c->pending = c->current =
+        c->geom;
+    client_apply_clip(c);
+    c->need_output_flush = false;
+  }
+  return true;
 }
 
 bool client_draw_fadeout_frame(Client *c) {
@@ -5674,18 +5672,18 @@ void resize(Client *c, struct wlr_box geo, int interact) {
 	c->configure_serial = client_set_size(c, c->geom.width - 2 * c->bw,
 										  c->geom.height - 2 * c->bw);
 
-	if (c == grabc) {
-		c->animation.running = false;
-		c->need_output_flush = false;
-		c->animainit_geom = c->current = c->pending = c->animation.current =
-			c->geom;
-		apply_border(c, c->geom, 0, 0, CORNER_LOCATION_ALL);
-		client_draw_shadow(c);
-		client_get_clip(c, &clip);
-		wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip);
-		return;
-	}
-
+  if (c == grabc) {
+    c->animation.running = false;
+    c->need_output_flush = false;
+    c->animainit_geom = c->current = c->pending = c->animation.current =
+        c->geom;
+    wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
+    apply_border(c, c->geom, 0, 0, CORNER_LOCATION_ALL);
+    client_draw_shadow(c);
+    client_get_clip(c, &clip);
+    wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip);
+    return;
+  }
 	// 如果不是工作区切换时划出去的窗口，就让动画的结束位置，就是上面的真实位置和大小
 	// c->pending 决定动画的终点，一般在其他调用resize的函数的附近设置了
 	if (!c->animation.tagouting && !c->iskilling) {
