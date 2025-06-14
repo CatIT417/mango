@@ -2363,7 +2363,7 @@ void reload_config(const Arg *arg) {
 	// reset border width when config change
 	wl_list_for_each(c, &clients, link) {
 		if (c && !c->iskilling) {
-			if (c->bw) {
+			if (c->bw && !c->isnoborder) {
 				c->bw = borderpx;
 			}
 		}
