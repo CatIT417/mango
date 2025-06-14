@@ -2365,8 +2365,6 @@ void reload_config(const Arg *arg) {
 		if (c && !c->iskilling) {
 			if (c->bw) {
 				c->bw = borderpx;
-				c->focused_opacity = focused_opacity;
-				c->unfocused_opacity = unfocused_opacity;
 			}
 		}
 	}
