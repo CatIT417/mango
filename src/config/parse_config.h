@@ -1348,6 +1348,10 @@ void parse_config_line(Config *config, const char *line) {
 					rule->isunglobal = atoi(val);
 				} else if (strcmp(key, "isglobal") == 0) {
 					rule->isglobal = atoi(val);
+				} else if (strcmp(key, "unfocused_opacity") == 0) {
+					rule->unfocused_opacity = atof(val);
+				} else if (strcmp(key, "focused_opacity") == 0) {
+					rule->focused_opacity = atof(val);
 				} else if (strcmp(key, "isoverlay") == 0) {
 					rule->isoverlay = atoi(val);
 				} else if (strcmp(key, "isterm") == 0) {
