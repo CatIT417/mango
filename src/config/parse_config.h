@@ -686,7 +686,7 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
 	} else if (strcmp(func_name, "focusmon") == 0) {
 		func = focusmon;
 		(*arg).i = parse_direction(arg_value);
-		if((*arg).i == UNDIR) {
+		if ((*arg).i == UNDIR) {
 			(*arg).v = strdup(arg_value);
 		}
 	} else if (strcmp(func_name, "tagmon") == 0) {
