@@ -631,8 +631,7 @@ static struct wlr_box setclient_coordinate_center(Client *c,
 static unsigned int get_tags_first_tag(unsigned int tags);
 
 static void client_commit(Client *c);
-static void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
-						 int offsety);
+static void apply_border(Client *c);
 static void client_set_opacity(Client *c, double opacity);
 static void init_baked_points(void);
 static void scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer, int sx,
@@ -1105,7 +1104,7 @@ bool check_hit_no_border(Client *c) {
 	return hit_no_border;
 }
 
-void apply_border(Client *c, struct wlr_box clip_box, int offsetx, int offsety) {
+void apply_border(Client *c) {
     if (c->iskilling || !client_surface(c)->mapped)
         return;
 
@@ -1295,7 +1294,7 @@ void client_apply_clip(Client *c) {
 			c->geom;
 		client_get_clip(c, &clip_box);
 		offset = clip_to_hide(c, &clip_box);
-		apply_border(c, clip_box, offset.x, offset.y);
+		apply_border(c);
 
 		if (clip_box.width <= 0 || clip_box.height <= 0)
 			return;
@@ -1323,7 +1322,7 @@ void client_apply_clip(Client *c) {
 	}
 
 	offset = clip_to_hide(c, &clip_box);
-	apply_border(c, clip_box, offset.x, offset.y);
+	apply_border(c);
 
 	if (clip_box.width <= 0 || clip_box.height <= 0)
 		return;
@@ -5467,13 +5466,13 @@ void resize(Client *c, struct wlr_box geo, int interact) {
 	c->configure_serial = client_set_size(c, c->geom.width - 2 * c->bw,
 										  c->geom.height - 2 * c->bw);
 
-	if (c == grabc) {
+	if (!animations || c == grabc) {
 		c->animation.running = false;
 		c->need_output_flush = false;
 		c->animainit_geom = c->current = c->pending = c->animation.current =
 			c->geom;
 		wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
-		apply_border(c, c->geom, 0, 0);
+		apply_border(c);
 		client_get_clip(c, &clip);
 		wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip);
 		return;
