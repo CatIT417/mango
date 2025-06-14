@@ -4061,11 +4061,24 @@ void focusclient(Client *c, int lift) {
 
 void focusmon(const Arg *arg) {
 	Client *c;
+	Monitor *m = NULL;
 	int i = 0, nmons = wl_list_length(&mons);
-	if (nmons) {
+	if (nmons && arg->i != UNDIR) {
 		do /* don't switch to disabled mons */
 			selmon = dirtomon(arg->i);
 		while (!selmon->wlr_output->enabled && i++ < nmons);
+	} else if(arg->v) {
+		wl_list_for_each(m, &mons, link) {
+			if (!m->wlr_output->enabled) {
+				continue;
+			}
+			if(regex_match(arg->v, m->wlr_output->name)) {
+				selmon = m;
+				break;
+			}
+		}
+	} else {
+		return;
 	}
 	warp_cursor_to_selmon(selmon);
 	c = focustop(selmon);
