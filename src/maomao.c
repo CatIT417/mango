@@ -1076,9 +1076,9 @@ void client_animation_next_tick(Client *c) {
 }
 
 void client_actual_size(Client *c, uint32_t *width, uint32_t *height) {
-	*width = c->animation.current.width;
+	*width = c->animation.current.width - c->bw;
 
-	*height = c->animation.current.height;
+	*height = c->animation.current.height - c->bw;
 }
 
 void set_rect_size(struct wlr_scene_rect *rect, int width, int height) {
@@ -1240,8 +1240,7 @@ struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 			clip_box->width =
 				clip_box->width -
 				(c->animation.current.x + c->animation.current.width -
-				 c->mon->m.x - c->mon->m.width) -
-				c->bw;
+				 c->mon->m.x - c->mon->m.width);
 		}
 
 		if (c->animation.current.y < c->mon->m.y) {
@@ -1254,8 +1253,7 @@ struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 			clip_box->height =
 				clip_box->height -
 				(c->animation.current.y + c->animation.current.height -
-				 c->mon->m.y - c->mon->m.height) -
-				c->bw;
+				 c->mon->m.y - c->mon->m.height);
 		}
 	}
 
@@ -1333,8 +1331,8 @@ void client_apply_clip(Client *c) {
 	wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
 
 	scale_data.should_scale = true;
-	scale_data.width = clip_box.width - 2 * c->bw;
-	scale_data.height = clip_box.height - 2 * c->bw;
+	scale_data.width = clip_box.width - c->bw;
+	scale_data.height = clip_box.height - c->bw;
 	scale_data.width_scale =
 		(float)scale_data.width / (geometry.width - offset.x);
 	scale_data.height_scale =
