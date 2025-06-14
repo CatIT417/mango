@@ -1397,7 +1397,7 @@ void client_apply_clip(Client *c) {
   scale_data.width_scale = (float)scale_data.width / (geometry.width - offset.x);
   scale_data.height_scale = (float)scale_data.height / (geometry.height - offset.y);
   scale_data.corner_location = current_corner_location;
-  scale_data.percent = c->is_open_animation && animation_fade_in ? (double)c->animation.passed_frames / c->animation.total_frames : 1.0;
+  scale_data.percent = c->animation.action == OPEN && animation_fade_in && !c->nofadein ? (double)c->animation.passed_frames / c->animation.total_frames : 1.0;
   scale_data.opacity = c->isfullscreen ? 1 : c == selmon->sel ? c->focused_opacity : c->unfocused_opacity;
   buffer_set_effect(c, scale_data);
 }
