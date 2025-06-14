@@ -5340,11 +5340,6 @@ void buffer_set_effect(Client *c, animationScale data) {
 		data.should_scale = false;
 	}
 
-	if (client_is_x11(c) && c->current.height >= c->animation.current.height &&
-		c->current.width >= c->animation.current.width) {
-		data.should_scale = false;
-	}
-
 	if (c == grabc)
 		data.should_scale = false;
 
