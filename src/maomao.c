@@ -906,39 +906,14 @@ double find_animation_curve_at(double t, int type) {
 
 void apply_opacity_to_rect_nodes(Client *c, struct wlr_scene_node *node,
 								 double animation_passed) {
-	int offsetx = 0;
-	int offsety = 0;
 	if (node->type == WLR_SCENE_NODE_RECT) {
 		struct wlr_scene_rect *rect = wlr_scene_rect_from_node(node);
 		// Assuming the rect has a color field and we can modify it
-		rect->color[0] = (1 - animation_passed) * rect->color[0];
-		rect->color[1] = (1 - animation_passed) * rect->color[1];
-		rect->color[2] = (1 - animation_passed) * rect->color[2];
-		rect->color[3] = (1 - animation_passed) * rect->color[3];
+		rect->color[0] = 0;
+		rect->color[1] = 0;
+		rect->color[2] = 0;
+		rect->color[3] = 0;
 		wlr_scene_rect_set_color(rect, rect->color);
-
-		offsetx = c->geom.width - c->animation.current.width;
-		offsety = c->geom.height - c->animation.current.height;
-		if (node->y > c->geom.y + c->geom.height / 2) {
-			wlr_scene_node_set_position(node, c->geom.x,
-										c->geom.y + c->geom.height - offsety);
-			wlr_scene_rect_set_size(rect, c->animation.current.width,
-									c->bw); // down
-		} else if (node->y < c->geom.y + c->geom.height / 2 &&
-				   rect->width > rect->height) {
-			wlr_scene_node_set_position(node, c->geom.x, c->geom.y);
-			wlr_scene_rect_set_size(rect, c->animation.current.width,
-									c->bw); // up
-		} else if (node->x < c->geom.x + c->geom.width / 2 &&
-				   rect->width < rect->height) {
-			wlr_scene_rect_set_size(rect, c->bw,
-									c->animation.current.height); // left
-		} else {
-			wlr_scene_node_set_position(
-				node, c->geom.x + c->geom.width - offsetx, c->geom.y);
-			wlr_scene_rect_set_size(rect, c->bw,
-									c->animation.current.height); // right
-		}
 	}
 
 	// If the node is a tree, recursively traverse its children
