@@ -1105,96 +1105,115 @@ bool check_hit_no_border(Client *c) {
 	return hit_no_border;
 }
 
-void apply_border(Client *c, struct wlr_box clip_box, int offsetx,
-				  int offsety) {
-	bool hit_no_border = false;
+void apply_border(Client *c, struct wlr_box clip_box, int offsetx, int offsety) {
+    if (c->iskilling || !client_surface(c)->mapped)
+        return;
 
-	if (c->iskilling || !client_surface(c)->mapped)
-		return;
+    bool hit_no_border = check_hit_no_border(c);
 
-	if (clip_box.width > c->animation.current.width) {
-		clip_box.width = c->animation.current.width;
-	}
+    // Handle no-border cases
+    if (hit_no_border && smartgaps) {
+        c->bw = 0;
+        c->fake_no_border = true;
+    } else if (hit_no_border && !smartgaps) {
+        for (int i = 0; i < 4; i++)
+            set_rect_size(c->border[i], 0, 0);
+        wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
+        c->fake_no_border = true;
+        return;
+    } else if (!c->isfullscreen && VISIBLEON(c, c->mon)) {
+        c->bw = c->isnoborder ? 0 : borderpx;
+        c->fake_no_border = false;
+    }
 
-	if (clip_box.height > c->animation.current.height) {
-		clip_box.height = c->animation.current.height;
-	}
+    struct wlr_box geom = c->animation.current;
+    int bw = c->bw;
 
-	hit_no_border = check_hit_no_border(c);
+    // Calculate how much the window is outside the monitor
+    // These values will be positive when window is outside the monitor
+    int outside_left = GEZERO(c->mon->m.x - c->animation.current.x);
+    int outside_top = GEZERO(c->mon->m.y - c->animation.current.y);
+    int outside_right = GEZERO((c->animation.current.x + c->animation.current.width) - 
+                       (c->mon->m.x + c->mon->m.width));
+    int outside_bottom = GEZERO((c->animation.current.y + c->animation.current.height) - 
+                              (c->mon->m.y + c->mon->m.height));
 
-	if (hit_no_border && smartgaps) {
-		c->bw = 0;
-		c->fake_no_border = true;
-	} else if (hit_no_border && !smartgaps) {
-		set_rect_size(c->border[0], 0, 0);
-		set_rect_size(c->border[1], 0, 0);
-		set_rect_size(c->border[2], 0, 0);
-		set_rect_size(c->border[3], 0, 0);
-		wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
-		c->fake_no_border = true;
-		return;
-	} else if (!c->isfullscreen && VISIBLEON(c, c->mon)) {
-		c->bw = c->isnoborder ? 0 : borderpx;
-		c->fake_no_border = false;
-	}
+    // Initialize border dimensions
+    int top_width = geom.width;
+    int top_height = bw;
+    int bottom_width = geom.width;
+    int bottom_height = bw;
+    int left_width = bw;
+    int left_height = geom.height - 2 * bw;
+    int right_width = bw;
+    int right_height = geom.height - 2 * bw;
 
-	wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
-	set_rect_size(c->border[0], clip_box.width, c->bw);
-	set_rect_size(c->border[1], clip_box.width, c->bw);
-	set_rect_size(c->border[2], c->bw, clip_box.height - 2 * c->bw);
-	set_rect_size(c->border[3], c->bw, clip_box.height - 2 * c->bw);
-	wlr_scene_node_set_position(&c->border[0]->node, 0, 0);
-	wlr_scene_node_set_position(&c->border[2]->node, 0, c->bw);
-	wlr_scene_node_set_position(&c->border[1]->node, 0,
-								clip_box.height - c->bw);
-	wlr_scene_node_set_position(&c->border[3]->node, clip_box.width - c->bw,
-								c->bw);
+    // Initialize border positions
+    int top_x = 0;
+    int top_y = 0;
+    int bottom_x = 0;
+    int bottom_y = geom.height - bottom_height;
+    int left_x = 0;
+    int left_y = bw;
+    int right_x = geom.width - right_width;
+    int right_y = bw;
 
-	if (ISTILED(c) || c->animation.tagining || c->animation.tagouted ||
-		c->animation.tagouting) {
-		if (c->animation.current.x < c->mon->m.x) {
-			set_rect_size(c->border[2], GEZERO(c->bw - offsetx),
-						  clip_box.height - 2 * c->bw);
-		} else if (c->animation.current.x + c->animation.current.width >
-				   c->mon->m.x + c->mon->m.width) {
-			set_rect_size(c->border[3],
-						  GEZERO(c->bw - GEZERO(c->animation.current.x +
-												c->animation.current.width -
-												c->mon->m.x - c->mon->m.width)),
-						  clip_box.height - 2 * c->bw);
-			set_rect_size(c->border[0], clip_box.width + c->bw,
-						  GEZERO(c->bw - offsety));
-			set_rect_size(
-				c->border[1], clip_box.width + c->bw,
-				GEZERO(c->bw - GEZERO(c->animation.current.y +
-									  c->animation.current.height -
-									  c->mon->m.y - c->mon->m.height)));
-		} else if (c->animation.current.y < c->mon->m.y) {
-			set_rect_size(c->border[0], clip_box.width,
-						  GEZERO(c->bw - offsety));
-		} else if (c->animation.current.y + c->animation.current.height >
-				   c->mon->m.y + c->mon->m.height) {
-			set_rect_size(
-				c->border[1], clip_box.width,
-				GEZERO(c->bw - GEZERO(c->animation.current.y +
-									  c->animation.current.height -
-									  c->mon->m.y - c->mon->m.height)));
-			set_rect_size(c->border[2], GEZERO(c->bw - offsetx),
-						  clip_box.height - c->bw);
-			set_rect_size(c->border[3],
-						  GEZERO(c->bw - GEZERO(c->animation.current.x +
-												c->animation.current.width -
-												c->mon->m.x - c->mon->m.width)),
-						  clip_box.height - c->bw);
-		}
-	}
+    // Adjust borders when window is outside monitor
+    if (ISTILED(c) || c->animation.tagining || c->animation.tagouted || c->animation.tagouting) {
+        // Top border - reduce height when window goes above monitor
+        if (outside_top > 0) {
+            top_height = GEZERO(bw - outside_top);
+            top_y = top_y + outside_top;
+			left_height = left_height - outside_top;
+			right_height = right_height - outside_top;
+			left_y = left_y + outside_top;
+			right_y = right_y + outside_top;
+        }
 
-	wlr_scene_node_set_position(&c->border[0]->node, offsetx, offsety);
-	wlr_scene_node_set_position(&c->border[2]->node, offsetx, c->bw + offsety);
-	wlr_scene_node_set_position(&c->border[1]->node, offsetx,
-								clip_box.height - c->bw + offsety);
-	wlr_scene_node_set_position(
-		&c->border[3]->node, clip_box.width - c->bw + offsetx, c->bw + offsety);
+        // Bottom border - reduce height when window goes below monitor
+        if (outside_bottom > 0) {
+            bottom_height = GEZERO(bw - outside_bottom);
+			left_height = left_height - outside_bottom;
+			right_height = right_height - outside_bottom;
+        }
+
+        // Left border - reduce width when window goes left of monitor
+        if (outside_left > 0) {
+            left_width = GEZERO(bw - outside_left);
+            left_x = left_x + outside_left;
+			top_width = top_width - outside_left;
+			bottom_width = bottom_width - outside_left;
+			top_x = top_x + outside_left;
+			bottom_x = bottom_x + outside_left;
+        }
+
+        // Right border - reduce width when window goes right of monitor
+        if (outside_right > 0) {
+            right_width = GEZERO(bw - outside_right);
+			top_width = top_width - outside_right;
+			bottom_width = bottom_width - outside_right;
+        }
+
+    }
+
+    // Position the surface within the borders
+    wlr_scene_node_set_position(&c->scene_surface->node, 
+                               bw, 
+                               bw);
+
+    // Set border sizes
+    set_rect_size(c->border[0], top_width, top_height);        // Top
+    set_rect_size(c->border[1], bottom_width, bottom_height);  // Bottom
+    set_rect_size(c->border[2], left_width, left_height);      // Left
+    set_rect_size(c->border[3], right_width, right_height);    // Right
+
+    // Position borders with offsets
+    wlr_scene_node_set_position(&c->border[0]->node, top_x, top_y );
+    wlr_scene_node_set_position(&c->border[1]->node, bottom_x, bottom_y);
+    wlr_scene_node_set_position(&c->border[2]->node, left_x , left_y);
+    wlr_scene_node_set_position(&c->border[3]->node, right_x, right_y);
+
+
 }
 
 struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
