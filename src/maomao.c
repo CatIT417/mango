@@ -5672,7 +5672,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
 	c->configure_serial = client_set_size(c, c->geom.width - 2 * c->bw,
 										  c->geom.height - 2 * c->bw);
 
-  if (c == grabc) {
+  if (!animations || c == grabc) {
     c->animation.running = false;
     c->need_output_flush = false;
     c->animainit_geom = c->current = c->pending = c->animation.current =
