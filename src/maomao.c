@@ -1,6 +1,7 @@
 /*
  * See LICENSE file for copyright and license details.
  */
+#include "wlr-layer-shell-unstable-v1-protocol.h"
 #include "wlr/util/box.h"
 #include <getopt.h>
 #include <libinput.h>
@@ -3102,6 +3103,25 @@ void closemon(Monitor *m) {
 	}
 }
 
+static void iter_layer_scene_buffers(struct wlr_scene_buffer *buffer, int sx,
+									 int sy, void *user_data) {
+	LayerSurface *l = user_data;
+
+	struct wlr_scene_surface *scene_surface =
+		wlr_scene_surface_try_from_buffer(buffer);
+	if (!scene_surface) {
+		return;
+	}
+
+	if (blur && l) {
+		wlr_scene_buffer_set_backdrop_blur(buffer, true);
+		wlr_scene_buffer_set_backdrop_blur_optimized(buffer, true);
+		wlr_scene_buffer_set_backdrop_blur_ignore_transparent(buffer, true);
+	} else {
+		wlr_scene_buffer_set_backdrop_blur(buffer, false);
+	}
+}
+
 void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 	LayerSurface *l = wl_container_of(listener, l, surface_commit);
 	struct wlr_layer_surface_v1 *layer_surface = l->layer_surface;
@@ -3147,6 +3167,15 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 	if (blur) {
 		// Rerender the optimized blur on change
 		struct wlr_layer_surface_v1 *wlr_layer_surface = l->layer_surface;
+
+		if (wlr_layer_surface->current.layer !=
+				ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
+			wlr_layer_surface->current.layer !=
+				ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
+			wlr_scene_node_for_each_buffer(&l->scene->node,
+										   iter_layer_scene_buffers, l);
+		}
+
 		if (wlr_layer_surface->current.layer ==
 				ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND ||
 			wlr_layer_surface->current.layer ==
