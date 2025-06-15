@@ -58,3 +58,4 @@ void toggle_named_scratchpad(const Arg *arg);
 void toggle_render_border(const Arg *arg);
 void create_virtual_output(const Arg *arg);
 void destroy_all_virtual_output(const Arg *arg);
+void focuslast(const Arg *arg);

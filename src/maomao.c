@@ -4549,6 +4549,31 @@ void pending_kill_client(Client *c) {
 	client_send_close(c);
 }
 
+void focuslast(const Arg *arg) {
+
+	Client *c, *prev = NULL;
+	wl_list_for_each(c, &fstack, flink) {
+		if (c->iskilling || c->isminied || c->isunglobal)
+			continue;
+		if (c)
+			break;
+	}
+
+	struct wl_list *prev_node = c->flink.next;
+	prev = wl_container_of(prev_node, prev, flink);
+
+	unsigned int target;
+	if (prev) {
+		if (prev->mon != selmon) {
+			selmon = prev->mon;
+			warp_cursor_to_selmon(selmon);
+		}
+		target = get_tags_first_tag(prev->tags);
+		view(&(Arg){.ui = target}, true);
+		focusclient(prev, 1);
+	}
+}
+
 void killclient(const Arg *arg) {
 	Client *c;
 	c = selmon->sel;
