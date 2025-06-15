@@ -6723,6 +6723,7 @@ void tagmon(const Arg *arg) {
 	Client *c = focustop(selmon);
 	unsigned int newtags = arg->ui ? c->tags : 0;
 	Monitor *m;
+	unsigned int target;
 	if (c) {
 		if (c == selmon->sel) {
 			selmon->sel = NULL;
@@ -6741,11 +6742,15 @@ void tagmon(const Arg *arg) {
 				(int)(c->geom.height * c->mon->w.height / selmon->w.height);
 			selmon = c->mon;
 			c->geom = setclient_coordinate_center(c, c->geom, 0, 0);
+			target = get_tags_first_tag(c->tags);
+			view(&(Arg){.ui = target}, true);
 			focusclient(c, 1);
 			c->oldgeom = c->geom;
 			resize(c, c->geom, 1);
 		} else {
 			selmon = c->mon;
+			target = get_tags_first_tag(c->tags);
+			view(&(Arg){.ui = target}, true);
 			focusclient(c, 1);
 			arrange(selmon, false);
 		}
