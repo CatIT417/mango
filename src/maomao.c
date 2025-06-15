@@ -1617,6 +1617,7 @@ void swallow(Client *c, Client *w) {
 bool switch_scratchpad_client_state(Client *c) {
 	if (c->is_in_scratchpad && c->is_scratchpad_show &&
 		(selmon->tagset[selmon->seltags] & c->tags) == 0) {
+		c->is_clip_to_hide = false;
 		unsigned int target =
 			get_tags_first_tag(selmon->tagset[selmon->seltags]);
 		tag_client(&(Arg){.ui = target}, c);
