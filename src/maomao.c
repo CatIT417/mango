@@ -6702,13 +6702,14 @@ void tagsilent(const Arg *arg) {
 
 void tagmon(const Arg *arg) {
 	Client *c = focustop(selmon);
+	unsigned int newtags = arg->ui ? c->tags : 0;
 	Monitor *m;
 	if (c) {
 		if (c == selmon->sel) {
 			selmon->sel = NULL;
 		}
 		m = dirtomon(arg->i);
-		setmon(c, m, 0, true);
+		setmon(c, m, newtags, true);
 		reset_foreign_tolevel(c);
 		// 重新计算居中的坐标
 		if (c->isfloating) {
