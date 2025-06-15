@@ -3742,7 +3742,9 @@ Monitor *dirtomon(enum wlr_direction dir) {
 												  selmon->m.x, selmon->m.y)))
 		return next->data;
 	if ((next = wlr_output_layout_farthest_output(
-			 output_layout, dir ^ (WLR_DIRECTION_LEFT | WLR_DIRECTION_RIGHT),
+			 output_layout,
+			 dir ^ (WLR_DIRECTION_LEFT | WLR_DIRECTION_RIGHT |
+					WLR_DIRECTION_UP | WLR_DIRECTION_DOWN),
 			 selmon->wlr_output, selmon->m.x, selmon->m.y)))
 		return next->data;
 	return selmon;
