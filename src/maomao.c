@@ -7318,7 +7318,8 @@ void updatemons(struct wl_listener *listener, void *data) {
 		config_head->state.x = m->m.x;
 		config_head->state.y = m->m.y;
 
-		selmon = m;
+		if (!selmon)
+			selmon = m;
 
 		wl_list_for_each(c, &clients, link) {
 			if (c->mon && c->mon != m && client_surface(c)->mapped &&
