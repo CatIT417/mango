@@ -7254,6 +7254,7 @@ void updatemons(struct wl_listener *listener, void *data) {
 	Client *c;
 	struct wlr_output_configuration_head_v1 *config_head;
 	Monitor *m;
+	int offset_x = 0, offset_y = 0, oldx, oldy;
 
 	/* First remove from the layout the disabled monitors */
 	wl_list_for_each(m, &mons, link) {
@@ -7290,9 +7291,13 @@ void updatemons(struct wl_listener *listener, void *data) {
 		config_head =
 			wlr_output_configuration_head_v1_create(config, m->wlr_output);
 
+		oldx = m->m.x;
+		oldy = m->m.y;
 		/* Get the effective monitor geometry to use for surfaces */
 		wlr_output_layout_get_box(output_layout, m->wlr_output, &m->m);
 		m->w = m->m;
+		offset_x = m->m.x - oldx;
+		offset_y = m->m.y - oldy;
 		wlr_scene_output_set_position(m->scene_output, m->m.x, m->m.y);
 
 		// wlr_scene_node_set_position(&m->fullscreen_bg->node, m->m.x, m->m.y);
@@ -7324,6 +7329,13 @@ void updatemons(struct wl_listener *listener, void *data) {
 			selmon = m;
 
 		wl_list_for_each(c, &clients, link) {
+			if (c->isfloating && c->mon == m) {
+				c->geom.x += offset_x;
+				c->geom.y += offset_y;
+				c->oldgeom = c->geom;
+				resize(c, c->geom, 0);
+			}
+
 			if (c->mon && c->mon != m && client_surface(c)->mapped &&
 				strcmp(c->oldmonname, m->wlr_output->name) == 0) {
 				client_change_mon(c, m);
