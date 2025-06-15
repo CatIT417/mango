@@ -6722,42 +6722,44 @@ void client_update_oldmonname_record(Client *c, Monitor *m) {
 }
 
 void tagmon(const Arg *arg) {
-	Client *c = focustop(selmon);
-	unsigned int newtags = arg->ui ? c->tags : 0;
 	Monitor *m;
+	Client *c = focustop(selmon);
+
+	if (!c)
+		return;
+
+	unsigned int newtags = arg->ui ? c->tags : 0;
 	unsigned int target;
-	if (c) {
-		if (c == selmon->sel) {
-			selmon->sel = NULL;
-		}
-		m = dirtomon(arg->i);
-
-		setmon(c, m, newtags, true);
-		client_update_oldmonname_record(c, m);
-
-		reset_foreign_tolevel(c);
-		// 重新计算居中的坐标
-		if (c->isfloating) {
-			c->geom.width =
-				(int)(c->geom.width * c->mon->w.width / selmon->w.width);
-			c->geom.height =
-				(int)(c->geom.height * c->mon->w.height / selmon->w.height);
-			selmon = c->mon;
-			c->geom = setclient_coordinate_center(c, c->geom, 0, 0);
-			target = get_tags_first_tag(c->tags);
-			view(&(Arg){.ui = target}, true);
-			focusclient(c, 1);
-			c->oldgeom = c->geom;
-			resize(c, c->geom, 1);
-		} else {
-			selmon = c->mon;
-			target = get_tags_first_tag(c->tags);
-			view(&(Arg){.ui = target}, true);
-			focusclient(c, 1);
-			arrange(selmon, false);
-		}
-		warp_cursor_to_selmon(c->mon);
+	if (c == selmon->sel) {
+		selmon->sel = NULL;
 	}
+	m = dirtomon(arg->i);
+
+	setmon(c, m, newtags, true);
+	client_update_oldmonname_record(c, m);
+
+	reset_foreign_tolevel(c);
+	// 重新计算居中的坐标
+	if (c->isfloating) {
+		c->geom.width =
+			(int)(c->geom.width * c->mon->w.width / selmon->w.width);
+		c->geom.height =
+			(int)(c->geom.height * c->mon->w.height / selmon->w.height);
+		selmon = c->mon;
+		c->geom = setclient_coordinate_center(c, c->geom, 0, 0);
+		target = get_tags_first_tag(c->tags);
+		view(&(Arg){.ui = target}, true);
+		focusclient(c, 1);
+		c->oldgeom = c->geom;
+		resize(c, c->geom, 1);
+	} else {
+		selmon = c->mon;
+		target = get_tags_first_tag(c->tags);
+		view(&(Arg){.ui = target}, true);
+		focusclient(c, 1);
+		arrange(selmon, false);
+	}
+	warp_cursor_to_selmon(c->mon);
 }
 
 void overview(Monitor *m) { grid(m); }
