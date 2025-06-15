@@ -286,6 +286,7 @@ struct Client {
 	int nofadeout;
 	int no_force_center;
 	int isunglobal;
+	char oldmonname[128];
 };
 
 typedef struct {
@@ -650,6 +651,7 @@ static void handlecursoractivity(void);
 static int hidecursor(void *data);
 static bool check_hit_no_border(Client *c);
 static void reset_keyboard_layout(void);
+static void client_update_oldmonname_record(Client *c, Monitor *m);
 
 #include "data/static_keymap.h"
 #include "dispatch/dispatch.h"
@@ -1082,6 +1084,18 @@ void client_actual_size(Client *c, uint32_t *width, uint32_t *height) {
 
 void set_rect_size(struct wlr_scene_rect *rect, int width, int height) {
 	wlr_scene_rect_set_size(rect, GEZERO(width), GEZERO(height));
+}
+
+void client_change_mon(Client *c, Monitor *m) {
+	setmon(c, m, c->tags, true);
+	reset_foreign_tolevel(c);
+	if (c->isfloating) {
+		c->oldgeom = c->geom = setclient_coordinate_center(c, c->geom, 0, 0);
+	}
+	if (VISIBLEON(c, m) && c->isfloating) {
+		wlr_scene_node_set_enabled(&c->scene->node, true);
+		client_set_suspended(c, false);
+	}
 }
 
 bool check_hit_no_border(Client *c) {
@@ -1785,12 +1799,13 @@ setclient_coordinate_center(Client *c, struct wlr_box geom, int offsetx,
 	struct wlr_box tempbox;
 	int offset = 0;
 	int len = 0;
+	Monitor *m = c->mon ? c->mon : selmon;
 
 	unsigned int cbw = check_hit_no_border(c) ? c->bw : 0;
 
 	if (!c->no_force_center) {
-		tempbox.x = selmon->w.x + (selmon->w.width - geom.width) / 2;
-		tempbox.y = selmon->w.y + (selmon->w.height - geom.height) / 2;
+		tempbox.x = m->w.x + (m->w.width - geom.width) / 2;
+		tempbox.y = m->w.y + (m->w.height - geom.height) / 2;
 	} else {
 		tempbox.x = geom.x;
 		tempbox.y = geom.y;
@@ -1800,29 +1815,29 @@ setclient_coordinate_center(Client *c, struct wlr_box geom, int offsetx,
 	tempbox.height = geom.height;
 
 	if (offsetx != 0) {
-		len = selmon->w.width / 2;
+		len = m->w.width / 2;
 		offset = len * (offsetx / 100.0);
 		tempbox.x += offset;
 
 		// 限制窗口在屏幕内
-		if (tempbox.x < selmon->m.x) {
-			tempbox.x = selmon->m.x - cbw;
+		if (tempbox.x < m->m.x) {
+			tempbox.x = m->m.x - cbw;
 		}
-		if (tempbox.x + tempbox.width > selmon->m.x + selmon->m.width) {
-			tempbox.x = selmon->m.x + selmon->m.width - tempbox.width + cbw;
+		if (tempbox.x + tempbox.width > m->m.x + m->m.width) {
+			tempbox.x = m->m.x + m->m.width - tempbox.width + cbw;
 		}
 	}
 	if (offsety != 0) {
-		len = selmon->w.height;
+		len = m->w.height;
 		offset = len * (offsety / 100.0);
 		tempbox.y += offset;
 
 		// 限制窗口在屏幕内
-		if (tempbox.y < selmon->m.y) {
-			tempbox.y = selmon->m.y - cbw;
+		if (tempbox.y < m->m.y) {
+			tempbox.y = m->m.y - cbw;
 		}
-		if (tempbox.y + tempbox.height > selmon->m.y + selmon->m.height) {
-			tempbox.y = selmon->m.y + selmon->m.height - tempbox.height + cbw;
+		if (tempbox.y + tempbox.height > m->m.y + m->m.height) {
+			tempbox.y = m->m.y + m->m.height - tempbox.height + cbw;
 		}
 	}
 
@@ -2813,6 +2828,7 @@ buttonpress(struct wl_listener *listener, void *data) {
 				selmon->sel = NULL;
 			}
 			selmon = xytomon(cursor->x, cursor->y);
+			client_update_oldmonname_record(grabc, selmon);
 			setmon(grabc, selmon, 0, true);
 			reset_foreign_tolevel(grabc);
 			selmon->prevsel = selmon->sel;
@@ -2992,21 +3008,16 @@ void closemon(Monitor *m) {
 	}
 
 	wl_list_for_each(c, &clients, link) {
-		if (c->isfloating && c->geom.x > m->m.width)
-			resize(c,
-				   (struct wlr_box){.x = c->geom.x - m->w.width,
-									.y = c->geom.y,
-									.width = c->geom.width,
-									.height = c->geom.height},
-				   0);
 		if (c->mon == m) {
+
 			if (selmon == NULL) {
 				remove_foreign_topleve(c);
 				c->mon = NULL;
 			} else {
-				setmon(c, selmon, c->tags, true);
-				reset_foreign_tolevel(c);
+				client_change_mon(c, selmon);
 			}
+
+			client_update_oldmonname_record(c, m);
 		}
 	}
 	if (selmon) {
@@ -6700,6 +6711,14 @@ void tagsilent(const Arg *arg) {
 	arrange(target_client->mon, false);
 }
 
+void client_update_oldmonname_record(Client *c, Monitor *m) {
+	if (!c || c->iskilling || !client_surface(c)->mapped || c->mon == m)
+		return;
+	memset(c->oldmonname, 0, sizeof(c->oldmonname));
+	strncpy(c->oldmonname, m->wlr_output->name, sizeof(c->oldmonname) - 1);
+	c->oldmonname[sizeof(c->oldmonname) - 1] = '\0';
+}
+
 void tagmon(const Arg *arg) {
 	Client *c = focustop(selmon);
 	unsigned int newtags = arg->ui ? c->tags : 0;
@@ -6709,7 +6728,10 @@ void tagmon(const Arg *arg) {
 			selmon->sel = NULL;
 		}
 		m = dirtomon(arg->i);
+
 		setmon(c, m, newtags, true);
+		client_update_oldmonname_record(c, m);
+
 		reset_foreign_tolevel(c);
 		// 重新计算居中的坐标
 		if (c->isfloating) {
@@ -7289,16 +7311,20 @@ void updatemons(struct wl_listener *listener, void *data) {
 		config_head->state.x = m->m.x;
 		config_head->state.y = m->m.y;
 
-		if (!selmon) {
-			selmon = m;
+		selmon = m;
+
+		wl_list_for_each(c, &clients, link) {
+			if (c->mon && c->mon != m && client_surface(c)->mapped &&
+				strcmp(c->oldmonname, m->wlr_output->name) == 0) {
+				client_change_mon(c, m);
+			}
 		}
 	}
 
 	if (selmon && selmon->wlr_output->enabled) {
 		wl_list_for_each(c, &clients, link) {
 			if (!c->mon && client_surface(c)->mapped) {
-				setmon(c, selmon, c->tags, true);
-				reset_foreign_tolevel(c);
+				client_change_mon(c, selmon);
 			}
 		}
 		focusclient(focustop(selmon), 1);
