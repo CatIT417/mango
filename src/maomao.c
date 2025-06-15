@@ -4883,7 +4883,7 @@ void motionnotify(uint32_t time, struct wlr_input_device *device, double dx,
 		  (c->geom.x + c->geom.width > c->mon->m.x + c->mon->m.width ||
 		   c->geom.x < c->mon->m.x))) {
 		if (c && c->mon &&
-			strcmp(c->mon->pertag->ltidxs[selmon->pertag->curtag]->name,
+			strcmp(c->mon->pertag->ltidxs[c->mon->pertag->curtag]->name,
 				   "scroller") == 0 &&
 			(c->geom.x + c->geom.width > c->mon->m.x + c->mon->m.width ||
 			 c->geom.x < c->mon->m.x)) {
