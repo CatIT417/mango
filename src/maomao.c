@@ -1093,8 +1093,7 @@ void client_change_mon(Client *c, Monitor *m) {
 		c->oldgeom = c->geom = setclient_coordinate_center(c, c->geom, 0, 0);
 	}
 	if (VISIBLEON(c, m) && c->isfloating) {
-		wlr_scene_node_set_enabled(&c->scene->node, true);
-		client_set_suspended(c, false);
+		c->is_clip_to_hide = false;
 	}
 }
 
