@@ -31,6 +31,7 @@
 #include <wlr/types/wlr_data_device.h>
 #include <wlr/types/wlr_drm.h>
 #include <wlr/types/wlr_export_dmabuf_v1.h>
+#include <wlr/types/wlr_ext_data_control_v1.h>
 #include <wlr/types/wlr_ext_image_capture_source_v1.h>
 #include <wlr/types/wlr_ext_image_copy_capture_v1.h>
 #include <wlr/types/wlr_fractional_scale_v1.h>
@@ -6453,6 +6454,7 @@ void setup(void) {
 	wlr_presentation_create(dpy, backend, 2);
 	wlr_subcompositor_create(dpy);
 	wlr_alpha_modifier_v1_create(dpy);
+	wlr_ext_data_control_manager_v1_create(dpy, 1);
 
 	/* Initializes the interface used to implement urgency hints */
 	activation = wlr_xdg_activation_v1_create(dpy);
