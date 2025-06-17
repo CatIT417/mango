@@ -6430,7 +6430,7 @@ void setup(void) {
 			scene, wlr_linux_dmabuf_v1_create_with_renderer(dpy, 5, drw));
 	}
 
-	if ((drm_fd = wlr_renderer_get_drm_fd(drw)) >= 0 &&
+	if (syncobj_enable && (drm_fd = wlr_renderer_get_drm_fd(drw)) >= 0 &&
 		drw->features.timeline && backend->features.timeline)
 		wlr_linux_drm_syncobj_manager_v1_create(dpy, 1, drm_fd);
 
