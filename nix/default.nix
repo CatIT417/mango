@@ -18,51 +18,53 @@
   ninja,
   wlroots,
   mmsg,
-}:
-let
+}: let
   pname = "maomaowm";
 in
-stdenv.mkDerivation {
-  inherit pname;
-  version = "nightly";
+  stdenv.mkDerivation {
+    inherit pname;
+    version = "nightly";
 
-  src = ../.;
+    src = builtins.path {
+      path = ../.;
+      name = "source";
+    };
 
-  nativeBuildInputs = [
-    meson
-    ninja
-    pkg-config
-    wayland-scanner
-  ];
-
-  buildInputs =
-    [
-      libinput
-      libxcb
-      libxkbcommon
-      pcre2
-      pixman
-      wayland
-      wayland-protocols
-      wlroots
-    ]
-    ++ lib.optionals enableXWayland [
-      libX11
-      xcbutilwm
-      xwayland
+    nativeBuildInputs = [
+      meson
+      ninja
+      pkg-config
+      wayland-scanner
     ];
 
-  passthru = {
-    providedSessions = [ "maomao" ];
-    inherit mmsg;
-  };
+    buildInputs =
+      [
+        libinput
+        libxcb
+        libxkbcommon
+        pcre2
+        pixman
+        wayland
+        wayland-protocols
+        wlroots
+      ]
+      ++ lib.optionals enableXWayland [
+        libX11
+        xcbutilwm
+        xwayland
+      ];
 
-  meta = {
-    mainProgram = "maomao";
-    description = "A streamlined but feature-rich Wayland compositor";
-    homepage = "https://github.com/DreamMaoMao/maomaowm";
-    license = lib.licenses.mit;
-    maintainers = with lib.maintainers; [ ];
-    platforms = lib.platforms.unix;
-  };
-}
+    passthru = {
+      providedSessions = ["maomao"];
+      inherit mmsg;
+    };
+
+    meta = {
+      mainProgram = "maomao";
+      description = "A streamlined but feature-rich Wayland compositor";
+      homepage = "https://github.com/DreamMaoMao/maomaowm";
+      license = lib.licenses.mit;
+      maintainers = [];
+      platforms = lib.platforms.unix;
+    };
+  }
