@@ -1093,9 +1093,6 @@ void client_change_mon(Client *c, Monitor *m) {
 	if (c->isfloating) {
 		c->oldgeom = c->geom = setclient_coordinate_center(c, c->geom, 0, 0);
 	}
-	if (VISIBLEON(c, m) && c->isfloating) {
-		c->is_clip_to_hide = false;
-	}
 }
 
 bool check_hit_no_border(Client *c) {
@@ -1490,7 +1487,6 @@ void show_scratchpad(Client *c) {
 		resize(c, c->geom, 0);
 	}
 	c->oldtags = selmon->tagset[selmon->seltags];
-	c->is_clip_to_hide = false;
 	wl_list_remove(&c->link);					  // 从原来位置移除
 	wl_list_insert(clients.prev->next, &c->link); // 插入开头
 	show_hide_client(c);
@@ -1617,7 +1613,6 @@ void swallow(Client *c, Client *w) {
 bool switch_scratchpad_client_state(Client *c) {
 	if (c->is_in_scratchpad && c->is_scratchpad_show &&
 		(selmon->tagset[selmon->seltags] & c->tags) == 0) {
-		c->is_clip_to_hide = false;
 		unsigned int target =
 			get_tags_first_tag(selmon->tagset[selmon->seltags]);
 		tag_client(&(Arg){.ui = target}, c);
@@ -2053,9 +2048,10 @@ arrange(Monitor *m, bool want_animation) {
 					m->visible_clients++;
 				}
 
-				if (!c->is_clip_to_hide ||
+				if (!c->is_clip_to_hide || !ISTILED(c) ||
 					strcmp(c->mon->pertag->ltidxs[c->mon->pertag->curtag]->name,
 						   "scroller") != 0) {
+					c->is_clip_to_hide = false;
 					wlr_scene_node_set_enabled(&c->scene->node, true);
 				}
 				client_set_suspended(c, false);
@@ -7190,7 +7186,8 @@ void unmapnotify(struct wl_listener *listener, void *data) {
 	Monitor *m;
 	c->iskilling = 1;
 
-	if (animations && !c->isminied && (!c->mon || VISIBLEON(c, c->mon)))
+	if (animations && !c->is_clip_to_hide && !c->isminied &&
+		(!c->mon || VISIBLEON(c, c->mon)))
 		init_fadeout_client(c);
 
 	if (c->swallowedby) {
