@@ -187,9 +187,9 @@ struct dwl_animation {
 	bool tagouting;
 	bool begin_fade_in;
 	bool from_rule;
-	uint32_t total_frames;
-	uint32_t passed_frames;
-	uint32_t duration;
+	unsigned int total_frames;
+	unsigned int passed_frames;
+	unsigned int duration;
 	struct wlr_box initial;
 	struct wlr_box current;
 	int action;
@@ -242,7 +242,7 @@ struct Client {
 	unsigned int bw;
 	unsigned int tags, oldtags, mini_restore_tag;
 	bool dirty;
-	uint32_t configure_serial;
+	unsigned int configure_serial;
 	struct wlr_foreign_toplevel_handle_v1 *foreign_toplevel;
 	int isfloating, isurgent, isfullscreen, isfakefullscreen,
 		need_float_size_reduce, isminied, isoverlay;
@@ -297,7 +297,7 @@ typedef struct {
 } DwlIpcOutput;
 
 typedef struct {
-	uint32_t mod;
+	unsigned int mod;
 	xkb_keysym_t keysym;
 	void (*func)(const Arg *);
 	const Arg arg;
@@ -308,8 +308,8 @@ typedef struct {
 
 	int nsyms;
 	const xkb_keysym_t *keysyms; /* invalid if nsyms == 0 */
-	uint32_t mods;				 /* invalid if nsyms == 0 */
-	uint32_t keycode;
+	unsigned int mods;			 /* invalid if nsyms == 0 */
+	unsigned int keycode;
 	struct wl_event_source *key_repeat_source;
 
 	struct wl_listener modifiers;
@@ -323,7 +323,7 @@ typedef struct {
 
 	int nsyms;
 	const xkb_keysym_t *keysyms; /* invalid if nsyms == 0 */
-	uint32_t mods;				 /* invalid if nsyms == 0 */
+	unsigned int mods;			 /* invalid if nsyms == 0 */
 	struct wl_event_source *key_repeat_source;
 
 	struct wl_listener modifiers;
@@ -370,7 +370,7 @@ struct Monitor {
 	struct wl_list layers[4]; /* LayerSurface::link */
 	const Layout *lt;
 	unsigned int seltags;
-	uint32_t tagset[2];
+	unsigned int tagset[2];
 	double mfact;
 	int nmaster;
 
@@ -438,7 +438,7 @@ arrange(Monitor *m,
 static void arrangelayer(Monitor *m, struct wl_list *list,
 						 struct wlr_box *usable_area, int exclusive);
 static void arrangelayers(Monitor *m);
-static char *get_autostart_path(char *, size_t); // 自启动命令执行
+static char *get_autostart_path(char *, unsigned int); // 自启动命令执行
 static void axisnotify(struct wl_listener *listener,
 					   void *data); // 滚轮事件处理
 static void buttonpress(struct wl_listener *listener,
@@ -490,11 +490,12 @@ static void destroykeyboardgroup(struct wl_listener *listener, void *data);
 static Monitor *dirtomon(enum wlr_direction dir);
 static void setcursorshape(struct wl_listener *listener, void *data);
 static void dwl_ipc_manager_bind(struct wl_client *client, void *data,
-								 uint32_t version, uint32_t id);
+								 unsigned int version, unsigned int id);
 static void dwl_ipc_manager_destroy(struct wl_resource *resource);
 static void dwl_ipc_manager_get_output(struct wl_client *client,
 									   struct wl_resource *resource,
-									   uint32_t id, struct wl_resource *output);
+									   unsigned int id,
+									   struct wl_resource *output);
 static void dwl_ipc_manager_release(struct wl_client *client,
 									struct wl_resource *resource);
 static void dwl_ipc_output_destroy(struct wl_resource *resource);
@@ -502,14 +503,15 @@ static void dwl_ipc_output_printstatus(Monitor *monitor);
 static void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output);
 static void dwl_ipc_output_set_client_tags(struct wl_client *client,
 										   struct wl_resource *resource,
-										   uint32_t and_tags,
-										   uint32_t xor_tags);
+										   unsigned int and_tags,
+										   unsigned int xor_tags);
 static void dwl_ipc_output_set_layout(struct wl_client *client,
 									  struct wl_resource *resource,
-									  uint32_t index);
+									  unsigned int index);
 static void dwl_ipc_output_set_tags(struct wl_client *client,
 									struct wl_resource *resource,
-									uint32_t tagmask, uint32_t toggle_tagset);
+									unsigned int tagmask,
+									unsigned int toggle_tagset);
 static void dwl_ipc_output_quit(struct wl_client *client,
 								struct wl_resource *resource);
 static void dwl_ipc_output_dispatch(struct wl_client *client,
@@ -529,20 +531,22 @@ static void gpureset(struct wl_listener *listener, void *data);
 static int keyrepeat(void *data);
 
 static void inputdevice(struct wl_listener *listener, void *data);
-static int keybinding(uint32_t mods, xkb_keysym_t sym, uint32_t keycode);
+static int keybinding(unsigned int mods, xkb_keysym_t sym,
+					  unsigned int keycode);
 static void keypress(struct wl_listener *listener, void *data);
 static void keypressmod(struct wl_listener *listener, void *data);
 static bool keypressglobal(struct wlr_surface *last_surface,
 						   struct wlr_keyboard *keyboard,
-						   struct wlr_keyboard_key_event *event, uint32_t mods,
-						   xkb_keysym_t keysym, uint32_t keycode);
+						   struct wlr_keyboard_key_event *event,
+						   unsigned int mods, xkb_keysym_t keysym,
+						   unsigned int keycode);
 static void locksession(struct wl_listener *listener, void *data);
 static void mapnotify(struct wl_listener *listener, void *data);
 static void maximizenotify(struct wl_listener *listener, void *data);
 static void minimizenotify(struct wl_listener *listener, void *data);
 static void monocle(Monitor *m);
 static void motionabsolute(struct wl_listener *listener, void *data);
-static void motionnotify(uint32_t time, struct wlr_input_device *device,
+static void motionnotify(unsigned int time, struct wlr_input_device *device,
 						 double sx, double sy, double sx_unaccel,
 						 double sy_unaccel);
 static void motionrelative(struct wl_listener *listener, void *data);
@@ -556,7 +560,7 @@ static void outputmgrapplyortest(struct wlr_output_configuration_v1 *config,
 								 int test);
 static void outputmgrtest(struct wl_listener *listener, void *data);
 static void pointerfocus(Client *c, struct wlr_surface *surface, double sx,
-						 double sy, uint32_t time);
+						 double sy, unsigned int time);
 static void printstatus(void);
 static void quitsignal(int signo);
 static void powermgrsetmode(struct wl_listener *listener, void *data);
@@ -661,7 +665,7 @@ static void client_update_oldmonname_record(Client *c, Monitor *m);
 static const char broken[] = "broken";
 static pid_t child_pid = -1;
 static int locked;
-static uint32_t locked_mods = 0;
+static unsigned int locked_mods = 0;
 static void *exclusive_focus;
 static struct wl_display *dpy;
 static struct wl_event_loop *event_loop;
@@ -722,7 +726,7 @@ static int axis_apply_time = 0;
 static int axis_apply_dir = 0;
 static int scroller_focus_lock = 0;
 
-static uint32_t swipe_fingers = 0;
+static unsigned int swipe_fingers = 0;
 static double swipe_dx = 0;
 static double swipe_dy = 0;
 
@@ -846,29 +850,29 @@ void init_baked_points(void) {
 	baked_points_close =
 		calloc(BAKED_POINTS_COUNT, sizeof(*baked_points_close));
 
-	for (size_t i = 0; i < BAKED_POINTS_COUNT; i++) {
+	for (unsigned int i = 0; i < BAKED_POINTS_COUNT; i++) {
 		baked_points_move[i] = calculate_animation_curve_at(
 			(double)i / (BAKED_POINTS_COUNT - 1), MOVE);
 	}
-	for (size_t i = 0; i < BAKED_POINTS_COUNT; i++) {
+	for (unsigned int i = 0; i < BAKED_POINTS_COUNT; i++) {
 		baked_points_open[i] = calculate_animation_curve_at(
 			(double)i / (BAKED_POINTS_COUNT - 1), OPEN);
 	}
-	for (size_t i = 0; i < BAKED_POINTS_COUNT; i++) {
+	for (unsigned int i = 0; i < BAKED_POINTS_COUNT; i++) {
 		baked_points_tag[i] = calculate_animation_curve_at(
 			(double)i / (BAKED_POINTS_COUNT - 1), TAG);
 	}
-	for (size_t i = 0; i < BAKED_POINTS_COUNT; i++) {
+	for (unsigned int i = 0; i < BAKED_POINTS_COUNT; i++) {
 		baked_points_close[i] = calculate_animation_curve_at(
 			(double)i / (BAKED_POINTS_COUNT - 1), CLOSE);
 	}
 }
 
 double find_animation_curve_at(double t, int type) {
-	size_t down = 0;
-	size_t up = BAKED_POINTS_COUNT - 1;
+	unsigned int down = 0;
+	unsigned int up = BAKED_POINTS_COUNT - 1;
 
-	size_t middle = (up + down) / 2;
+	unsigned int middle = (up + down) / 2;
 	struct vec2 *baked_points;
 	if (type == MOVE) {
 		baked_points = baked_points_move;
@@ -950,16 +954,17 @@ void fadeout_client_animation_next_tick(Client *c) {
 		(double)c->animation.passed_frames / c->animation.total_frames;
 	int type = c->animation.action = c->animation.action;
 	double factor = find_animation_curve_at(animation_passed, type);
-	uint32_t width = c->animation.initial.width +
-					 (c->current.width - c->animation.initial.width) * factor;
-	uint32_t height =
+	unsigned int width =
+		c->animation.initial.width +
+		(c->current.width - c->animation.initial.width) * factor;
+	unsigned int height =
 		c->animation.initial.height +
 		(c->current.height - c->animation.initial.height) * factor;
 
-	uint32_t x = c->animation.initial.x +
-				 (c->current.x - c->animation.initial.x) * factor;
-	uint32_t y = c->animation.initial.y +
-				 (c->current.y - c->animation.initial.y) * factor;
+	unsigned int x = c->animation.initial.x +
+					 (c->current.x - c->animation.initial.x) * factor;
+	unsigned int y = c->animation.initial.y +
+					 (c->current.y - c->animation.initial.y) * factor;
 
 	wlr_scene_node_set_position(&c->scene->node, x, y);
 
@@ -1013,16 +1018,17 @@ void client_animation_next_tick(Client *c) {
 	double sx = 0, sy = 0;
 	struct wlr_surface *surface = NULL;
 
-	uint32_t width = c->animation.initial.width +
-					 (c->current.width - c->animation.initial.width) * factor;
-	uint32_t height =
+	unsigned int width =
+		c->animation.initial.width +
+		(c->current.width - c->animation.initial.width) * factor;
+	unsigned int height =
 		c->animation.initial.height +
 		(c->current.height - c->animation.initial.height) * factor;
 
-	uint32_t x = c->animation.initial.x +
-				 (c->current.x - c->animation.initial.x) * factor;
-	uint32_t y = c->animation.initial.y +
-				 (c->current.y - c->animation.initial.y) * factor;
+	unsigned int x = c->animation.initial.x +
+					 (c->current.x - c->animation.initial.x) * factor;
+	unsigned int y = c->animation.initial.y +
+					 (c->current.y - c->animation.initial.y) * factor;
 
 	wlr_scene_node_set_position(&c->scene->node, x, y);
 	c->animation.current = (struct wlr_box){
@@ -1077,7 +1083,7 @@ void client_animation_next_tick(Client *c) {
 	}
 }
 
-void client_actual_size(Client *c, uint32_t *width, uint32_t *height) {
+void client_actual_size(Client *c, unsigned int *width, unsigned int *height) {
 	*width = c->animation.current.width - c->bw;
 
 	*height = c->animation.current.height - c->bw;
@@ -1312,7 +1318,7 @@ void client_apply_clip(Client *c) {
 		return;
 	}
 
-	uint32_t width, height;
+	unsigned int width, height;
 	client_actual_size(c, &width, &height);
 
 	struct wlr_box geometry;
@@ -1882,7 +1888,7 @@ void // 17
 applyrules(Client *c) {
 	/* rule matching */
 	const char *appid, *title;
-	uint32_t i, newtags = 0;
+	unsigned int i, newtags = 0;
 	int ji;
 	const ConfigWinRule *r;
 	Monitor *mon = selmon, *m;
@@ -2497,7 +2503,7 @@ void arrangelayers(Monitor *m) {
 	int i;
 	struct wlr_box usable_area = m->m;
 	LayerSurface *l;
-	uint32_t layers_above_shell[] = {
+	unsigned int layers_above_shell[] = {
 		ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
 		ZWLR_LAYER_SHELL_V1_LAYER_TOP,
 	};
@@ -2535,7 +2541,7 @@ void arrangelayers(Monitor *m) {
 	}
 }
 
-char *get_autostart_path(char *autostart_path, size_t buf_size) {
+char *get_autostart_path(char *autostart_path, unsigned int buf_size) {
 	const char *maomaoconfig = getenv("MAOMAOCONFIG");
 
 	if (maomaoconfig && maomaoconfig[0] != '\0') {
@@ -2560,7 +2566,7 @@ axisnotify(struct wl_listener *listener, void *data) {
 	 * for example when you move the scroll wheel. */
 	struct wlr_pointer_axis_event *event = data;
 	struct wlr_keyboard *keyboard;
-	uint32_t mods;
+	unsigned int mods;
 	AxisBinding *a;
 	int ji;
 	unsigned int adir;
@@ -2609,7 +2615,7 @@ axisnotify(struct wl_listener *listener, void *data) {
 
 int ongesture(struct wlr_pointer_swipe_end_event *event) {
 	struct wlr_keyboard *keyboard;
-	uint32_t mods;
+	unsigned int mods;
 	const GestureBinding *g;
 	unsigned int motion;
 	unsigned int adx = (int)round(fabs(swipe_dx));
@@ -2755,7 +2761,7 @@ void // 鼠标按键事件
 buttonpress(struct wl_listener *listener, void *data) {
 	struct wlr_pointer_button_event *event = data;
 	struct wlr_keyboard *keyboard;
-	uint32_t mods;
+	unsigned int mods;
 	Client *c;
 	LayerSurface *l;
 	struct wlr_surface *surface;
@@ -2965,7 +2971,7 @@ cleanupkeyboard(struct wl_listener *listener, void *data) {
 void cleanupmon(struct wl_listener *listener, void *data) {
 	Monitor *m = wl_container_of(listener, m, destroy);
 	LayerSurface *l, *tmp;
-	size_t i;
+	unsigned int i;
 
 	/* m->layers[i] are intentionally not unlinked */
 	for (i = 0; i < LENGTH(m->layers); i++) {
@@ -3155,7 +3161,7 @@ void commitnotify(struct wl_listener *listener, void *data) {
 	if (client_is_unmanaged(c))
 		return;
 
-	uint32_t serial = c->surface.xdg->current.configure_serial;
+	unsigned int serial = c->surface.xdg->current.configure_serial;
 	if (!c->dirty || serial < c->configure_serial)
 		return;
 
@@ -3261,14 +3267,14 @@ KeyboardGroup *createkeyboardgroup(void) {
 		xkb_mod_index_t mod_index =
 			xkb_keymap_mod_get_index(keymap, XKB_MOD_NAME_NUM);
 		if (mod_index != XKB_MOD_INVALID)
-			locked_mods |= (uint32_t)1 << mod_index;
+			locked_mods |= (unsigned int)1 << mod_index;
 	}
 
 	if (capslock) {
 		xkb_mod_index_t mod_index =
 			xkb_keymap_mod_get_index(keymap, XKB_MOD_NAME_CAPS);
 		if (mod_index != XKB_MOD_INVALID)
-			locked_mods |= (uint32_t)1 << mod_index;
+			locked_mods |= (unsigned int)1 << mod_index;
 	}
 
 	if (locked_mods)
@@ -3358,7 +3364,7 @@ void createmon(struct wl_listener *listener, void *data) {
 	 * monitor) becomes available. */
 	struct wlr_output *wlr_output = data;
 	const ConfigMonitorRule *r;
-	size_t i;
+	unsigned int i;
 	int ji, jk;
 	struct wlr_output_state state;
 	Monitor *m;
@@ -3748,7 +3754,7 @@ Monitor *dirtomon(enum wlr_direction dir) {
 }
 
 void dwl_ipc_manager_bind(struct wl_client *client, void *data,
-						  uint32_t version, uint32_t id) {
+						  unsigned int version, unsigned int id) {
 	struct wl_resource *manager_resource =
 		wl_resource_create(client, &zdwl_ipc_manager_v2_interface, version, id);
 	if (!manager_resource) {
@@ -3770,7 +3776,7 @@ void dwl_ipc_manager_destroy(struct wl_resource *resource) {
 }
 
 void dwl_ipc_manager_get_output(struct wl_client *client,
-								struct wl_resource *resource, uint32_t id,
+								struct wl_resource *resource, unsigned int id,
 								struct wl_resource *output) {
 	DwlIpcOutput *ipc_output;
 	struct wlr_output *op = wlr_output_from_resource(output);
@@ -3882,7 +3888,8 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
 
 void dwl_ipc_output_set_client_tags(struct wl_client *client,
 									struct wl_resource *resource,
-									uint32_t and_tags, uint32_t xor_tags) {
+									unsigned int and_tags,
+									unsigned int xor_tags) {
 	DwlIpcOutput *ipc_output;
 	Monitor *monitor;
 	Client *selected_client;
@@ -3909,7 +3916,8 @@ void dwl_ipc_output_set_client_tags(struct wl_client *client,
 }
 
 void dwl_ipc_output_set_layout(struct wl_client *client,
-							   struct wl_resource *resource, uint32_t index) {
+							   struct wl_resource *resource,
+							   unsigned int index) {
 	DwlIpcOutput *ipc_output;
 	Monitor *monitor;
 
@@ -3927,8 +3935,8 @@ void dwl_ipc_output_set_layout(struct wl_client *client,
 }
 
 void dwl_ipc_output_set_tags(struct wl_client *client,
-							 struct wl_resource *resource, uint32_t tagmask,
-							 uint32_t toggle_tagset) {
+							 struct wl_resource *resource, unsigned int tagmask,
+							 unsigned int toggle_tagset) {
 	DwlIpcOutput *ipc_output;
 	Monitor *monitor;
 	unsigned int newtags = tagmask & TAGMASK;
@@ -4214,7 +4222,7 @@ void inputdevice(struct wl_listener *listener, void *data) {
 	/* This event is raised by the backend when a new input device becomes
 	 * available. */
 	struct wlr_input_device *device = data;
-	uint32_t caps;
+	unsigned int caps;
 
 	switch (device->type) {
 	case WLR_INPUT_DEVICE_KEYBOARD:
@@ -4255,7 +4263,7 @@ int keyrepeat(void *data) {
 }
 
 int // 17
-keybinding(uint32_t mods, xkb_keysym_t sym, uint32_t keycode) {
+keybinding(unsigned int mods, xkb_keysym_t sym, unsigned int keycode) {
 	/*
 	 * Here we handle compositor keybindings. This is when the compositor is
 	 * processing keys, rather than passing them on to the client for its own
@@ -4284,10 +4292,10 @@ keybinding(uint32_t mods, xkb_keysym_t sym, uint32_t keycode) {
 
 bool keypressglobal(struct wlr_surface *last_surface,
 					struct wlr_keyboard *keyboard,
-					struct wlr_keyboard_key_event *event, uint32_t mods,
-					xkb_keysym_t keysym, uint32_t keycode) {
+					struct wlr_keyboard_key_event *event, unsigned int mods,
+					xkb_keysym_t keysym, unsigned int keycode) {
 	Client *c = NULL, *lastc = focustop(selmon);
-	uint32_t keycodes[32] = {0};
+	unsigned int keycodes[32] = {0};
 	int reset = false;
 	const char *appid = NULL;
 	const char *title = NULL;
@@ -4359,14 +4367,14 @@ void keypress(struct wl_listener *listener, void *data) {
 #endif
 
 	/* Translate libinput keycode -> xkbcommon */
-	uint32_t keycode = event->keycode + 8;
+	unsigned int keycode = event->keycode + 8;
 	/* Get a list of keysyms based on the keymap for this keyboard */
 	const xkb_keysym_t *syms;
 	int nsyms = xkb_state_key_get_syms(group->wlr_group->keyboard.xkb_state,
 									   keycode, &syms);
 
 	int handled = 0;
-	uint32_t mods = wlr_keyboard_get_modifiers(&group->wlr_group->keyboard);
+	unsigned int mods = wlr_keyboard_get_modifiers(&group->wlr_group->keyboard);
 
 	wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
@@ -4804,7 +4812,7 @@ void motionabsolute(struct wl_listener *listener, void *data) {
 	motionnotify(event->time_msec, &event->pointer->base, dx, dy, dx, dy);
 }
 
-void motionnotify(uint32_t time, struct wlr_input_device *device, double dx,
+void motionnotify(unsigned int time, struct wlr_input_device *device, double dx,
 				  double dy, double dx_unaccel, double dy_unaccel) {
 	double sx = 0, sy = 0, sx_confined, sy_confined;
 	Client *c = NULL, *w = NULL;
@@ -5037,7 +5045,7 @@ void outputmgrtest(struct wl_listener *listener, void *data) {
 }
 
 void pointerfocus(Client *c, struct wlr_surface *surface, double sx, double sy,
-				  uint32_t time) {
+				  unsigned int time) {
 	struct timespec now;
 
 	if (surface != seat->pointer_state.focused_surface && sloppyfocus && time &&
@@ -5130,8 +5138,8 @@ void scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int sx, int sy,
 
 	if (scale_data->should_scale) {
 
-		uint32_t surface_width = surface->current.width;
-		uint32_t surface_height = surface->current.height;
+		unsigned int surface_width = surface->current.width;
+		unsigned int surface_height = surface->current.height;
 
 		surface_width = scale_data->width_scale < 1
 							? surface_width
@@ -5829,12 +5837,12 @@ char *get_layout_abbr(const char *full_name) {
 	const char *open = strrchr(full_name, '(');
 	const char *close = strrchr(full_name, ')');
 	if (open && close && close > open) {
-		size_t len = close - open - 1;
+		unsigned int len = close - open - 1;
 		if (len > 0 && len <= 4) {
 			char *abbr = malloc(len + 1);
 			if (abbr) {
 				// 提取并转换为小写
-				for (size_t j = 0; j < len; j++) {
+				for (unsigned int j = 0; j < len; j++) {
 					abbr[j] = tolower(open[j + 1]);
 				}
 				abbr[len] = '\0';
@@ -5846,8 +5854,8 @@ char *get_layout_abbr(const char *full_name) {
 	// 3. 提取前2-3个字母并转换为小写
 	char *abbr = malloc(4);
 	if (abbr) {
-		size_t j = 0;
-		for (size_t i = 0; full_name[i] != '\0' && j < 3; i++) {
+		unsigned int j = 0;
+		for (unsigned int i = 0; full_name[i] != '\0' && j < 3; i++) {
 			if (isalpha(full_name[i])) {
 				abbr[j++] = tolower(full_name[i]);
 			}
@@ -5930,9 +5938,9 @@ void reset_keyboard_layout(void) {
 	}
 
 	// Apply the same keymap (this will reset the layout state)
-	uint32_t depressed = keyboard->modifiers.depressed;
-	uint32_t latched = keyboard->modifiers.latched;
-	uint32_t locked = keyboard->modifiers.locked;
+	unsigned int depressed = keyboard->modifiers.depressed;
+	unsigned int latched = keyboard->modifiers.latched;
+	unsigned int locked = keyboard->modifiers.locked;
 
 	wlr_keyboard_set_keymap(keyboard, new_keymap);
 
@@ -6006,7 +6014,7 @@ void switch_keyboard_layout(const Arg *arg) {
 	char *layout_buf = (char *)rules.layout; // 假设这是可修改的
 
 	// 清空原有内容（安全方式）
-	size_t layout_buf_size = strlen(layout_buf) + 1;
+	unsigned int layout_buf_size = strlen(layout_buf) + 1;
 	memset(layout_buf, 0, layout_buf_size);
 
 	// 构建新的布局字符串
@@ -6042,9 +6050,9 @@ void switch_keyboard_layout(const Arg *arg) {
 	}
 
 	// 6. 应用新 keymap
-	uint32_t depressed = keyboard->modifiers.depressed;
-	uint32_t latched = keyboard->modifiers.latched;
-	uint32_t locked = keyboard->modifiers.locked;
+	unsigned int depressed = keyboard->modifiers.depressed;
+	unsigned int latched = keyboard->modifiers.latched;
+	unsigned int locked = keyboard->modifiers.locked;
 
 	wlr_keyboard_set_keymap(keyboard, new_keymap);
 	wlr_keyboard_notify_modifiers(keyboard, depressed, latched, locked, 0);
@@ -6071,7 +6079,7 @@ void switch_layout(const Arg *arg) {
 
 	int jk, ji;
 	char *target_layout_name = NULL;
-	size_t len;
+	unsigned int len;
 
 	if (config.circle_layout_count != 0) {
 		for (jk = 0; jk < config.circle_layout_count; jk++) {
@@ -6151,7 +6159,7 @@ void setsmfact(const Arg *arg) {
 	arrange(selmon, false);
 }
 
-void setmon(Client *c, Monitor *m, uint32_t newtags, bool focus) {
+void setmon(Client *c, Monitor *m, unsigned int newtags, bool focus) {
 	Monitor *oldmon = c->mon;
 
 	if (oldmon == m)
@@ -7436,7 +7444,7 @@ urgent(struct wl_listener *listener, void *data) {
 void bind_to_view(const Arg *arg) { view(arg, true); }
 
 void view_in_mon(const Arg *arg, bool want_animation, Monitor *m) {
-	size_t i, tmptag;
+	unsigned int i, tmptag;
 
 	if (!m || (arg->ui != ~0 && m->isoverview)) {
 		return;
@@ -7481,7 +7489,7 @@ void view(const Arg *arg, bool want_animation) {
 }
 
 void viewtoleft(const Arg *arg) {
-	size_t tmptag;
+	unsigned int tmptag;
 	unsigned int target = selmon->tagset[selmon->seltags];
 
 	if (selmon->isoverview || selmon->pertag->curtag == 0) {
@@ -7513,7 +7521,7 @@ void viewtoleft(const Arg *arg) {
 }
 
 void viewtoright_have_client(const Arg *arg) {
-	size_t tmptag;
+	unsigned int tmptag;
 	Client *c;
 	unsigned int found = 0;
 	unsigned int n = 1;
@@ -7567,7 +7575,7 @@ void viewtoright(const Arg *arg) {
 	if (selmon->isoverview || selmon->pertag->curtag == 0) {
 		return;
 	}
-	size_t tmptag;
+	unsigned int tmptag;
 	unsigned int target = selmon->tagset[selmon->seltags];
 	target <<= 1;
 
@@ -7593,7 +7601,7 @@ void viewtoright(const Arg *arg) {
 }
 
 void viewtoleft_have_client(const Arg *arg) {
-	size_t tmptag;
+	unsigned int tmptag;
 	Client *c;
 	unsigned int found = 0;
 	unsigned int n = 1;
