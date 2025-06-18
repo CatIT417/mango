@@ -1169,6 +1169,8 @@ void apply_border(Client *c) {
 	}
 
 	struct wlr_box clip_box = c->animation.current;
+	// 一但在GEZERO如果使用无符号，那么其他数据也会转换为无符号导致没有负数出错
+	int bw = (int)c->bw;
 
 	int right_offset =
 		GEZERO(c->animation.current.x + c->animation.current.width -
@@ -1180,64 +1182,46 @@ void apply_border(Client *c) {
 	int left_offset = GEZERO(c->mon->m.x - c->animation.current.x);
 	int top_offset = GEZERO(c->mon->m.y - c->animation.current.y);
 
-	int clip_box_width = clip_box.width - 2 * c->bw;
-	int clip_box_height = clip_box.height - 2 * c->bw;
+	int inner_surface_width = GEZERO(clip_box.width - 2 * bw);
+	int inner_surface_height = GEZERO(clip_box.height - 2 * bw);
 
-	if (clip_box_width < 0) {
-		clip_box_width = 0;
+	int inner_surface_x = GEZERO(bw - left_offset);
+	int inner_surface_y = GEZERO(bw - top_offset);
+
+	int rect_x = left_offset;
+	int rect_y = top_offset;
+
+	int rect_width =
+		GEZERO(c->animation.current.width - left_offset - right_offset);
+	int rect_height =
+		GEZERO(c->animation.current.height - top_offset - bottom_offset);
+
+	if (left_offset > c->bw)
+		inner_surface_width = inner_surface_width - left_offset + c->bw;
+
+	if (top_offset > c->bw)
+		inner_surface_height = inner_surface_height - top_offset + c->bw;
+
+	if (right_offset > 0) {
+		inner_surface_width =
+			MIN(clip_box.width, inner_surface_width + right_offset);
 	}
 
-	if (clip_box_height < 0) {
-		clip_box_height = 0;
+	if (bottom_offset > 0) {
+		inner_surface_height =
+			MIN(clip_box.height, inner_surface_height + bottom_offset);
 	}
-
-	int clip_x = c->bw - left_offset;
-	int clip_y = c->bw - top_offset;
-
-	clip_x = clip_x < 0 ? 0 : clip_x;
-	clip_y = clip_y < 0 ? 0 : clip_y;
 
 	struct clipped_region clipped_region = {
-		.area = {clip_x, clip_y, clip_box_width, clip_box_height},
+		.area = {inner_surface_x, inner_surface_y, inner_surface_width,
+				 inner_surface_height},
 		.corner_radius = border_radius,
 		.corners = CORNER_LOCATION_ALL,
 	};
 
-	int node_x = left_offset;
-	int node_y = top_offset;
-
-	int rect_width = c->animation.current.width - left_offset - right_offset;
-	int rect_height = c->animation.current.height - top_offset - bottom_offset;
-
-	if (left_offset > c->bw)
-		clipped_region.area.width =
-			clipped_region.area.width - left_offset + c->bw;
-
-	if (top_offset > c->bw)
-		clipped_region.area.height =
-			clipped_region.area.height - top_offset + c->bw;
-
-	if (right_offset > 0) {
-		clipped_region.area.width =
-			MIN(clip_box.width, clipped_region.area.width + right_offset);
-	}
-
-	if (bottom_offset > 0) {
-		clipped_region.area.height =
-			MIN(clip_box.height, clipped_region.area.height + bottom_offset);
-	}
-
-	if (rect_width < 0) {
-		rect_width = 0;
-	}
-
-	if (rect_height < 0) {
-		rect_height = 0;
-	}
-
 	wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
 	wlr_scene_rect_set_size(c->border, rect_width, rect_height);
-	wlr_scene_node_set_position(&c->border->node, node_x, node_y);
+	wlr_scene_node_set_position(&c->border->node, rect_x, rect_y);
 	wlr_scene_rect_set_corner_radius(c->border, border_radius,
 									 CORNER_LOCATION_ALL);
 	wlr_scene_rect_set_clipped_region(c->border, clipped_region);
