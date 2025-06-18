@@ -1168,6 +1168,18 @@ void apply_border(Client *c) {
 		c->fake_no_border = false;
 	}
 
+	struct wlr_box clip_box = c->animation.current;
+
+	int right_offset =
+		GEZERO(c->animation.current.x + c->animation.current.width -
+			   c->mon->m.x - c->mon->m.width);
+	int bottom_offset =
+		GEZERO(c->animation.current.y + c->animation.current.height -
+			   c->mon->m.y - c->mon->m.height);
+
+	int left_offset = GEZERO(c->mon->m.x - c->animation.current.x);
+	int top_offset = GEZERO(c->mon->m.y - c->animation.current.y);
+
 	int clip_box_width = clip_box.width - 2 * c->bw;
 	int clip_box_height = clip_box.height - 2 * c->bw;
 
@@ -1179,8 +1191,8 @@ void apply_border(Client *c) {
 		clip_box_height = 0;
 	}
 
-	int clip_x = c->bw - offsetx;
-	int clip_y = c->bw - offsety;
+	int clip_x = c->bw - left_offset;
+	int clip_y = c->bw - top_offset;
 
 	clip_x = clip_x < 0 ? 0 : clip_x;
 	clip_y = clip_y < 0 ? 0 : clip_y;
@@ -1191,14 +1203,19 @@ void apply_border(Client *c) {
 		.corners = CORNER_LOCATION_ALL,
 	};
 
-	int right_offset =
-		GEZERO(c->animation.current.x + c->animation.current.width -
-			   c->mon->m.x - c->mon->m.width);
-	int bottom_offset =
-		GEZERO(c->animation.current.y + c->animation.current.height -
-			   c->mon->m.y - c->mon->m.height);
-	int rect_width = clip_box.width;
-	int rect_height = clip_box.height;
+	int node_x = left_offset;
+	int node_y = top_offset;
+
+	int rect_width = c->animation.current.width - left_offset - right_offset;
+	int rect_height = c->animation.current.height - top_offset - bottom_offset;
+
+	if (left_offset > c->bw)
+		clipped_region.area.width =
+			clipped_region.area.width - left_offset + c->bw;
+
+	if (top_offset > c->bw)
+		clipped_region.area.height =
+			clipped_region.area.height - top_offset + c->bw;
 
 	if (right_offset > 0) {
 		clipped_region.area.width =
@@ -1218,14 +1235,11 @@ void apply_border(Client *c) {
 		rect_height = 0;
 	}
 
-	int node_x = offsetx;
-	int node_y = offsety;
-
 	wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
 	wlr_scene_rect_set_size(c->border, rect_width, rect_height);
 	wlr_scene_node_set_position(&c->border->node, node_x, node_y);
 	wlr_scene_rect_set_corner_radius(c->border, border_radius,
-									 border_radius_location);
+									 CORNER_LOCATION_ALL);
 	wlr_scene_rect_set_clipped_region(c->border, clipped_region);
 }
 
@@ -1374,8 +1388,8 @@ void client_apply_clip(Client *c) {
 	apply_border(c);
 
 	surface_clip = clip_box;
-	surface_clip.width = surface_clip.width - 2 * c->bw;
-	surface_clip.height = surface_clip.height - 2 * c->bw;
+	surface_clip.width = surface_clip.width - c->bw;
+	surface_clip.height = surface_clip.height - c->bw;
 
 	if (surface_clip.width <= 0 || surface_clip.height <= 0) {
 		should_render_client_surface = false;
@@ -1385,7 +1399,7 @@ void client_apply_clip(Client *c) {
 		wlr_scene_node_set_enabled(&c->scene_surface->node, true);
 	}
 
-	apply_border(c, clip_box, offset.x, offset.y, current_corner_location);
+	apply_border(c);
 	client_draw_shadow(c);
 
 	if (!should_render_client_surface) {
