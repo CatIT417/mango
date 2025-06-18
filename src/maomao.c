@@ -3129,7 +3129,7 @@ static void iter_layer_scene_buffers(struct wlr_scene_buffer *buffer, int sx,
 		return;
 	}
 
-	if (blur && l) {
+	if (blur && blur_layer && l) {
 		wlr_scene_buffer_set_backdrop_blur(buffer, true);
 		wlr_scene_buffer_set_backdrop_blur_optimized(buffer, true);
 		wlr_scene_buffer_set_backdrop_blur_ignore_transparent(buffer, true);
