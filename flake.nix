@@ -58,6 +58,6 @@
         devShells.default = maomaowm.overrideAttrs shellOverride;
         formatter = treefmtEval.config.build.wrapper;
       };
-      systems = ["x86_64-linux"];
+      systems = ["x86_64-linux" "aarch64-linux"];
     };
 }
