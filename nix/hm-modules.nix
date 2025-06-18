@@ -1,11 +1,9 @@
-self:
-{
+self: {
   lib,
   config,
   pkgs,
   ...
-}:
-let
+}: let
   inherit (self.packages.${pkgs.system}) maomaowm;
   cfg = config.wayland.windowManager.maomaowm;
   variables = lib.concatStringsSep " " cfg.systemd.variables;
@@ -15,8 +13,7 @@ let
     ${lib.optionalString cfg.systemd.enable systemdActivation}
     ${cfg.autostart_sh}
   '';
-in
-{
+in {
   options = {
     wayland.windowManager.maomaowm = with lib; {
       enable = mkOption {
@@ -53,7 +50,7 @@ in
             "XCURSOR_THEME"
             "XCURSOR_SIZE"
           ];
-          example = [ "--all" ];
+          example = ["--all"];
           description = ''
             Environment variables imported into the systemd and D-Bus user environment.
           '';
@@ -95,23 +92,23 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    home.packages = [ maomaowm ];
+    home.packages = [maomaowm];
     home.activation =
       lib.optionalAttrs (cfg.autostart_sh != "") {
-        createMaomaoScript = lib.hm.dag.entryAfter [ "clearMaomaoConfig" ] ''
+        createMaomaoScript = lib.hm.dag.entryAfter ["clearMaomaoConfig"] ''
           cat ${autostart_sh} > $HOME/.config/maomao/autostart.sh
           chmod +x $HOME/.config/maomao/autostart.sh
         '';
       }
       // lib.optionalAttrs (cfg.settings != "") {
-        createMaomaoConfig = lib.hm.dag.entryAfter [ "clearMaomaoConfig" ] ''
+        createMaomaoConfig = lib.hm.dag.entryAfter ["clearMaomaoConfig"] ''
           cat > $HOME/.config/maomao/config.conf <<EOF
           ${cfg.settings}
           EOF
         '';
       }
       // {
-        clearMaomaoConfig = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+        clearMaomaoConfig = lib.hm.dag.entryAfter ["writeBoundary"] ''
           rm -rf $HOME/.config/maomao
           mkdir -p $HOME/.config/maomao
         '';
@@ -119,12 +116,14 @@ in
     systemd.user.targets.maomao-session = lib.mkIf cfg.systemd.enable {
       Unit = {
         Description = "maomao compositor session";
-        Documentation = [ "man:systemd.special(7)" ];
-        BindsTo = [ "graphical-session.target" ];
-        Wants = [
-          "graphical-session-pre.target"
-        ] ++ lib.optional cfg.systemd.xdgAutostart "xdg-desktop-autostart.target";
-        After = [ "graphical-session-pre.target" ];
+        Documentation = ["man:systemd.special(7)"];
+        BindsTo = ["graphical-session.target"];
+        Wants =
+          [
+            "graphical-session-pre.target"
+          ]
+          ++ lib.optional cfg.systemd.xdgAutostart "xdg-desktop-autostart.target";
+        After = ["graphical-session-pre.target"];
         Before = lib.optional cfg.systemd.xdgAutostart "xdg-desktop-autostart.target";
       };
     };

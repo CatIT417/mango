@@ -1,14 +1,11 @@
-self:
-{
+self: {
   config,
   lib,
   pkgs,
   ...
-}:
-let
+}: let
   cfg = config.programs.maomaowm;
-in
-{
+in {
   options = {
     programs.maomaowm = {
       enable = lib.mkEnableOption "maomaowm, a wayland compositor based on dwl";
@@ -21,16 +18,22 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [
-      cfg.package
-    ] ++ (if (builtins.hasAttr "mmsg" cfg.package) then [ cfg.package.mmsg ] else [ ]);
+    environment.systemPackages =
+      [
+        cfg.package
+      ]
+      ++ (
+        if (builtins.hasAttr "mmsg" cfg.package)
+        then [cfg.package.mmsg]
+        else []
+      );
 
     xdg.portal = {
       enable = lib.mkDefault true;
 
       wlr.enable = lib.mkDefault true;
 
-      configPackages = [ cfg.package ];
+      configPackages = [cfg.package];
     };
 
     security.polkit.enable = lib.mkDefault true;
@@ -38,10 +41,9 @@ in
     programs.xwayland.enable = lib.mkDefault true;
 
     services = {
-      displayManager.sessionPackages = [ cfg.package ];
+      displayManager.sessionPackages = [cfg.package];
 
       graphical-desktop.enable = lib.mkDefault true;
     };
-
   };
 }
