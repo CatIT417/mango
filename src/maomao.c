@@ -3604,7 +3604,7 @@ void createmon(struct wl_listener *listener, void *data) {
 
 	if (blur) {
 		m->blur = wlr_scene_optimized_blur_create(&scene->tree, 0, 0);
-		// wlr_scene_node_set_position(&m->blur->node, m->m.x, m->m.y);
+		wlr_scene_node_set_position(&m->blur->node, m->m.x, m->m.y);
 		wlr_scene_node_reparent(&m->blur->node, layers[LyrBlur]);
 		wlr_scene_optimized_blur_set_size(m->blur, m->m.width, m->m.height);
 		// wlr_scene_node_set_enabled(&m->blur->node, 1);
@@ -4341,6 +4341,7 @@ void requestmonstate(struct wl_listener *listener, void *data) {
 
 	wlr_output_commit_state(event->output, event->state);
 	if (blur) {
+		wlr_scene_node_set_position(&m->blur->node, m->m.x, m->m.y);
 		wlr_scene_optimized_blur_set_size(m->blur, m->m.width, m->m.height);
 	}
 	updatemons(NULL, NULL);
@@ -7570,6 +7571,7 @@ void updatemons(struct wl_listener *listener, void *data) {
 		// wlr_scene_rect_set_size(m->fullscreen_bg, m->m.width, m->m.height);
 
 		if (blur && m->blur) {
+			wlr_scene_node_set_position(&m->blur->node, m->m.x, m->m.y);
 			wlr_scene_optimized_blur_set_size(m->blur, m->m.width, m->m.height);
 		}
 
