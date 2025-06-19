@@ -1,46 +1,17 @@
-// SPDX-License-Identifier: GPL-2.0-only
-/* Based on labwc (https://github.com/labwc/labwc) */
-
-#include "../common/mem.h"
 #include <assert.h>
 #include <wlr/types/wlr_input_method_v2.h>
 #include <wlr/types/wlr_text_input_v3.h>
 
-#define DWL_SET_MAX_SIZE 16
-
-#define SAME_CLIENT(wlr_obj1, wlr_obj2)                                        \
-	(wl_resource_get_client((wlr_obj1)->resource) ==                           \
-	 wl_resource_get_client((wlr_obj2)->resource))
-
-struct dwl_set {
-	uint32_t values[DWL_SET_MAX_SIZE];
-	int size;
-};
-
-/*
- * The relay structure manages the relationship between text-inputs and
- * input-method on a given seat. Multiple text-inputs may be bound to a relay,
- * but at most one will be "active" (communicating with input-method) at a time.
- * At most one input-method may be bound to the seat. When an input-method and
- * an active text-input is present, the relay passes messages between them.
- */
-struct input_method_relay {
-	struct wl_list text_inputs; /* struct text_input.link */
+struct dwl_input_method_relay {
+	struct wl_list text_inputs;
 	struct wlr_input_method_v2 *input_method;
 	struct wlr_surface *focused_surface;
 
-	struct dwl_set forwarded_pressed_keys;
 	struct wlr_keyboard_modifiers forwarded_modifiers;
 
-	/*
-	 * Text-input which is enabled by the client and communicating with
-	 * input-method.
-	 * This must be NULL if input-method is not present.
-	 * Its client must be the same as that of focused_surface.
-	 */
 	struct text_input *active_text_input;
 
-	struct wl_list popups; /* input_method_popup.link */
+	struct wl_list popups;
 	struct wlr_scene_tree *popup_tree;
 
 	struct wl_listener new_text_input;
@@ -55,19 +26,19 @@ struct input_method_relay {
 	struct wl_listener focused_surface_destroy;
 };
 
-struct input_method_popup {
+struct dwl_input_method_popup {
 	struct wlr_input_popup_surface_v2 *popup_surface;
 	struct wlr_scene_tree *tree;
 	struct wlr_scene_tree *scene_surface;
-	struct input_method_relay *relay;
-	struct wl_list link; /* input_method_relay.popups */
+	struct dwl_input_method_relay *relay;
+	struct wl_list link;
 
 	struct wl_listener destroy;
 	struct wl_listener commit;
 };
 
 struct text_input {
-	struct input_method_relay *relay;
+	struct dwl_input_method_relay *relay;
 	struct wlr_text_input_v3 *input;
 	struct wl_list link;
 
@@ -79,61 +50,23 @@ struct text_input {
 
 struct wlr_input_method_manager_v2 *input_method_manager;
 struct wlr_text_input_manager_v3 *text_input_manager;
-struct input_method_relay *input_method_relay;
+struct dwl_input_method_relay *dwl_input_method_relay;
 
-/*
- * Forward key event to keyboard grab of the seat from the keyboard
- * if the keyboard grab exists.
- * Returns true if the key event was forwarded.
- */
-bool input_method_keyboard_grab_forward_key(
-	KeyboardGroup *keyboard, struct wlr_keyboard_key_event *event);
+/*-------------------封装给外部调用-------------------------------*/
+bool dwl_im_keyboard_grab_forward_key(KeyboardGroup *keyboard,
+									  struct wlr_keyboard_key_event *event);
 
-/*
- * Forward modifier state to keyboard grab of the seat from the keyboard
- * if the keyboard grab exists.
- * Returns true if the modifier state was forwarded.
- */
-bool input_method_keyboard_grab_forward_modifiers(KeyboardGroup *keyboard);
+bool dwl_im_keyboard_grab_forward_modifiers(KeyboardGroup *keyboard);
 
-struct input_method_relay *input_method_relay_create();
+struct dwl_input_method_relay *dwl_im_relay_create();
 
-void input_method_relay_finish(struct input_method_relay *relay);
+void dwl_im_relay_finish(struct dwl_input_method_relay *relay);
 
-/* Updates currently focused surface. Surface must belong to the same seat. */
-void input_method_relay_set_focus(struct input_method_relay *relay,
-								  struct wlr_surface *surface);
+void dwl_im_relay_set_focus(struct dwl_input_method_relay *relay,
+							struct wlr_surface *surface);
+/*----------------------------------------------------------*/
 
-bool dwl_set_contains(struct dwl_set *set, uint32_t value) {
-	for (int i = 0; i < set->size; ++i) {
-		if (set->values[i] == value) {
-			return true;
-		}
-	}
-	return false;
-}
-
-void dwl_set_add(struct dwl_set *set, uint32_t value) {
-	if (dwl_set_contains(set, value)) {
-		return;
-	}
-	if (set->size >= DWL_SET_MAX_SIZE) {
-		wlr_log(WLR_ERROR, "dwl_set size exceeded");
-		return;
-	}
-	set->values[set->size++] = value;
-}
-
-void dwl_set_remove(struct dwl_set *set, uint32_t value) {
-	for (int i = 0; i < set->size; ++i) {
-		if (set->values[i] == value) {
-			--set->size;
-			set->values[i] = set->values[set->size];
-			return;
-		}
-	}
-}
-
+/*------------------协议内部代码------------------------------*/
 Monitor *output_from_wlr_output(struct wlr_output *wlr_output) {
 	Monitor *m;
 	wl_list_for_each(m, &mons, link) {
@@ -153,10 +86,7 @@ Monitor *output_nearest_to(int lx, int ly) {
 		wlr_output_layout_output_at(output_layout, closest_x, closest_y));
 }
 
-bool output_is_usable(Monitor *m) {
-	/* output_is_usable(NULL) is safe and returns false */
-	return m && m->wlr_output->enabled;
-}
+bool output_is_usable(Monitor *m) { return m && m->wlr_output->enabled; }
 
 static bool
 is_keyboard_emulated_by_input_method(struct wlr_keyboard *keyboard,
@@ -168,31 +98,22 @@ is_keyboard_emulated_by_input_method(struct wlr_keyboard *keyboard,
 	struct wlr_virtual_keyboard_v1 *virtual_keyboard =
 		wlr_input_device_get_virtual_keyboard(&keyboard->base);
 
-	return virtual_keyboard && SAME_CLIENT(virtual_keyboard, input_method);
+	return virtual_keyboard &&
+		   wl_resource_get_client(virtual_keyboard->resource) ==
+			   wl_resource_get_client(input_method->resource);
 }
 
-/*
- * Get keyboard grab of the seat from keyboard if we should forward events
- * to it.
- */
 static struct wlr_input_method_keyboard_grab_v2 *
 get_keyboard_grab(KeyboardGroup *keyboard) {
-	struct wlr_input_method_v2 *input_method = input_method_relay->input_method;
+	struct wlr_input_method_v2 *input_method =
+		dwl_input_method_relay->input_method;
 	if (!input_method || !input_method->keyboard_grab) {
 		return NULL;
 	}
 
-	// labwc not need this , but maomao need
 	if (keyboard != kb_group)
 		return NULL;
 
-	/*
-	 * Input-methods often use virtual keyboard to send raw key signals
-	 * instead of sending encoded text via set_preedit_string and
-	 * commit_string. We should not forward those key events back to the
-	 * input-method so key events don't loop between the compositor and
-	 * the input-method.
-	 */
 	if (is_keyboard_emulated_by_input_method(&keyboard->wlr_group->keyboard,
 											 input_method)) {
 		return NULL;
@@ -201,24 +122,14 @@ get_keyboard_grab(KeyboardGroup *keyboard) {
 	return input_method->keyboard_grab;
 }
 
-bool input_method_keyboard_grab_forward_modifiers(KeyboardGroup *keyboard) {
+bool dwl_im_keyboard_grab_forward_modifiers(KeyboardGroup *keyboard) {
 	struct wlr_input_method_keyboard_grab_v2 *keyboard_grab =
 		get_keyboard_grab(keyboard);
 
-	struct wlr_keyboard_modifiers *forwarded_modifiers =
-		&input_method_relay->forwarded_modifiers;
 	struct wlr_keyboard_modifiers *modifiers =
 		&keyboard->wlr_group->keyboard.modifiers;
 
-	if (forwarded_modifiers->depressed == modifiers->depressed &&
-		forwarded_modifiers->latched == modifiers->latched &&
-		forwarded_modifiers->locked == modifiers->locked &&
-		forwarded_modifiers->group == modifiers->group) {
-		return false;
-	}
-
 	if (keyboard_grab) {
-		*forwarded_modifiers = keyboard->wlr_group->keyboard.modifiers;
 		wlr_input_method_keyboard_grab_v2_set_keyboard(
 			keyboard_grab, &keyboard->wlr_group->keyboard);
 		wlr_input_method_keyboard_grab_v2_send_modifiers(keyboard_grab,
@@ -229,26 +140,12 @@ bool input_method_keyboard_grab_forward_modifiers(KeyboardGroup *keyboard) {
 	}
 }
 
-bool input_method_keyboard_grab_forward_key(
-	KeyboardGroup *keyboard, struct wlr_keyboard_key_event *event) {
-	/*
-	 * We should not forward key-release events without corresponding
-	 * key-press events forwarded
-	 */
-	struct dwl_set *pressed_keys = &input_method_relay->forwarded_pressed_keys;
-	if (event->state == WL_KEYBOARD_KEY_STATE_RELEASED &&
-		!dwl_set_contains(pressed_keys, event->keycode)) {
-		return false;
-	}
+bool dwl_im_keyboard_grab_forward_key(KeyboardGroup *keyboard,
+									  struct wlr_keyboard_key_event *event) {
 
 	struct wlr_input_method_keyboard_grab_v2 *keyboard_grab =
 		get_keyboard_grab(keyboard);
 	if (keyboard_grab) {
-		if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
-			dwl_set_add(pressed_keys, event->keycode);
-		} else {
-			dwl_set_remove(pressed_keys, event->keycode);
-		}
 		wlr_input_method_keyboard_grab_v2_set_keyboard(
 			keyboard_grab, &keyboard->wlr_group->keyboard);
 		wlr_input_method_keyboard_grab_v2_send_key(
@@ -259,12 +156,8 @@ bool input_method_keyboard_grab_forward_key(
 	}
 }
 
-/*
- * update_text_inputs_focused_surface() should be called beforehand to set
- * right text-inputs to choose from.
- */
 static struct text_input *
-get_active_text_input(struct input_method_relay *relay) {
+get_active_text_input(struct dwl_input_method_relay *relay) {
 	if (!relay->input_method) {
 		return NULL;
 	}
@@ -278,11 +171,7 @@ get_active_text_input(struct input_method_relay *relay) {
 	return NULL;
 }
 
-/*
- * Updates active text-input and activates/deactivates the input-method if the
- * value is changed.
- */
-static void update_active_text_input(struct input_method_relay *relay) {
+static void update_active_text_input(struct dwl_input_method_relay *relay) {
 	struct text_input *active_text_input = get_active_text_input(relay);
 
 	if (relay->input_method && relay->active_text_input != active_text_input) {
@@ -297,23 +186,16 @@ static void update_active_text_input(struct input_method_relay *relay) {
 	relay->active_text_input = active_text_input;
 }
 
-/*
- * Updates focused surface of text-inputs and sends enter/leave events to
- * the text-inputs whose focused surface is changed.
- * When input-method is present, text-inputs whose client is the same as the
- * relay's focused surface also have that focused surface. Clients can then
- * send enable request on a text-input which has the focused surface to make
- * the text-input active and start communicating with input-method.
- */
 static void
-update_text_inputs_focused_surface(struct input_method_relay *relay) {
+update_text_inputs_focused_surface(struct dwl_input_method_relay *relay) {
 	struct text_input *text_input;
 	wl_list_for_each(text_input, &relay->text_inputs, link) {
 		struct wlr_text_input_v3 *input = text_input->input;
 
 		struct wlr_surface *new_focused_surface;
 		if (relay->input_method && relay->focused_surface &&
-			SAME_CLIENT(input, relay->focused_surface)) {
+			wl_resource_get_client(input->resource) ==
+				wl_resource_get_client(relay->focused_surface->resource)) {
 			new_focused_surface = relay->focused_surface;
 		} else {
 			new_focused_surface = NULL;
@@ -331,8 +213,8 @@ update_text_inputs_focused_surface(struct input_method_relay *relay) {
 	}
 }
 
-static void update_popup_position(struct input_method_popup *popup) {
-	struct input_method_relay *relay = popup->relay;
+static void update_popup_position(struct dwl_input_method_popup *popup) {
+	struct dwl_input_method_relay *relay = popup->relay;
 	struct text_input *text_input = relay->active_text_input;
 
 	if (!text_input || !relay->focused_surface ||
@@ -351,12 +233,6 @@ static void update_popup_position(struct input_method_popup *popup) {
 		(xdg_surface || layer_surface)) {
 		cursor_rect = text_input->input->current.cursor_rectangle;
 
-		/*
-		 * wlr_surface->data is:
-		 * - for XDG surfaces: view->content_tree
-		 * - for layer surfaces: dwl_layer_surface->scene_layer_surface->tree
-		 * - for layer popups: dwl_layer_popup->scene_tree
-		 */
 		struct wlr_scene_tree *tree = relay->focused_surface->data;
 		int lx, ly;
 		wlr_scene_node_coords(&tree->node, &lx, &ly);
@@ -364,7 +240,6 @@ static void update_popup_position(struct input_method_popup *popup) {
 		cursor_rect.y += ly;
 
 		if (xdg_surface) {
-			/* Take into account invisible xdg-shell CSD borders */
 			cursor_rect.x -= xdg_surface->geometry.x;
 			cursor_rect.y -= xdg_surface->geometry.y;
 		}
@@ -380,7 +255,6 @@ static void update_popup_position(struct input_method_popup *popup) {
 	struct wlr_box output_box;
 	wlr_output_layout_get_box(output_layout, output->wlr_output, &output_box);
 
-	/* Use xdg-positioner utilities to position popup */
 	struct wlr_xdg_positioner_rules rules = {
 		.anchor_rect = cursor_rect,
 		.anchor = XDG_POSITIONER_ANCHOR_BOTTOM_LEFT,
@@ -399,7 +273,6 @@ static void update_popup_position(struct input_method_popup *popup) {
 	wlr_xdg_positioner_rules_unconstrain_box(&rules, &output_box, &popup_box);
 
 	wlr_scene_node_set_position(&popup->tree->node, popup_box.x, popup_box.y);
-	/* Make sure IME popups are always on top, above layer-shell surfaces */
 	wlr_scene_node_raise_to_top(&relay->popup_tree->node);
 
 	wlr_input_popup_surface_v2_send_text_input_rectangle(
@@ -411,8 +284,8 @@ static void update_popup_position(struct input_method_popup *popup) {
 							  });
 }
 
-static void update_popups_position(struct input_method_relay *relay) {
-	struct input_method_popup *popup;
+static void update_popups_position(struct dwl_input_method_relay *relay) {
+	struct dwl_input_method_popup *popup;
 	wl_list_for_each(popup, &relay->popups, link) {
 		update_popup_position(popup);
 	}
@@ -420,7 +293,7 @@ static void update_popups_position(struct input_method_relay *relay) {
 
 static void handle_input_method_commit(struct wl_listener *listener,
 									   void *data) {
-	struct input_method_relay *relay =
+	struct dwl_input_method_relay *relay =
 		wl_container_of(listener, relay, input_method_commit);
 	struct wlr_input_method_v2 *input_method = data;
 	assert(relay->input_method == input_method);
@@ -451,13 +324,12 @@ static void handle_input_method_commit(struct wl_listener *listener,
 
 static void handle_keyboard_grab_destroy(struct wl_listener *listener,
 										 void *data) {
-	struct input_method_relay *relay =
+	struct dwl_input_method_relay *relay =
 		wl_container_of(listener, relay, keyboard_grab_destroy);
 	struct wlr_input_method_keyboard_grab_v2 *keyboard_grab = data;
 	wl_list_remove(&relay->keyboard_grab_destroy.link);
 
 	if (keyboard_grab->keyboard) {
-		/* Send modifier state to original client */
 		wlr_seat_keyboard_notify_modifiers(keyboard_grab->input_method->seat,
 										   &keyboard_grab->keyboard->modifiers);
 	}
@@ -465,7 +337,7 @@ static void handle_keyboard_grab_destroy(struct wl_listener *listener,
 
 static void handle_input_method_grab_keyboard(struct wl_listener *listener,
 											  void *data) {
-	struct input_method_relay *relay =
+	struct dwl_input_method_relay *relay =
 		wl_container_of(listener, relay, input_method_grab_keyboard);
 	struct wlr_input_method_keyboard_grab_v2 *keyboard_grab = data;
 
@@ -473,13 +345,9 @@ static void handle_input_method_grab_keyboard(struct wl_listener *listener,
 
 	if (!is_keyboard_emulated_by_input_method(active_keyboard,
 											  relay->input_method)) {
-		/* Send modifier state to grab */
 		wlr_input_method_keyboard_grab_v2_set_keyboard(keyboard_grab,
 													   active_keyboard);
 	}
-
-	relay->forwarded_pressed_keys = (struct dwl_set){0};
-	relay->forwarded_modifiers = (struct wlr_keyboard_modifiers){0};
 
 	relay->keyboard_grab_destroy.notify = handle_keyboard_grab_destroy;
 	wl_signal_add(&keyboard_grab->events.destroy,
@@ -488,7 +356,7 @@ static void handle_input_method_grab_keyboard(struct wl_listener *listener,
 
 static void handle_input_method_destroy(struct wl_listener *listener,
 										void *data) {
-	struct input_method_relay *relay =
+	struct dwl_input_method_relay *relay =
 		wl_container_of(listener, relay, input_method_destroy);
 	assert(relay->input_method == data);
 	wl_list_remove(&relay->input_method_commit.link);
@@ -503,7 +371,7 @@ static void handle_input_method_destroy(struct wl_listener *listener,
 
 static void handle_popup_surface_destroy(struct wl_listener *listener,
 										 void *data) {
-	struct input_method_popup *popup =
+	struct dwl_input_method_popup *popup =
 		wl_container_of(listener, popup, destroy);
 	wlr_scene_node_destroy(&popup->tree->node);
 	wl_list_remove(&popup->destroy.link);
@@ -514,16 +382,18 @@ static void handle_popup_surface_destroy(struct wl_listener *listener,
 
 static void handle_popup_surface_commit(struct wl_listener *listener,
 										void *data) {
-	struct input_method_popup *popup = wl_container_of(listener, popup, commit);
+	struct dwl_input_method_popup *popup =
+		wl_container_of(listener, popup, commit);
 	update_popup_position(popup);
 }
 
 static void handle_input_method_new_popup_surface(struct wl_listener *listener,
 												  void *data) {
-	struct input_method_relay *relay =
+	struct dwl_input_method_relay *relay =
 		wl_container_of(listener, relay, input_method_new_popup_surface);
 
-	struct input_method_popup *popup = znew(*popup);
+	struct dwl_input_method_popup *popup =
+		ecalloc(1, sizeof(struct dwl_input_method_popup));
 	popup->popup_surface = data;
 	popup->relay = relay;
 
@@ -533,11 +403,6 @@ static void handle_input_method_new_popup_surface(struct wl_listener *listener,
 	popup->commit.notify = handle_popup_surface_commit;
 	wl_signal_add(&popup->popup_surface->surface->events.commit,
 				  &popup->commit);
-
-	// popup->tree = wlr_scene_subsurface_tree_create(
-	// 	relay->popup_tree, popup->popup_surface->surface);
-	// node_descriptor_create(&popup->tree->node, dwl_NODE_DESC_IME_POPUP,
-	// NULL);
 
 	popup->tree = wlr_scene_tree_create(layers[LyrIMPopup]);
 	popup->scene_surface = wlr_scene_subsurface_tree_create(
@@ -550,7 +415,7 @@ static void handle_input_method_new_popup_surface(struct wl_listener *listener,
 }
 
 static void handle_new_input_method(struct wl_listener *listener, void *data) {
-	struct input_method_relay *relay =
+	struct dwl_input_method_relay *relay =
 		wl_container_of(listener, relay, new_input_method);
 	struct wlr_input_method_v2 *input_method = data;
 	if (seat != input_method->seat) {
@@ -587,14 +452,12 @@ static void handle_new_input_method(struct wl_listener *listener, void *data) {
 	update_active_text_input(relay);
 }
 
-/* Conveys state from active text-input to input-method */
-static void send_state_to_input_method(struct input_method_relay *relay) {
+static void send_state_to_input_method(struct dwl_input_method_relay *relay) {
 	assert(relay->active_text_input && relay->input_method);
 
 	struct wlr_input_method_v2 *input_method = relay->input_method;
 	struct wlr_text_input_v3 *input = relay->active_text_input->input;
 
-	/* TODO: only send each of those if they were modified */
 	if (input->active_features & WLR_TEXT_INPUT_V3_FEATURE_SURROUNDING_TEXT) {
 		wlr_input_method_v2_send_surrounding_text(
 			input_method, input->current.surrounding.text,
@@ -614,7 +477,7 @@ static void send_state_to_input_method(struct input_method_relay *relay) {
 static void handle_text_input_enable(struct wl_listener *listener, void *data) {
 	struct text_input *text_input =
 		wl_container_of(listener, text_input, enable);
-	struct input_method_relay *relay = text_input->relay;
+	struct dwl_input_method_relay *relay = text_input->relay;
 
 	update_active_text_input(relay);
 	if (relay->active_text_input == text_input) {
@@ -627,18 +490,14 @@ static void handle_text_input_disable(struct wl_listener *listener,
 									  void *data) {
 	struct text_input *text_input =
 		wl_container_of(listener, text_input, disable);
-	/*
-	 * When the focus is moved between surfaces from different clients and
-	 * then the old client sends "disable" event, the relay ignores it and
-	 * doesn't deactivate the input-method.
-	 */
+
 	update_active_text_input(text_input->relay);
 }
 
 static void handle_text_input_commit(struct wl_listener *listener, void *data) {
 	struct text_input *text_input =
 		wl_container_of(listener, text_input, commit);
-	struct input_method_relay *relay = text_input->relay;
+	struct dwl_input_method_relay *relay = text_input->relay;
 
 	if (relay->active_text_input == text_input) {
 		update_popups_position(relay);
@@ -660,14 +519,14 @@ static void handle_text_input_destroy(struct wl_listener *listener,
 }
 
 static void handle_new_text_input(struct wl_listener *listener, void *data) {
-	struct input_method_relay *relay =
+	struct dwl_input_method_relay *relay =
 		wl_container_of(listener, relay, new_text_input);
 	struct wlr_text_input_v3 *wlr_text_input = data;
 	if (seat != wlr_text_input->seat) {
 		return;
 	}
 
-	struct text_input *text_input = znew(*text_input);
+	struct text_input *text_input = ecalloc(1, sizeof(struct text_input));
 	text_input->input = wlr_text_input;
 	text_input->relay = relay;
 	wl_list_insert(&relay->text_inputs, &text_input->link);
@@ -687,22 +546,18 @@ static void handle_new_text_input(struct wl_listener *listener, void *data) {
 	update_text_inputs_focused_surface(relay);
 }
 
-/*
- * Usually this function is not called because the client destroys the surface
- * role (like xdg_toplevel) first and input_method_relay_set_focus() is called
- * before wl_surface is destroyed.
- */
 static void handle_focused_surface_destroy(struct wl_listener *listener,
 										   void *data) {
-	struct input_method_relay *relay =
+	struct dwl_input_method_relay *relay =
 		wl_container_of(listener, relay, focused_surface_destroy);
 	assert(relay->focused_surface == data);
 
-	input_method_relay_set_focus(relay, NULL);
+	dwl_im_relay_set_focus(relay, NULL);
 }
 
-struct input_method_relay *input_method_relay_create() {
-	struct input_method_relay *relay = znew(*relay);
+struct dwl_input_method_relay *dwl_im_relay_create() {
+	struct dwl_input_method_relay *relay =
+		ecalloc(1, sizeof(struct dwl_input_method_relay));
 	wl_list_init(&relay->text_inputs);
 	wl_list_init(&relay->popups);
 	relay->popup_tree = wlr_scene_tree_create(&scene->tree);
@@ -720,14 +575,14 @@ struct input_method_relay *input_method_relay_create() {
 	return relay;
 }
 
-void input_method_relay_finish(struct input_method_relay *relay) {
+void dwl_im_relay_finish(struct dwl_input_method_relay *relay) {
 	wl_list_remove(&relay->new_text_input.link);
 	wl_list_remove(&relay->new_input_method.link);
 	free(relay);
 }
 
-void input_method_relay_set_focus(struct input_method_relay *relay,
-								  struct wlr_surface *surface) {
+void dwl_im_relay_set_focus(struct dwl_input_method_relay *relay,
+							struct wlr_surface *surface) {
 	if (relay->focused_surface == surface) {
 		wlr_log(WLR_INFO, "The surface is already focused");
 		return;

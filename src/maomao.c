@@ -2944,7 +2944,7 @@ void cleanup(void) {
 
 	destroykeyboardgroup(&kb_group->destroy, NULL);
 
-	input_method_relay_finish(input_method_relay);
+	dwl_im_relay_finish(dwl_input_method_relay);
 
 	/* If it's not destroyed manually it will cause a use-after-free of
 	 * wlr_seat. Destroy it until it's fixed in the wlroots side */
@@ -4073,7 +4073,7 @@ void focusclient(Client *c, int lift) {
 				NULL; // 这个很关键,因为很多地方用到当前窗口做计算,不重置成NULL就会到处有野指针
 
 		// clear text input focus state
-		input_method_relay_set_focus(input_method_relay, NULL);
+		dwl_im_relay_set_focus(dwl_input_method_relay, NULL);
 		wlr_seat_keyboard_notify_clear_focus(seat);
 		return;
 	}
@@ -4085,7 +4085,7 @@ void focusclient(Client *c, int lift) {
 	client_notify_enter(client_surface(c), wlr_seat_get_keyboard(seat));
 
 	// set text input focus
-	input_method_relay_set_focus(input_method_relay, client_surface(c));
+	dwl_im_relay_set_focus(dwl_input_method_relay, client_surface(c));
 	/* Activate the new client */
 	client_activate_surface(client_surface(c), 1);
 }
@@ -4429,7 +4429,7 @@ void keypress(struct wl_listener *listener, void *data) {
 	if (hit_global) {
 		return;
 	}
-	if (!input_method_keyboard_grab_forward_key(group, event)) {
+	if (!dwl_im_keyboard_grab_forward_key(group, event)) {
 		wlr_seat_set_keyboard(seat, &group->wlr_group->keyboard);
 		/* Pass unhandled keycodes along to the client. */
 		wlr_seat_keyboard_notify_key(seat, event->time_msec, event->keycode,
@@ -4442,7 +4442,7 @@ void keypressmod(struct wl_listener *listener, void *data) {
 	 * pressed. We simply communicate this to the client. */
 	KeyboardGroup *group = wl_container_of(listener, group, modifiers);
 
-	if (!input_method_keyboard_grab_forward_modifiers(group)) {
+	if (!dwl_im_keyboard_grab_forward_modifiers(group)) {
 		wlr_seat_set_keyboard(seat, &group->wlr_group->keyboard);
 		/* Send modifiers to the client. */
 		wlr_seat_keyboard_notify_modifiers(
@@ -6608,8 +6608,8 @@ void setup(void) {
 	input_method_manager = wlr_input_method_manager_v2_create(dpy);
 	text_input_manager = wlr_text_input_manager_v3_create(dpy);
 
-	input_method_relay = calloc(1, sizeof(*input_method_relay));
-	input_method_relay = input_method_relay_create();
+	dwl_input_method_relay = calloc(1, sizeof(*dwl_input_method_relay));
+	dwl_input_method_relay = dwl_im_relay_create();
 
 	wl_global_create(dpy, &zdwl_ipc_manager_v2_interface, 2, NULL,
 					 dwl_ipc_manager_bind);
