@@ -9,14 +9,15 @@ This project is developed based on [dwl](https://codeberg.org/dwl/dwl/),
 
 2. **Feature Highlights**  
    - Besides basic WM functionality, maomao provides:
-     - Smooth and customizable animations
-     - Excellent input method support
-     - Flexible window layouts with easy switching
-     - Rich window states: swallow, minimize, maximize, unglobal, global, fakefullscreen, overlay...
+     - Base tag not workspace(supports separate window layouts for each tag)
+     - Smooth and customizable complete animations(window open/move/close, tag enter/leave)
+     - Excellent input method support(text input v2/v3)
+     - Flexible window layouts with easy switching(scroller,master,monocle,spiral..etc)
+     - Rich window states(swallow, minimize, maximize, unglobal, global, fakefullscreen, overlay...etc)
      - Simple yet powerful external configuration
-
-3. **Philosophy**  
-   - *Maomao* has no rigid design ideology—you could call it an eclectic hybrid of various compositors.
+     - Sway like scratchpad and named scratchpad
+     - Minimize window to scratchpad
+     - Hycov like overview
 
 Master-Stack Layout
 
@@ -26,10 +27,7 @@ Scroller Layout
 
 https://github.com/user-attachments/assets/c9bf9415-fad1-4400-bcdc-3ad2d76de85a
 
-# Features
-
-- Tag-based instead of workspace-based (supports separate window layouts for each tag)
-- Supported layouts:
+# Supported layouts
   - Tile
   - Scroller  
   - Monocle
@@ -37,17 +35,6 @@ https://github.com/user-attachments/assets/c9bf9415-fad1-4400-bcdc-3ad2d76de85a
   - Dwindle
   - Spiral
   - Deck
-
-# Special Features
-
-- Hycov-like overview
-- Foreign-toplevel protocol support (for dunst, waybar wlr taskbar)
-- Minimize window to waybar (like hych)
-- Sway-style scratchpad and Named scratchpad
-- Text-input-v2/v3 protocol for fcitx5
-- Window animations (move/open/close/tag)
-- Alt-tab window switching
-- scroller layout
 
 # install
 
@@ -187,7 +174,5 @@ Here's an example of using the modules in a flake:
 - https://github.com/dqrk0jeste/owl - basal window animaition
 
 - https://codeberg.org/dwl/dwl - basal dwl feature
-
-- https://github.com/labwc/labwc - sample of text-input protocol
 
 - https://github.com/swaywm/sway - sample of wayland protocol
