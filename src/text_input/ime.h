@@ -91,12 +91,12 @@ bool output_is_usable(Monitor *m) { return m && m->wlr_output->enabled; }
 static bool
 is_keyboard_emulated_by_input_method(struct wlr_keyboard *keyboard,
 									 struct wlr_input_method_v2 *input_method) {
+	struct wlr_virtual_keyboard_v1 *virtual_keyboard;
 	if (!keyboard || !input_method) {
 		return false;
 	}
 
-	struct wlr_virtual_keyboard_v1 *virtual_keyboard =
-		wlr_input_device_get_virtual_keyboard(&keyboard->base);
+	virtual_keyboard = wlr_input_device_get_virtual_keyboard(&keyboard->base);
 
 	return virtual_keyboard &&
 		   wl_resource_get_client(virtual_keyboard->resource) ==
@@ -158,10 +158,11 @@ bool dwl_im_keyboard_grab_forward_key(KeyboardGroup *keyboard,
 
 static struct text_input *
 get_active_text_input(struct dwl_input_method_relay *relay) {
+	struct text_input *text_input;
+
 	if (!relay->input_method) {
 		return NULL;
 	}
-	struct text_input *text_input;
 	wl_list_for_each(text_input, &relay->text_inputs, link) {
 		if (text_input->input->focused_surface &&
 			text_input->input->current_enabled) {
@@ -216,16 +217,23 @@ update_text_inputs_focused_surface(struct dwl_input_method_relay *relay) {
 static void update_popup_position(struct dwl_input_method_popup *popup) {
 	struct dwl_input_method_relay *relay = popup->relay;
 	struct text_input *text_input = relay->active_text_input;
+	struct wlr_box cursor_rect;
+	struct wlr_xdg_surface *xdg_surface;
+	struct wlr_layer_surface_v1 *layer_surface;
+	struct wlr_scene_tree *tree;
+	Monitor *output;
+	struct wlr_xdg_positioner_rules pointer_rules;
+	struct wlr_box output_box;
+	int lx, ly;
+	struct wlr_box popup_box;
 
 	if (!text_input || !relay->focused_surface ||
 		!popup->popup_surface->surface->mapped) {
 		return;
 	}
 
-	struct wlr_box cursor_rect;
-	struct wlr_xdg_surface *xdg_surface =
-		wlr_xdg_surface_try_from_wlr_surface(relay->focused_surface);
-	struct wlr_layer_surface_v1 *layer_surface =
+	xdg_surface = wlr_xdg_surface_try_from_wlr_surface(relay->focused_surface);
+	layer_surface =
 		wlr_layer_surface_v1_try_from_wlr_surface(relay->focused_surface);
 
 	if ((text_input->input->current.features &
@@ -233,8 +241,7 @@ static void update_popup_position(struct dwl_input_method_popup *popup) {
 		(xdg_surface || layer_surface)) {
 		cursor_rect = text_input->input->current.cursor_rectangle;
 
-		struct wlr_scene_tree *tree = relay->focused_surface->data;
-		int lx, ly;
+		tree = relay->focused_surface->data;
 		wlr_scene_node_coords(&tree->node, &lx, &ly);
 		cursor_rect.x += lx;
 		cursor_rect.y += ly;
@@ -247,15 +254,13 @@ static void update_popup_position(struct dwl_input_method_popup *popup) {
 		cursor_rect = (struct wlr_box){0};
 	}
 
-	Monitor *output = output_nearest_to(cursor_rect.x, cursor_rect.y);
+	output = output_nearest_to(cursor_rect.x, cursor_rect.y);
 	if (!output_is_usable(output)) {
-		wlr_log(WLR_ERROR, "Cannot position IME popup (unusable output)");
 		return;
 	}
-	struct wlr_box output_box;
 	wlr_output_layout_get_box(output_layout, output->wlr_output, &output_box);
 
-	struct wlr_xdg_positioner_rules rules = {
+	pointer_rules = (struct wlr_xdg_positioner_rules){
 		.anchor_rect = cursor_rect,
 		.anchor = XDG_POSITIONER_ANCHOR_BOTTOM_LEFT,
 		.gravity = XDG_POSITIONER_GRAVITY_BOTTOM_RIGHT,
@@ -268,9 +273,9 @@ static void update_popup_position(struct dwl_input_method_popup *popup) {
 								 XDG_POSITIONER_CONSTRAINT_ADJUSTMENT_SLIDE_X,
 	};
 
-	struct wlr_box popup_box;
-	wlr_xdg_positioner_rules_get_geometry(&rules, &popup_box);
-	wlr_xdg_positioner_rules_unconstrain_box(&rules, &output_box, &popup_box);
+	wlr_xdg_positioner_rules_get_geometry(&pointer_rules, &popup_box);
+	wlr_xdg_positioner_rules_unconstrain_box(&pointer_rules, &output_box,
+											 &popup_box);
 
 	wlr_scene_node_set_position(&popup->tree->node, popup_box.x, popup_box.y);
 	wlr_scene_node_raise_to_top(&relay->popup_tree->node);
@@ -296,9 +301,10 @@ static void handle_input_method_commit(struct wl_listener *listener,
 	struct dwl_input_method_relay *relay =
 		wl_container_of(listener, relay, input_method_commit);
 	struct wlr_input_method_v2 *input_method = data;
+	struct text_input *text_input;
 	assert(relay->input_method == input_method);
 
-	struct text_input *text_input = relay->active_text_input;
+	text_input = relay->active_text_input;
 	if (!text_input) {
 		return;
 	}
@@ -423,7 +429,6 @@ static void handle_new_input_method(struct wl_listener *listener, void *data) {
 	}
 
 	if (relay->input_method) {
-		wlr_log(WLR_INFO, "Attempted to connect second input method to a seat");
 		wlr_input_method_v2_send_unavailable(input_method);
 		return;
 	}
@@ -453,10 +458,10 @@ static void handle_new_input_method(struct wl_listener *listener, void *data) {
 }
 
 static void send_state_to_input_method(struct dwl_input_method_relay *relay) {
-	assert(relay->active_text_input && relay->input_method);
 
 	struct wlr_input_method_v2 *input_method = relay->input_method;
 	struct wlr_text_input_v3 *input = relay->active_text_input->input;
+	assert(relay->active_text_input && relay->input_method);
 
 	if (input->active_features & WLR_TEXT_INPUT_V3_FEATURE_SURROUNDING_TEXT) {
 		wlr_input_method_v2_send_surrounding_text(
@@ -522,11 +527,12 @@ static void handle_new_text_input(struct wl_listener *listener, void *data) {
 	struct dwl_input_method_relay *relay =
 		wl_container_of(listener, relay, new_text_input);
 	struct wlr_text_input_v3 *wlr_text_input = data;
+	struct text_input *text_input = ecalloc(1, sizeof(struct text_input));
+
 	if (seat != wlr_text_input->seat) {
 		return;
 	}
 
-	struct text_input *text_input = ecalloc(1, sizeof(struct text_input));
 	text_input->input = wlr_text_input;
 	text_input->relay = relay;
 	wl_list_insert(&relay->text_inputs, &text_input->link);
@@ -584,7 +590,6 @@ void dwl_im_relay_finish(struct dwl_input_method_relay *relay) {
 void dwl_im_relay_set_focus(struct dwl_input_method_relay *relay,
 							struct wlr_surface *surface) {
 	if (relay->focused_surface == surface) {
-		wlr_log(WLR_INFO, "The surface is already focused");
 		return;
 	}
 
