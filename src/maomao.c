@@ -145,11 +145,11 @@ enum {
 enum { UP, DOWN, LEFT, RIGHT, UNDIR }; /* smartmovewin */
 enum { NONE, OPEN, MOVE, CLOSE, TAG };
 
-struct vec2 {
+struct dvec2 {
 	double x, y;
 };
 
-struct uvec2 {
+struct ivec2 {
 	int x, y;
 };
 
@@ -732,10 +732,10 @@ static double swipe_dy = 0;
 
 bool render_border = true;
 
-struct vec2 *baked_points_move;
-struct vec2 *baked_points_open;
-struct vec2 *baked_points_tag;
-struct vec2 *baked_points_close;
+struct dvec2 *baked_points_move;
+struct dvec2 *baked_points_open;
+struct dvec2 *baked_points_tag;
+struct dvec2 *baked_points_close;
 
 static struct wl_event_source *hide_source;
 static bool cursor_hidden = false;
@@ -819,8 +819,8 @@ static struct wlr_xwayland *xwayland;
 #include "layout/layout.h"
 #include "text_input/ime.h"
 
-struct vec2 calculate_animation_curve_at(double t, int type) {
-	struct vec2 point;
+struct dvec2 calculate_animation_curve_at(double t, int type) {
+	struct dvec2 point;
 	double *animation_curve;
 	if (type == MOVE) {
 		animation_curve = animation_curve_move;
@@ -873,7 +873,7 @@ double find_animation_curve_at(double t, int type) {
 	unsigned int up = BAKED_POINTS_COUNT - 1;
 
 	unsigned int middle = (up + down) / 2;
-	struct vec2 *baked_points;
+	struct dvec2 *baked_points;
 	if (type == MOVE) {
 		baked_points = baked_points_move;
 	} else if (type == OPEN) {
@@ -1230,10 +1230,10 @@ void apply_border(Client *c) {
 	wlr_scene_node_set_position(&c->border[3]->node, right_x, right_y);
 }
 
-struct uvec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
+struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 	int offsetx = 0;
 	int offsety = 0;
-	struct uvec2 offset;
+	struct ivec2 offset;
 	offset.x = 0;
 	offset.y = 0;
 
@@ -1298,7 +1298,7 @@ void client_apply_clip(Client *c) {
 	if (c->iskilling || !client_surface(c)->mapped)
 		return;
 	struct wlr_box clip_box;
-	struct uvec2 offset;
+	struct ivec2 offset;
 	animationScale scale_data;
 
 	if (!animations) {
@@ -1578,9 +1578,12 @@ Client *termforwin(Client *w) {
 	if (!w->pid || w->isterm || w->noswallow)
 		return NULL;
 
-	wl_list_for_each(c, &fstack,
-					 flink) if (c->isterm && !c->swallowing && c->pid &&
-								isdescprocess(c->pid, w->pid)) return c;
+	wl_list_for_each(c, &fstack, flink) {
+		if (c->isterm && !c->swallowing && c->pid &&
+			isdescprocess(c->pid, w->pid)) {
+			return c;
+		}
+	}
 
 	return NULL;
 }
