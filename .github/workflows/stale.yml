@@ -15,13 +15,13 @@ jobs:
           # 禁用自动标记 stale（仅手动标记的 issue 会被处理）
           days-before-issue-stale: -1
           # 手动标记后，14 天后关闭
-          days-before-issue-close: 14
+          days-before-issue-close: 7
           # 使用的标签（必须和你手动添加的标签一致）
           stale-issue-label: "stale"
           # 自动关闭时自动加上的标签
           close-issue-label: "automatic-closing"
           # 关闭时的提示信息
-          close-issue-message: "This issue was closed because it was marked as stale and had no activity for 14 days."
+          close-issue-message: "Sorry,this issue was closed because it was marked as stale and had no activity for 7 days."
           # 禁用 PR 处理
           days-before-pr-stale: -1
           days-before-pr-close: -1
