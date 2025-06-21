@@ -52,6 +52,11 @@ int fd_set_nonblock(int fd) {
 int regex_match(const char *pattern, const char *str) {
 	int errnum;
 	PCRE2_SIZE erroffset;
+
+	if (!pattern || !str) {
+		return 0;
+	}
+
 	pcre2_code *re = pcre2_compile((PCRE2_SPTR)pattern, PCRE2_ZERO_TERMINATED,
 								   PCRE2_UTF, // 启用 UTF-8 支持
 								   &errnum, &erroffset, NULL);
