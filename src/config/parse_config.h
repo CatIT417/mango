@@ -2095,8 +2095,8 @@ void override_config(void) {
 	shadows = CLAMP_INT(config.shadows, 0, 1);
 	shadows_size = CLAMP_INT(config.shadows_size, 0, 100);
 	shadows_blur = CLAMP_INT(config.shadows_blur, 0, 100);
-	shadows_position_x = CLAMP_INT(config.shadows_position_x, 0, 100);
-	shadows_position_y = CLAMP_INT(config.shadows_position_y, 0, 100);
+	shadows_position_x = CLAMP_INT(config.shadows_position_x, -1000, 1000);
+	shadows_position_y = CLAMP_INT(config.shadows_position_y, -1000, 1000);
 	focused_opacity = CLAMP_FLOAT(config.focused_opacity, 0.0f, 1.0f);
 	unfocused_opacity = CLAMP_FLOAT(config.unfocused_opacity, 0.0f, 1.0f);
 	memcpy(shadowscolor, config.shadowscolor, sizeof(shadowscolor));
