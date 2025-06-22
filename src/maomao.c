@@ -1101,7 +1101,8 @@ void apply_border(Client *c) {
 
 	bool hit_no_border = check_hit_no_border(c);
 	enum corner_location current_corner_location =
-		c->mon->visible_clients == 1 && no_radius_when_single
+		c->isfullscreen ||
+				(c->mon->visible_clients == 1 && no_radius_when_single)
 			? CORNER_LOCATION_NONE
 			: CORNER_LOCATION_ALL;
 
@@ -5118,7 +5119,8 @@ void buffer_set_effect(Client *c, animationScale data) {
 	if (c == grabc)
 		data.should_scale = false;
 
-	if (c->mon->visible_clients == 1 && no_radius_when_single) {
+	if (c->isfullscreen ||
+		(c->mon->visible_clients == 1 && no_radius_when_single)) {
 		data.corner_location = CORNER_LOCATION_NONE;
 	}
 
