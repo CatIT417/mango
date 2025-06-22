@@ -1283,8 +1283,8 @@ void client_apply_clip(Client *c) {
 		client_draw_shadow(c);
 
 		surface_clip = clip_box;
-		surface_clip.width = surface_clip.width - 2 * c->bw;
-		surface_clip.height = surface_clip.height - 2 * c->bw;
+		surface_clip.width = surface_clip.width - c->bw;
+		surface_clip.height = surface_clip.height - c->bw;
 
 		if (surface_clip.width <= 0 || surface_clip.height <= 0) {
 			return;
