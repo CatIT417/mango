@@ -153,7 +153,7 @@ struct dvec2 {
 };
 
 struct ivec2 {
-	int x, y;
+	int x, y, width, height;
 };
 
 typedef struct {
@@ -1204,10 +1204,19 @@ struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 	struct ivec2 offset;
 	offset.x = 0;
 	offset.y = 0;
+	offset.width = 0;
+	offset.height = 0;
 
 	if (!ISTILED(c) && !c->animation.tagining && !c->animation.tagouted &&
 		!c->animation.tagouting)
 		return offset;
+
+	int bottom_out_offset =
+		GEZERO(c->animation.current.y - c->animation.current.height -
+			   c->mon->m.y - c->mon->m.height);
+	int right_out_offset =
+		GEZERO(c->animation.current.x + c->animation.current.width -
+			   c->mon->m.x - c->mon->m.width);
 
 	// // make tagout tagin animations not visible in other monitors
 	if (ISTILED(c) || c->animation.tagining || c->animation.tagouted ||
@@ -1217,11 +1226,8 @@ struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 			offsetx = offsetx < 0 ? 0 : offsetx;
 			clip_box->x = clip_box->x + offsetx;
 			clip_box->width = clip_box->width - offsetx;
-		} else if (c->animation.current.x + c->animation.current.width >
-				   c->mon->m.x + c->mon->m.width) {
-			clip_box->width = clip_box->width - (c->animation.current.x +
-												 c->animation.current.width -
-												 c->mon->m.x - c->mon->m.width);
+		} else if (right_out_offset > 0) {
+			clip_box->width = clip_box->width - right_out_offset;
 		}
 
 		if (c->animation.current.y < c->mon->m.y) {
@@ -1229,17 +1235,15 @@ struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 			offsety = offsety < 0 ? 0 : offsety;
 			clip_box->y = clip_box->y + offsety;
 			clip_box->height = clip_box->height - offsety;
-		} else if (c->animation.current.y + c->animation.current.height >
-				   c->mon->m.y + c->mon->m.height) {
-			clip_box->height =
-				clip_box->height -
-				(c->animation.current.y + c->animation.current.height -
-				 c->mon->m.y - c->mon->m.height);
+		} else if (bottom_out_offset > 0) {
+			clip_box->height = clip_box->height - bottom_out_offset;
 		}
 	}
 
 	offset.x = offsetx;
 	offset.y = offsety;
+	offset.width = right_out_offset;
+	offset.height = bottom_out_offset;
 
 	if ((clip_box->width < 0 || clip_box->height < 0) &&
 		(ISTILED(c) || c->animation.tagouting || c->animation.tagining)) {
@@ -1280,12 +1284,7 @@ void client_apply_clip(Client *c) {
 	float opacity = c->isfullscreen	   ? 1
 					: c == selmon->sel ? c->focused_opacity
 									   : c->unfocused_opacity;
-	int bottom_out_offset =
-		GEZERO(c->animation.current.y - c->animation.current.height -
-			   c->mon->m.y - c->mon->m.height);
-	int right_out_offset =
-		GEZERO(c->animation.current.x + c->animation.current.width -
-			   c->mon->m.x - c->mon->m.width);
+
 	int bw = (int)c->bw;
 
 	if (!animations) {
@@ -1298,21 +1297,13 @@ void client_apply_clip(Client *c) {
 
 		offset = clip_to_hide(c, &clip_box);
 
-		bottom_out_offset =
-			GEZERO(c->animation.current.y - c->animation.current.height -
-				   c->mon->m.y - c->mon->m.height);
-		right_out_offset =
-			GEZERO(c->animation.current.x + c->animation.current.width -
-				   c->mon->m.x - c->mon->m.width);
-
 		apply_border(c);
 
 		client_draw_shadow(c);
 
 		surface_clip = clip_box;
-		surface_clip.width = surface_clip.width - GEZERO(bw - right_out_offset);
-		surface_clip.height =
-			surface_clip.height - GEZERO(bw - bottom_out_offset);
+		surface_clip.width = surface_clip.width - GEZERO(bw - offset.width);
+		surface_clip.height = surface_clip.height - GEZERO(bw - offset.height);
 
 		scale_data.opacity = c->isfullscreen	? 1
 							 : c == selmon->sel ? c->focused_opacity
@@ -1351,8 +1342,8 @@ void client_apply_clip(Client *c) {
 	apply_border(c);
 
 	surface_clip = clip_box;
-	surface_clip.width = surface_clip.width - GEZERO(bw - right_out_offset);
-	surface_clip.height = surface_clip.height - GEZERO(bw - bottom_out_offset);
+	surface_clip.width = surface_clip.width - GEZERO(bw - offset.width);
+	surface_clip.height = surface_clip.height - GEZERO(bw - offset.height);
 
 	if (surface_clip.width <= 0 || surface_clip.height <= 0) {
 		should_render_client_surface = false;
@@ -1372,8 +1363,8 @@ void client_apply_clip(Client *c) {
 	wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &surface_clip);
 
 	scale_data.should_scale = true;
-	scale_data.width = clip_box.width - GEZERO(bw - right_out_offset);
-	scale_data.height = clip_box.height - GEZERO(bw - bottom_out_offset);
+	scale_data.width = clip_box.width - GEZERO(bw - offset.width);
+	scale_data.height = clip_box.height - GEZERO(bw - offset.height);
 	scale_data.width_scale =
 		(float)scale_data.width / (geometry.width - offset.x);
 	scale_data.height_scale =
