@@ -1212,27 +1212,28 @@ struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 		return offset;
 
 	int bottom_out_offset =
-		GEZERO(c->animation.current.y - c->animation.current.height -
+		GEZERO(c->animation.current.y + c->animation.current.height -
 			   c->mon->m.y - c->mon->m.height);
 	int right_out_offset =
 		GEZERO(c->animation.current.x + c->animation.current.width -
 			   c->mon->m.x - c->mon->m.width);
+	int left_out_offset = GEZERO(c->mon->m.x - c->animation.current.x);
+	int top_out_offset = GEZERO(c->mon->m.y - c->animation.current.y);
+	int bw = (int)c->bw;
 
 	// // make tagout tagin animations not visible in other monitors
 	if (ISTILED(c) || c->animation.tagining || c->animation.tagouted ||
 		c->animation.tagouting) {
-		if (c->animation.current.x < c->mon->m.x) {
-			offsetx = c->mon->m.x - c->bw - c->animation.current.x;
-			offsetx = offsetx < 0 ? 0 : offsetx;
+		if (left_out_offset > 0) {
+			offsetx = GEZERO(left_out_offset - bw);
 			clip_box->x = clip_box->x + offsetx;
 			clip_box->width = clip_box->width - offsetx;
 		} else if (right_out_offset > 0) {
 			clip_box->width = clip_box->width - right_out_offset;
 		}
 
-		if (c->animation.current.y < c->mon->m.y) {
-			offsety = c->mon->m.y - c->bw - c->animation.current.y;
-			offsety = offsety < 0 ? 0 : offsety;
+		if (top_out_offset > 0) {
+			offsety = GEZERO(top_out_offset - bw);
 			clip_box->y = clip_box->y + offsety;
 			clip_box->height = clip_box->height - offsety;
 		} else if (bottom_out_offset > 0) {
