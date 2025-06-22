@@ -1269,6 +1269,14 @@ void client_apply_clip(Client *c) {
 	enum corner_location current_corner_location =
 		set_client_corner_location(c);
 
+	float percent =
+		c->animation.action == OPEN && animation_fade_in && !c->nofadein
+			? (double)c->animation.passed_frames / c->animation.total_frames
+			: 1.0;
+	float opacity = c->isfullscreen	   ? 1
+					: c == selmon->sel ? c->focused_opacity
+									   : c->unfocused_opacity;
+
 	if (!animations) {
 		c->animation.running = false;
 		c->need_output_flush = false;
@@ -1285,6 +1293,9 @@ void client_apply_clip(Client *c) {
 		surface_clip = clip_box;
 		surface_clip.width = surface_clip.width - c->bw;
 		surface_clip.height = surface_clip.height - c->bw;
+		scale_data.opacity = c->isfullscreen	? 1
+							 : c == selmon->sel ? c->focused_opacity
+												: c->unfocused_opacity;
 
 		if (surface_clip.width <= 0 || surface_clip.height <= 0) {
 			return;
@@ -1292,8 +1303,8 @@ void client_apply_clip(Client *c) {
 
 		wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node,
 										   &surface_clip);
-		buffer_set_effect(
-			c, (animationScale){0, 0, 0, 0, current_corner_location, false});
+		buffer_set_effect(c, (animationScale){0, 0, 0, 0, opacity, opacity,
+											  current_corner_location, false});
 		return;
 	}
 
@@ -1347,13 +1358,8 @@ void client_apply_clip(Client *c) {
 	scale_data.height_scale =
 		(float)scale_data.height / (geometry.height - offset.y);
 	scale_data.corner_location = current_corner_location;
-	scale_data.percent =
-		c->animation.action == OPEN && animation_fade_in && !c->nofadein
-			? (double)c->animation.passed_frames / c->animation.total_frames
-			: 1.0;
-	scale_data.opacity = c->isfullscreen	? 1
-						 : c == selmon->sel ? c->focused_opacity
-											: c->unfocused_opacity;
+	scale_data.percent = percent;
+	scale_data.opacity = opacity;
 	buffer_set_effect(c, scale_data);
 }
 
