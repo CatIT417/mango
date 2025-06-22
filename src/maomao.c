@@ -1276,23 +1276,40 @@ void client_apply_clip(Client *c) {
 	float opacity = c->isfullscreen	   ? 1
 					: c == selmon->sel ? c->focused_opacity
 									   : c->unfocused_opacity;
+	int bottom_out_offset =
+		GEZERO(c->animation.current.y - c->animation.current.height -
+			   c->mon->m.y - c->mon->m.height);
+	int right_out_offset =
+		GEZERO(c->animation.current.x + c->animation.current.width -
+			   c->mon->m.x - c->mon->m.width);
+	int bw = (int)c->bw;
 
 	if (!animations) {
 		c->animation.running = false;
 		c->need_output_flush = false;
 		c->animainit_geom = c->current = c->pending = c->animation.current =
 			c->geom;
+
 		client_get_clip(c, &clip_box);
 
 		offset = clip_to_hide(c, &clip_box);
+
+		bottom_out_offset =
+			GEZERO(c->animation.current.y - c->animation.current.height -
+				   c->mon->m.y - c->mon->m.height);
+		right_out_offset =
+			GEZERO(c->animation.current.x + c->animation.current.width -
+				   c->mon->m.x - c->mon->m.width);
 
 		apply_border(c);
 
 		client_draw_shadow(c);
 
 		surface_clip = clip_box;
-		surface_clip.width = surface_clip.width - c->bw;
-		surface_clip.height = surface_clip.height - c->bw;
+		surface_clip.width = surface_clip.width - GEZERO(bw - right_out_offset);
+		surface_clip.height =
+			surface_clip.height - GEZERO(bw - bottom_out_offset);
+
 		scale_data.opacity = c->isfullscreen	? 1
 							 : c == selmon->sel ? c->focused_opacity
 												: c->unfocused_opacity;
@@ -1328,14 +1345,6 @@ void client_apply_clip(Client *c) {
 	offset = clip_to_hide(c, &clip_box);
 
 	apply_border(c);
-
-	int bottom_out_offset =
-		GEZERO(c->animation.current.y - c->animation.current.height -
-			   c->mon->m.y - c->mon->m.height);
-	int right_out_offset =
-		GEZERO(c->animation.current.x + c->animation.current.width -
-			   c->mon->m.x - c->mon->m.width);
-	int bw = (int)c->bw;
 
 	surface_clip = clip_box;
 	surface_clip.width = surface_clip.width - GEZERO(bw - right_out_offset);
