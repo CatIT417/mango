@@ -1329,9 +1329,17 @@ void client_apply_clip(Client *c) {
 
 	apply_border(c);
 
+	int bottom_out_offset =
+		GEZERO(c->animation.current.y - c->animation.current.height -
+			   c->mon->m.y - c->mon->m.height);
+	int right_out_offset =
+		GEZERO(c->animation.current.x + c->animation.current.width -
+			   c->mon->m.x - c->mon->m.width);
+	int bw = (int)c->bw;
+
 	surface_clip = clip_box;
-	surface_clip.width = surface_clip.width - c->bw;
-	surface_clip.height = surface_clip.height - c->bw;
+	surface_clip.width = surface_clip.width - GEZERO(bw - right_out_offset);
+	surface_clip.height = surface_clip.height - GEZERO(bw - bottom_out_offset);
 
 	if (surface_clip.width <= 0 || surface_clip.height <= 0) {
 		should_render_client_surface = false;
@@ -1351,8 +1359,8 @@ void client_apply_clip(Client *c) {
 	wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &surface_clip);
 
 	scale_data.should_scale = true;
-	scale_data.width = clip_box.width - c->bw;
-	scale_data.height = clip_box.height - c->bw;
+	scale_data.width = clip_box.width - GEZERO(bw - right_out_offset);
+	scale_data.height = clip_box.height - GEZERO(bw - bottom_out_offset);
 	scale_data.width_scale =
 		(float)scale_data.width / (geometry.width - offset.x);
 	scale_data.height_scale =
