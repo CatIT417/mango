@@ -1096,10 +1096,14 @@ void client_draw_shadow(Client *c) {
 }
 
 void apply_border(Client *c) {
-	if (c->iskilling || !client_surface(c)->mapped)
+	if (!c || c->iskilling || !client_surface(c)->mapped)
 		return;
 
 	bool hit_no_border = check_hit_no_border(c);
+	enum corner_location current_corner_location =
+		c->mon->visible_clients == 1 && no_radius_when_single
+			? CORNER_LOCATION_NONE
+			: CORNER_LOCATION_ALL;
 
 	// Handle no-border cases
 	if (hit_no_border && smartgaps) {
@@ -1163,14 +1167,14 @@ void apply_border(Client *c) {
 		.area = {inner_surface_x, inner_surface_y, inner_surface_width,
 				 inner_surface_height},
 		.corner_radius = border_radius,
-		.corners = CORNER_LOCATION_ALL,
+		.corners = current_corner_location,
 	};
 
 	wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
 	wlr_scene_rect_set_size(c->border, rect_width, rect_height);
 	wlr_scene_node_set_position(&c->border->node, rect_x, rect_y);
 	wlr_scene_rect_set_corner_radius(c->border, border_radius,
-									 CORNER_LOCATION_ALL);
+									 current_corner_location);
 	wlr_scene_rect_set_clipped_region(c->border, clipped_region);
 }
 
@@ -5121,6 +5125,10 @@ void buffer_set_effect(Client *c, animationScale data) {
 
 	if (c == grabc)
 		data.should_scale = false;
+
+	if (c->mon->visible_clients == 1 && no_radius_when_single) {
+		data.corner_location = CORNER_LOCATION_NONE;
+	}
 
 	wlr_scene_node_for_each_buffer(&c->scene_surface->node,
 								   scene_buffer_apply_effect, &data);

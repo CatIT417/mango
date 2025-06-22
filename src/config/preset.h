@@ -56,6 +56,7 @@ int scroller_prefer_center = 0;
 int focus_cross_monitor = 0;
 int focus_cross_tag = 0;
 int no_border_when_single = 0;
+int no_radius_when_single = 0;
 int snap_distance = 30;
 int enable_floating_snap = 0;
 int drag_tile_to_tile = 0;

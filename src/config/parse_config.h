@@ -149,6 +149,7 @@ typedef struct {
 	int focus_cross_monitor;
 	int focus_cross_tag;
 	int no_border_when_single;
+	int no_radius_when_single;
 	int snap_distance;
 	int enable_floating_snap;
 	int drag_tile_to_tile;
@@ -926,6 +927,8 @@ void parse_config_line(Config *config, const char *line) {
 		config->syncobj_enable = atoi(value);
 	} else if (strcmp(key, "no_border_when_single") == 0) {
 		config->no_border_when_single = atoi(value);
+	} else if (strcmp(key, "no_radius_when_single") == 0) {
+		config->no_radius_when_single = atoi(value);
 	} else if (strcmp(key, "snap_distance") == 0) {
 		config->snap_distance = atoi(value);
 	} else if (strcmp(key, "enable_floating_snap") == 0) {
@@ -2049,6 +2052,7 @@ void override_config(void) {
 	snap_distance = CLAMP_INT(config.snap_distance, 0, 99999);
 	cursor_size = CLAMP_INT(config.cursor_size, 4, 512);
 	no_border_when_single = CLAMP_INT(config.no_border_when_single, 0, 1);
+	no_radius_when_single = CLAMP_INT(config.no_radius_when_single, 0, 1);
 	cursor_hide_timeout =
 		CLAMP_INT(config.cursor_hide_timeout, 0, 36000); // 0-10小时
 	drag_tile_to_tile = CLAMP_INT(config.drag_tile_to_tile, 0, 1);
@@ -2178,6 +2182,7 @@ void set_value_default() {
 	config.xwayland_persistence = xwayland_persistence;
 	config.syncobj_enable = syncobj_enable;
 	config.no_border_when_single = no_border_when_single;
+	config.no_radius_when_single = no_radius_when_single;
 	config.snap_distance = snap_distance;
 	config.drag_tile_to_tile = drag_tile_to_tile;
 	config.enable_floating_snap = enable_floating_snap;
