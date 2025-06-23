@@ -1101,8 +1101,8 @@ void apply_border(Client *c) {
 
 	bool hit_no_border = check_hit_no_border(c);
 	enum corner_location current_corner_location =
-		c->isfullscreen ||
-				(c->mon->visible_clients == 1 && no_radius_when_single)
+		c->isfullscreen || (no_radius_when_single && c->mon &&
+							c->mon->visible_clients == 1)
 			? CORNER_LOCATION_NONE
 			: CORNER_LOCATION_ALL;
 
@@ -5111,7 +5111,10 @@ void snap_scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int sx,
 
 void buffer_set_effect(Client *c, animationScale data) {
 
-	if (c->iskilling || c->animation.tagouting || c->animation.tagouted ||
+	if (!c || c->iskilling)
+		return;
+
+	if (c->animation.tagouting || c->animation.tagouted ||
 		c->animation.tagining) {
 		data.should_scale = false;
 	}
@@ -5120,7 +5123,7 @@ void buffer_set_effect(Client *c, animationScale data) {
 		data.should_scale = false;
 
 	if (c->isfullscreen ||
-		(c->mon->visible_clients == 1 && no_radius_when_single)) {
+		(no_radius_when_single && c->mon && c->mon->visible_clients == 1)) {
 		data.corner_location = CORNER_LOCATION_NONE;
 	}
 
