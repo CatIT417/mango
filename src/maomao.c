@@ -147,7 +147,7 @@ struct dvec2 {
 };
 
 struct ivec2 {
-	int x, y;
+	int x, y, width, height;
 };
 
 typedef struct {
@@ -1183,42 +1183,47 @@ struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 	struct ivec2 offset;
 	offset.x = 0;
 	offset.y = 0;
+	offset.width = 0;
+	offset.height = 0;
 
 	if (!ISTILED(c) && !c->animation.tagining && !c->animation.tagouted &&
 		!c->animation.tagouting)
 		return offset;
 
+	int bottom_out_offset =
+		GEZERO(c->animation.current.y + c->animation.current.height -
+			   c->mon->m.y - c->mon->m.height);
+	int right_out_offset =
+		GEZERO(c->animation.current.x + c->animation.current.width -
+			   c->mon->m.x - c->mon->m.width);
+	int left_out_offset = GEZERO(c->mon->m.x - c->animation.current.x);
+	int top_out_offset = GEZERO(c->mon->m.y - c->animation.current.y);
+	int bw = (int)c->bw;
+
 	// // make tagout tagin animations not visible in other monitors
 	if (ISTILED(c) || c->animation.tagining || c->animation.tagouted ||
 		c->animation.tagouting) {
-		if (c->animation.current.x < c->mon->m.x) {
-			offsetx = c->mon->m.x - c->bw - c->animation.current.x;
-			offsetx = offsetx < 0 ? 0 : offsetx;
+		if (left_out_offset > 0) {
+			offsetx = GEZERO(left_out_offset - bw);
 			clip_box->x = clip_box->x + offsetx;
 			clip_box->width = clip_box->width - offsetx;
-		} else if (c->animation.current.x + c->animation.current.width >
-				   c->mon->m.x + c->mon->m.width) {
-			clip_box->width = clip_box->width - (c->animation.current.x +
-												 c->animation.current.width -
-												 c->mon->m.x - c->mon->m.width);
+		} else if (right_out_offset > 0) {
+			clip_box->width = clip_box->width - right_out_offset;
 		}
 
-		if (c->animation.current.y < c->mon->m.y) {
-			offsety = c->mon->m.y - c->bw - c->animation.current.y;
-			offsety = offsety < 0 ? 0 : offsety;
+		if (top_out_offset > 0) {
+			offsety = GEZERO(top_out_offset - bw);
 			clip_box->y = clip_box->y + offsety;
 			clip_box->height = clip_box->height - offsety;
-		} else if (c->animation.current.y + c->animation.current.height >
-				   c->mon->m.y + c->mon->m.height) {
-			clip_box->height =
-				clip_box->height -
-				(c->animation.current.y + c->animation.current.height -
-				 c->mon->m.y - c->mon->m.height);
+		} else if (bottom_out_offset > 0) {
+			clip_box->height = clip_box->height - bottom_out_offset;
 		}
 	}
 
 	offset.x = offsetx;
 	offset.y = offsety;
+	offset.width = right_out_offset;
+	offset.height = bottom_out_offset;
 
 	if ((clip_box->width < 0 || clip_box->height < 0) &&
 		(ISTILED(c) || c->animation.tagouting || c->animation.tagining)) {
@@ -1247,6 +1252,7 @@ void client_apply_clip(Client *c) {
 	struct wlr_box clip_box;
 	struct ivec2 offset;
 	animationScale scale_data;
+	int bw = (int)c->bw;
 
 	if (!animations) {
 		c->animation.running = false;
@@ -1291,8 +1297,8 @@ void client_apply_clip(Client *c) {
 	wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
 
 	scale_data.should_scale = true;
-	scale_data.width = clip_box.width - c->bw;
-	scale_data.height = clip_box.height - c->bw;
+	scale_data.width = clip_box.width - GEZERO(bw - offset.width);
+	scale_data.height = clip_box.height - GEZERO(bw - offset.height);
 	scale_data.width_scale =
 		(float)scale_data.width / (geometry.width - offset.x);
 	scale_data.height_scale =
