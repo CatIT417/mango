@@ -6475,7 +6475,9 @@ void setup(void) {
 	wl_signal_add(&output_mgr->events.test, &output_mgr_test);
 
 	// blur
-	wlr_scene_set_blur_data(scene, blur_params);
+	wlr_scene_set_blur_data(scene, blur_params.num_passes, blur_params.radius,
+							blur_params.noise, blur_params.brightness,
+							blur_params.contrast, blur_params.saturation);
 
 	/* create text_input-, and input_method-protocol relevant globals */
 	input_method_manager = wlr_input_method_manager_v2_create(dpy);

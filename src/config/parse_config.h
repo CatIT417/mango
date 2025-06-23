@@ -2355,7 +2355,10 @@ void reset_blur_params(void) {
 			m->blur = wlr_scene_optimized_blur_create(&scene->tree, 0, 0);
 			wlr_scene_node_reparent(&m->blur->node, layers[LyrBlur]);
 			wlr_scene_optimized_blur_set_size(m->blur, m->m.width, m->m.height);
-			wlr_scene_set_blur_data(scene, blur_params);
+			wlr_scene_set_blur_data(
+				scene, blur_params.num_passes, blur_params.radius,
+				blur_params.noise, blur_params.brightness, blur_params.contrast,
+				blur_params.saturation);
 		}
 	} else {
 		Monitor *m;
