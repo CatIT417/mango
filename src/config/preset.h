@@ -183,7 +183,7 @@ static const char *tags[] = {
 };
 
 float focused_opacity = 1.0;
-float unfocused_opacity = 0.8;
+float unfocused_opacity = 1.0;
 
 int border_radius = 0;
 int border_radius_location_default = CORNER_LOCATION_ALL;
