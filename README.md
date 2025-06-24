@@ -93,8 +93,6 @@ yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist w
 git clone https://github.com/DreamMaoMao/maomao-config.git ~/.config/maomao
 ```
 #### Other Tools
-[foot](https://github.com/DreamMaoMao/dotfile/tree/main/foot)
-[swaylock](https://github.com/DreamMaoMao/dotfile/tree/main/swaylock)
 [wlogout](https://github.com/DreamMaoMao/dotfile/tree/main/wlogout)
 [swaync](https://github.com/DreamMaoMao/dotfile/tree/main/swaync)
 
