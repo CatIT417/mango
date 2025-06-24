@@ -17,19 +17,35 @@
   enableXWayland ? true,
   meson,
   ninja,
-  wlroots,
   mmsg,
+  libgbm,
+  scenefx,
+  wlroots_0_19,
+  libGL,
 }: let
   pname = "maomaowm";
   # Use patched wlroots from github.com/DreamMaoMao/wlroots
-  wlroots-git = wlroots.overrideAttrs (final: prev: {
-    src = fetchFromGitHub {
-      owner = "DreamMaoMao";
-      repo = "wlroots";
-      rev = "afbb5b7c2b14152730b57aa11119b1b16a299d5b";
-      sha256 = "sha256-pVU+CuiqvduMTpsnDHX/+EWY2qxHX2lXKiVzdGtcnYY=";
-    };
-  });
+  wlroots-git = wlroots_0_19.overrideAttrs (
+    final: prev: {
+      src = fetchFromGitHub {
+        owner = "DreamMaoMao";
+        repo = "wlroots";
+        rev = "afbb5b7c2b14152730b57aa11119b1b16a299d5b";
+        sha256 = "sha256-pVU+CuiqvduMTpsnDHX/+EWY2qxHX2lXKiVzdGtcnYY=";
+      };
+    }
+  );
+  scenefx-0-4 = scenefx.overrideAttrs (
+    final: prev: {
+      buildInputs =
+        prev.buildInputs
+        ++ [
+          libgbm
+          libxcb
+          xcbutilwm
+        ];
+    }
+  );
 in
   stdenv.mkDerivation {
     inherit pname;
@@ -57,6 +73,8 @@ in
         wayland
         wayland-protocols
         wlroots-git
+        scenefx-0-4
+        libGL
       ]
       ++ lib.optionals enableXWayland [
         libX11
