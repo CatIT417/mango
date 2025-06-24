@@ -1807,7 +1807,7 @@ setclient_coordinate_center(Client *c, struct wlr_box geom, int offsetx,
 	tempbox.height = geom.height;
 
 	if (offsetx != 0) {
-		len = m->w.width / 2;
+		len = (m->w.width - c->geom.width - 2 * m->gappoh) / 2;
 		offset = len * (offsetx / 100.0);
 		tempbox.x += offset;
 
@@ -1820,7 +1820,7 @@ setclient_coordinate_center(Client *c, struct wlr_box geom, int offsetx,
 		}
 	}
 	if (offsety != 0) {
-		len = m->w.height;
+		len = (m->w.height - c->geom.height - 2 * m->gappov) / 2;
 		offset = len * (offsety / 100.0);
 		tempbox.y += offset;
 
