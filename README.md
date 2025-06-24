@@ -85,11 +85,13 @@ yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist w
 
 ## My Dotfiles
 - Dependencies
+```bash
+yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist wl-clipboard wlsunset xfce-polkit swaync pamixer lavalauncher-mao-git wlr-dpms sway-audio-idle-inhibit-git swayidle dimland-git brightnessctl swayosd wlr-randr grim slurp satty swaylock-effects-git wlogout
 ```
-yay -S pamixer lavalauncher-mao-git wlr-dpms sway-audio-idle-inhibit-git swayidle dimland-git brightnessctl swayosd wlr-randr grim slurp satty swaylock-effects-git wlogout
+- use my config
+```bash
+git clone https://github.com/DreamMaoMao/maomao-config.git ~/.config/maomao
 ```
-### Maomao Config
-[maomao-config](https://github.com/DreamMaoMao/dotfile/tree/main/maomao)
 #### Other Tools
 [foot](https://github.com/DreamMaoMao/dotfile/tree/main/foot)
 [swaylock](https://github.com/DreamMaoMao/dotfile/tree/main/swaylock)
