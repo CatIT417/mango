@@ -18,6 +18,7 @@ This project's development is based on [dwl](https://codeberg.org/dwl/dwl/).
      - Sway-like scratchpad and named scratchpad
      - Minimize window to scratchpad
      - Hycov-like overview
+     - Window effects from scenefx(blur, shadow, corner radius, opacity)
 
 Master-Stack Layout
 
@@ -55,6 +56,11 @@ yay -S maomaowm-git
 # wlroots 0.19.0 release with a fix-patch to avoid crash
 git clone -b 0.19.0-fix  https://github.com/DreamMaoMao/wlroots.git
 cd wlroots
+meson build -Dprefix=/usr
+sudo ninja -C build install
+
+git clone https://github.com/wlrfx/scenefx.git
+cd scenefx
 meson build -Dprefix=/usr
 sudo ninja -C build install
 
@@ -176,3 +182,5 @@ Here's an example of using the modules in a flake:
 - https://codeberg.org/dwl/dwl - Basal dwl feature
 
 - https://github.com/swaywm/sway - Sample of Wayland protocol
+
+- https://github.com/wlrfx/scenefx - Make it simple to add window effect.
