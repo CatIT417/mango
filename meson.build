@@ -33,12 +33,12 @@ libm = cc.find_library('m')
 xcb = dependency('xcb', required : get_option('xwayland'))
 xlibs = dependency('xcb-icccm', required : get_option('xwayland'))
 wayland_server_dep = dependency('wayland-server')
-wlroots_dep = dependency('wlroots-0.19')
+wlroots_dep = dependency('wlroots-0.19',version: '>=0.19.0')
 xkbcommon_dep = dependency('xkbcommon')
 libinput_dep = dependency('libinput')
 libwayland_client_dep = dependency('wayland-client')
 pcre2_dep = dependency('libpcre2-8')
-libscenefx_dep = dependency('scenefx-0.4')
+libscenefx_dep = dependency('scenefx-0.4',version: '>=0.4.1')
 
 
 # 获取 Git Commit Hash 和最新的 tag
