@@ -199,6 +199,7 @@ typedef struct {
 
 	int blur;
 	int blur_layer;
+	int blur_optimized;
 	int border_radius;
 	struct blur_data blur_params;
 	int shadows;
@@ -895,6 +896,8 @@ void parse_config_line(Config *config, const char *line) {
 		config->blur = atoi(value);
 	} else if (strcmp(key, "blur_layer") == 0) {
 		config->blur_layer = atoi(value);
+	} else if (strcmp(key, "blur_optimized") == 0) {
+		config->blur_optimized = atoi(value);
 	} else if (strcmp(key, "border_radius") == 0) {
 		config->border_radius = atoi(value);
 	} else if (strcmp(key, "blur_params_num_passes") == 0) {
@@ -2089,6 +2092,7 @@ void override_config(void) {
 
 	blur = CLAMP_INT(config.blur, 0, 1);
 	blur_layer = CLAMP_INT(config.blur_layer, 0, 1);
+	blur_optimized = CLAMP_INT(config.blur_optimized, 0, 1);
 	border_radius = CLAMP_INT(config.border_radius, 0, 100);
 	blur_params.num_passes = CLAMP_INT(config.blur_params.num_passes, 0, 10);
 	blur_params.radius = CLAMP_INT(config.blur_params.radius, 0, 100);
@@ -2219,6 +2223,7 @@ void set_value_default() {
 
 	config.blur = blur;
 	config.blur_layer = blur_layer;
+	config.blur_optimized = blur_optimized;
 	config.border_radius = border_radius;
 	config.blur_params.num_passes = blur_params_num_passes;
 	config.blur_params.radius = blur_params_radius;

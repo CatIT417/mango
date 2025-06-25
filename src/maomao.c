@@ -4505,8 +4505,12 @@ static void iter_xdg_scene_buffers(struct wlr_scene_buffer *buffer, int sx,
 
 	if (blur && c) {
 		wlr_scene_buffer_set_backdrop_blur(buffer, true);
-		wlr_scene_buffer_set_backdrop_blur_optimized(buffer, true);
 		wlr_scene_buffer_set_backdrop_blur_ignore_transparent(buffer, true);
+		if (blur_optimized) {
+			wlr_scene_buffer_set_backdrop_blur_optimized(buffer, true);
+		} else {
+			wlr_scene_buffer_set_backdrop_blur_optimized(buffer, false);
+		}
 	} else {
 		wlr_scene_buffer_set_backdrop_blur(buffer, false);
 	}
@@ -7803,7 +7807,8 @@ void smartmovewin(const Arg *arg) {
 			};
 		}
 		ny = tar == 99999 ? ny : tar;
-		ny = MIN(ny, c->mon->w.y + c->mon->w.height - c->geom.height - c->mon->gappov);
+		ny = MIN(ny, c->mon->w.y + c->mon->w.height - c->geom.height -
+						 c->mon->gappov);
 		break;
 	case LEFT:
 		tar = -99999;
@@ -7841,7 +7846,8 @@ void smartmovewin(const Arg *arg) {
 			};
 		}
 		nx = tar == 99999 ? nx : tar;
-		nx = MIN(nx, c->mon->w.x + c->mon->w.width - c->geom.width - c->mon->gappoh);
+		nx = MIN(nx, c->mon->w.x + c->mon->w.width - c->geom.width -
+						 c->mon->gappoh);
 		break;
 	}
 
