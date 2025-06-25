@@ -4,10 +4,11 @@ This project's development is based on [dwl](https://codeberg.org/dwl/dwl/).
 
 "Since many people have asked about the meaning of this compositor's name, 'Maomao' is an online alias I've been using for years - it comes from the first two characters of the Chinese word for 'caterpillar' (毛毛虫). You can basically think of it as meaning 'caterpillar'.
 
-1. **Lightweight & Fast Build**  
-   - *Maomao* is as lightweight as *dwl*, and its build can be completed within few seconds. Despite this, *maomao* does not compromise on functionality.  
+1. **Lightweight & Fast Build**
 
-2. **Feature Highlights**  
+   - _Maomao_ is as lightweight as _dwl_, and its build can be completed within few seconds. Despite this, _maomao_ does not compromise on functionality.
+
+2. **Feature Highlights**
    - In addition to basic WM functionality, Maomao provides:
      - Base tag not workspace (supports separate window layouts for each tag)
      - Smooth and customizable complete animations (window open/move/close, tag enter/leave)
@@ -29,32 +30,47 @@ Scroller Layout
 https://github.com/user-attachments/assets/c9bf9415-fad1-4400-bcdc-3ad2d76de85a
 
 # Supported layouts
-  - Tile
-  - Scroller  
-  - Monocle
-  - Grid
-  - Dwindle
-  - Spiral
-  - Deck
+
+- Tile
+- Scroller
+- Monocle
+- Grid
+- Dwindle
+- Spiral
+- Deck
 
 # Installation
 
 ## Dependencies
 
-```bash
-yay -S glibc wayland libinput libdrm pixman libxkbcommon git meson ninja wayland-protocols libdisplay-info libliftoff hwdata seatd pcre2
-```
+- glibc
+- wayland
+- wayland-protocols
+- libinput
+- libdrm
+- libxkbcommon
+- pixman
+- git
+- meson
+- ninja
+- libdisplay-info
+- libliftoff
+- hwdata
+- seatd
+- pcre2
 
 ## Arch Linux
+
 ```bash
 yay -S maomaowm-git
 
 ```
 
 ## Other
+
 ```bash
 # wlroots 0.19.0 release with a fix-patch to avoid crash
-git clone -b 0.19.0-fix  https://github.com/DreamMaoMao/wlroots.git
+git clone https://github.com/DreamMaoMao/wlroots.git
 cd wlroots
 meson build -Dprefix=/usr
 sudo ninja -C build install
@@ -72,33 +88,45 @@ sudo ninja -C build install
 
 ## Suggested Tools
 
-```
-yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist wl-clipboard wlsunset xfce-polkit swaync
-
-```
+- Application launcher (wofi, bemenu, wmenu, fuzzel)
+- Terminal emulator (foot, wezterm, alacritty, kitty, ghostty)
+- Status bar (waybar, eww, quickshell, ags), waybar is preferred
+- Wallpaper setup (swww, swaybg)
+- Notification daemon (swaync, dunst)
+- Desktop portal (xdg-desktop-portal, xdg-desktop-portal-wlr, xdg-desktop-portal-gtk)
+- Clipboard (wl-clipboard, wl-clip-persist, cliphist)
+- Gamma control/night light (wlsunset, gammastep)
+- Miscellaneous (xfce-polkit, wlogout)
 
 ## Some Common Default Keybindings
+
 - alt+return: open foot terminal
 - alt+q: kill client
 - alt+left/right/up/down: focus direction
 - super+m: quit maomao
 
 ## My Dotfiles
+
 - Dependencies
+
 ```bash
 yay -S rofi foot xdg-desktop-portal-wlr swaybg waybar wl-clip-persist cliphist wl-clipboard wlsunset xfce-polkit swaync pamixer lavalauncher-mao-git wlr-dpms sway-audio-idle-inhibit-git swayidle dimland-git brightnessctl swayosd wlr-randr grim slurp satty swaylock-effects-git wlogout
 ```
+
 - use my config
+
 ```bash
 git clone https://github.com/DreamMaoMao/maomao-config.git ~/.config/maomao
 ```
+
 #### Other Tools
+
 [wlogout](https://github.com/DreamMaoMao/dotfile/tree/main/wlogout)
 [swaync](https://github.com/DreamMaoMao/dotfile/tree/main/swaync)
 
 ## Config Document
-Refer to the [wiki](https://github.com/DreamMaoMao/maomaowm/wiki/)
 
+Refer to the [wiki](https://github.com/DreamMaoMao/maomaowm/wiki/)
 
 # NixOS + Home-manager
 
@@ -172,6 +200,20 @@ Here's an example of using the modules in a flake:
     };
 }
 ```
+
+# Packaging maomaowm
+
+To package maomaowm for other distributions, you can check the reference setup for:
+
+- [nix](https://github.com/DreamMaoMao/maomaowm/blob/main/nix/default.nix)
+- [arch](https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=maomaowm-git).
+
+Currently building maomaowm requires a patched version of `wlroots-0.19`. If possible, the patch can be extracted from the [latest commit](https://github.com/DreamMaoMao/wlroots.git)
+and applied on `prepare` step. If it is not possible, you will need to create a separate `wlroots` package and make it a build dependency.
+You might also need to package `scenefx` for your distribution, check availability [here](https://github.com/wlrfx/scenefx.git).
+
+If you encounter build errors when packaging `maomaowm`, feel free to create an issue and ask a question, but
+Read The Friendly Manual on packaging software in your distribution first.
 
 # Thanks to These Reference Repositories
 
