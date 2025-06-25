@@ -1807,7 +1807,7 @@ setclient_coordinate_center(Client *c, struct wlr_box geom, int offsetx,
 	tempbox.height = geom.height;
 
 	if (offsetx != 0) {
-		len = m->w.width / 2;
+		len = (m->w.width - c->geom.width - 2 * m->gappoh) / 2;
 		offset = len * (offsetx / 100.0);
 		tempbox.x += offset;
 
@@ -1820,7 +1820,7 @@ setclient_coordinate_center(Client *c, struct wlr_box geom, int offsetx,
 		}
 	}
 	if (offsety != 0) {
-		len = m->w.height;
+		len = (m->w.height - c->geom.height - 2 * m->gappov) / 2;
 		offset = len * (offsety / 100.0);
 		tempbox.y += offset;
 
@@ -7784,7 +7784,7 @@ void smartmovewin(const Arg *arg) {
 		}
 
 		ny = tar == -99999 ? ny : tar;
-		ny = MAX(ny, c->mon->w.y);
+		ny = MAX(ny, c->mon->w.y + c->mon->gappov);
 		break;
 	case DOWN:
 		tar = 99999;
@@ -7803,7 +7803,7 @@ void smartmovewin(const Arg *arg) {
 			};
 		}
 		ny = tar == 99999 ? ny : tar;
-		ny = MIN(ny, c->mon->w.y + c->mon->w.height - c->geom.height);
+		ny = MIN(ny, c->mon->w.y + c->mon->w.height - c->geom.height - c->mon->gappov);
 		break;
 	case LEFT:
 		tar = -99999;
@@ -7823,7 +7823,7 @@ void smartmovewin(const Arg *arg) {
 		}
 
 		nx = tar == -99999 ? nx : tar;
-		nx = MAX(nx, c->mon->w.x);
+		nx = MAX(nx, c->mon->w.x + c->mon->gappoh);
 		break;
 	case RIGHT:
 		tar = 99999;
@@ -7841,7 +7841,7 @@ void smartmovewin(const Arg *arg) {
 			};
 		}
 		nx = tar == 99999 ? nx : tar;
-		nx = MIN(nx, c->mon->w.x + c->mon->w.width - c->geom.width);
+		nx = MIN(nx, c->mon->w.x + c->mon->w.width - c->geom.width - c->mon->gappoh);
 		break;
 	}
 
