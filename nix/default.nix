@@ -79,7 +79,7 @@ in
       mainProgram = "maomao";
       description = "A streamlined but feature-rich Wayland compositor";
       homepage = "https://github.com/DreamMaoMao/maomaowm";
-      license = lib.licenses.mit;
+      license = lib.licenses.gpl3Plus;
       maintainers = [];
       platforms = lib.platforms.unix;
     };
