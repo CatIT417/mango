@@ -190,14 +190,6 @@ int border_radius_location_default = CORNER_LOCATION_ALL;
 int blur = 0;
 int blur_layer = 0;
 
-struct blur_data {
-	int num_passes;
-	int radius;
-	float noise;
-	float brightness;
-	float contrast;
-	float saturation;
-};
 struct blur_data blur_params;
 
 int blur_params_num_passes = 1;

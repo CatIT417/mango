@@ -1,10 +1,13 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-    nixpkgs-wayland.url = "github:nix-community/nixpkgs-wayland";
     flake-parts.url = "github:hercules-ci/flake-parts";
     mmsg = {
       url = "github:DreamMaoMao/mmsg";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    scenefx = {
+      url = "github:wlrfx/scenefx";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
@@ -34,8 +37,8 @@
           callPackage
           ;
         maomaowm = callPackage ./nix {
-          inherit (inputs.nixpkgs-wayland.packages.${pkgs.system}) wlroots;
           inherit (inputs.mmsg.packages.${pkgs.system}) mmsg;
+          inherit (inputs.scenefx.packages.${pkgs.system}) scenefx;
         };
         shellOverride = old: {
           nativeBuildInputs = old.nativeBuildInputs ++ [];
@@ -52,6 +55,9 @@
         devShells.default = maomaowm.overrideAttrs shellOverride;
         formatter = pkgs.alejandra;
       };
-      systems = ["x86_64-linux" "aarch64-linux"];
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
     };
 }
