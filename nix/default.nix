@@ -18,7 +18,6 @@
   meson,
   ninja,
   mmsg,
-  libgbm,
   scenefx,
   wlroots_0_19,
   libGL,
