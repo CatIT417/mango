@@ -3030,24 +3030,18 @@ void closemon(Monitor *m) {
 
 static void iter_layer_scene_buffers(struct wlr_scene_buffer *buffer, int sx,
 									 int sy, void *user_data) {
-	LayerSurface *l = user_data;
-
 	struct wlr_scene_surface *scene_surface =
 		wlr_scene_surface_try_from_buffer(buffer);
 	if (!scene_surface) {
 		return;
 	}
 
-	if (blur && blur_layer && l) {
-		wlr_scene_buffer_set_backdrop_blur(buffer, true);
-		if (blur_optimized) {
-			wlr_scene_buffer_set_backdrop_blur_optimized(buffer, true);
-		} else {
-			wlr_scene_buffer_set_backdrop_blur_optimized(buffer, false);
-		}
-		wlr_scene_buffer_set_backdrop_blur_ignore_transparent(buffer, true);
+	wlr_scene_buffer_set_backdrop_blur(buffer, true);
+	wlr_scene_buffer_set_backdrop_blur_ignore_transparent(buffer, true);
+	if (blur_optimized) {
+		wlr_scene_buffer_set_backdrop_blur_optimized(buffer, true);
 	} else {
-		wlr_scene_buffer_set_backdrop_blur(buffer, false);
+		wlr_scene_buffer_set_backdrop_blur_optimized(buffer, false);
 	}
 }
 
@@ -3057,6 +3051,7 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 	struct wlr_scene_tree *scene_layer =
 		layers[layermap[layer_surface->current.layer]];
 	struct wlr_layer_surface_v1_state old_state;
+	struct wlr_layer_surface_v1 *wlr_layer_surface = l->layer_surface;
 
 	if (l->layer_surface->initial_commit) {
 		client_set_scale(layer_surface->surface, l->mon->wlr_output->scale);
@@ -3068,6 +3063,29 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 		arrangelayers(l->mon);
 		l->layer_surface->current = old_state;
 		return;
+	}
+
+	if (blur && blur_layer) {
+		// 设置非背景layer模糊
+		if (wlr_layer_surface->current.layer !=
+				ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
+			wlr_layer_surface->current.layer !=
+				ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
+			wlr_scene_node_for_each_buffer(&l->scene->node,
+										   iter_layer_scene_buffers, l);
+		}
+	}
+
+	if (blur) {
+		// 如果背景层发生变化,标记优化的模糊背景缓存需要更新
+		if (wlr_layer_surface->current.layer ==
+				ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND ||
+			wlr_layer_surface->current.layer ==
+				ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM) {
+			if (l->mon) {
+				wlr_scene_optimized_blur_mark_dirty(l->mon->blur);
+			}
+		}
 	}
 
 	if (layer_surface == exclusive_focus &&
@@ -3092,28 +3110,6 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 	}
 
 	arrangelayers(l->mon);
-
-	if (blur) {
-		// Rerender the optimized blur on change
-		struct wlr_layer_surface_v1 *wlr_layer_surface = l->layer_surface;
-
-		if (wlr_layer_surface->current.layer !=
-				ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
-			wlr_layer_surface->current.layer !=
-				ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
-			wlr_scene_node_for_each_buffer(&l->scene->node,
-										   iter_layer_scene_buffers, l);
-		}
-
-		if (wlr_layer_surface->current.layer ==
-				ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND ||
-			wlr_layer_surface->current.layer ==
-				ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM) {
-			if (l->mon) {
-				wlr_scene_optimized_blur_mark_dirty(l->mon->blur);
-			}
-		}
-	}
 }
 
 void client_set_pending_state(Client *c) {
