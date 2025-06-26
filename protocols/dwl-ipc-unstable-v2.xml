@@ -220,6 +220,13 @@ I would probably just submit raphi's patchset but I don't think that would be po
       <arg name="height" type="int" summary="height of the selected client"/>
     </event>
 
+    <event name="last_layer" since="2">
+      <description summary="last map layer.">
+        last map layer.
+      </description>
+      <arg name="last_layer" type="string" summary="last map layer."/>
+    </event>
+
   </interface>
 
 </protocol>

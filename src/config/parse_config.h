@@ -123,6 +123,11 @@ typedef struct {
 } ConfigTagRule;
 
 typedef struct {
+	char *layer_name; // 布局名称
+	int noblur;
+} ConfigLayerRule;
+
+typedef struct {
 	int animations;
 	char animation_type_open[10];
 	char animation_type_close[10];
@@ -228,6 +233,9 @@ typedef struct {
 
 	ConfigTagRule *tag_rules; // 动态数组
 	int tag_rules_count;	  // 数量
+
+	ConfigLayerRule *layer_rules; // 动态数组
+	int layer_rules_count;		  // 数量
 
 	ConfigWinRule *window_rules;
 	int window_rules_count;
@@ -1270,6 +1278,49 @@ void parse_config_line(Config *config, const char *line) {
 		}
 
 		config->tag_rules_count++;
+	} else if (strcmp(key, "layerrule") == 0) {
+		config->layer_rules =
+			realloc(config->layer_rules,
+					(config->layer_rules_count + 1) * sizeof(ConfigLayerRule));
+		if (!config->layer_rules) {
+			fprintf(stderr,
+					"Error: Failed to allocate memory for layer rules\n");
+			return;
+		}
+
+		ConfigLayerRule *rule = &config->layer_rules[config->layer_rules_count];
+		memset(rule, 0, sizeof(ConfigLayerRule));
+
+		// 设置默认值
+		rule->layer_name = NULL;
+		rule->noblur = 0;
+
+		char *token = strtok(value, ",");
+		while (token != NULL) {
+			char *colon = strchr(token, ':');
+			if (colon != NULL) {
+				*colon = '\0';
+				char *key = token;
+				char *val = colon + 1;
+
+				trim_whitespace(key);
+				trim_whitespace(val);
+
+				if (strcmp(key, "layer_name") == 0) {
+					rule->layer_name = strdup(val);
+				} else if (strcmp(key, "noblur") == 0) {
+					rule->noblur = CLAMP_INT(atoi(val), 0, 1);
+				}
+			}
+			token = strtok(NULL, ",");
+		}
+
+		// 如果没有指定布局名称，则使用默认值
+		if (rule->layer_name == NULL) {
+			rule->layer_name = strdup("default");
+		}
+
+		config->layer_rules_count++;
 	} else if (strcmp(key, "windowrule") == 0) {
 		config->window_rules =
 			realloc(config->window_rules,
@@ -1948,6 +1999,16 @@ void free_config(void) {
 		free(config.tag_rules);
 		config.tag_rules = NULL;
 		config.tag_rules_count = 0;
+	}
+
+	// 释放 layer_rules
+	if (config.layer_rules) {
+		for (int i = 0; i < config.layer_rules_count; i++) {
+			free((void *)config.layer_rules[i].layer_name);
+		}
+		free(config.layer_rules);
+		config.layer_rules = NULL;
+		config.layer_rules_count = 0;
 	}
 
 	// 释放 exec

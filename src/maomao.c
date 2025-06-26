@@ -397,6 +397,7 @@ struct Monitor {
 	int asleep;
 	unsigned int visible_clients;
 	struct wlr_scene_optimized_blur *blur;
+	char last_surface_ws_name[256];
 };
 
 typedef struct {
@@ -471,6 +472,7 @@ static void cleanupmon(struct wl_listener *listener, void *data); // 退出清�
 static void closemon(Monitor *m);
 static void cleanuplisteners(void);
 static void toggle_hotarea(int x_root, int y_root); // 触发热区
+static void maplayersurfacenotify(struct wl_listener *listener, void *data);
 static void commitlayersurfacenotify(struct wl_listener *listener, void *data);
 static void commitnotify(struct wl_listener *listener, void *data);
 static void createdecoration(struct wl_listener *listener, void *data);
@@ -3045,6 +3047,16 @@ static void iter_layer_scene_buffers(struct wlr_scene_buffer *buffer, int sx,
 	}
 }
 
+void maplayersurfacenotify(struct wl_listener *listener, void *data) {
+	LayerSurface *l = wl_container_of(listener, l, map);
+	if (!l->mon)
+		return;
+	struct wlr_layer_surface_v1 *layer_surface = l->layer_surface;
+	strncpy(l->mon->last_surface_ws_name, layer_surface->namespace,
+			sizeof(l->mon->last_surface_ws_name) - 1); // 最多拷贝255个字符
+	l->mon->last_surface_ws_name[sizeof(l->mon->last_surface_ws_name) - 1] =
+		'\0'; // 确保字符串以null结尾
+}
 void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 	LayerSurface *l = wl_container_of(listener, l, surface_commit);
 	struct wlr_layer_surface_v1 *layer_surface = l->layer_surface;
@@ -3052,6 +3064,8 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 		layers[layermap[layer_surface->current.layer]];
 	struct wlr_layer_surface_v1_state old_state;
 	struct wlr_layer_surface_v1 *wlr_layer_surface = l->layer_surface;
+	int ji;
+	bool exclude_blur = false;
 
 	if (l->layer_surface->initial_commit) {
 		client_set_scale(layer_surface->surface, l->mon->wlr_output->scale);
@@ -3067,10 +3081,23 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 
 	if (blur && blur_layer) {
 		// 设置非背景layer模糊
-		if (wlr_layer_surface->current.layer !=
+		for (ji = 0; ji < config.layer_rules_count; ji++) {
+			if (config.layer_rules_count < 1)
+				break;
+			if (strcmp(config.layer_rules[ji].layer_name,
+					   l->layer_surface->namespace) == 0) {
+				exclude_blur = true;
+				break;
+			}
+		}
+
+		if (!exclude_blur &&
+			wlr_layer_surface->current.layer !=
 				ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
 			wlr_layer_surface->current.layer !=
 				ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
+			wlr_log(WLR_ERROR, "st");
+
 			wlr_scene_node_for_each_buffer(&l->scene->node,
 										   iter_layer_scene_buffers, l);
 		}
@@ -3079,10 +3106,10 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 	if (blur) {
 		// 如果背景层发生变化,标记优化的模糊背景缓存需要更新
 		if (wlr_layer_surface->current.layer ==
-				ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND ||
-			wlr_layer_surface->current.layer ==
-				ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM) {
+			ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
 			if (l->mon) {
+				wlr_log(WLR_ERROR, "dirty");
+
 				wlr_scene_optimized_blur_mark_dirty(l->mon->blur);
 			}
 		}
@@ -3359,6 +3386,7 @@ void createlayersurface(struct wl_listener *listener, void *data) {
 
 	l = layer_surface->data = ecalloc(1, sizeof(*l));
 	l->type = LayerShell;
+	LISTEN(&surface->events.map, &l->map, maplayersurfacenotify);
 	LISTEN(&surface->events.commit, &l->surface_commit,
 		   commitlayersurfacenotify);
 	LISTEN(&surface->events.unmap, &l->unmap, unmaplayersurfacenotify);
@@ -3682,6 +3710,7 @@ void destroylayersurfacenotify(struct wl_listener *listener, void *data) {
 
 	wl_list_remove(&l->link);
 	wl_list_remove(&l->destroy.link);
+	wl_list_remove(&l->map.link);
 	wl_list_remove(&l->unmap.link);
 	wl_list_remove(&l->surface_commit.link);
 	wlr_scene_node_destroy(&l->scene->node);
