@@ -3085,7 +3085,8 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 			if (config.layer_rules_count < 1)
 				break;
 			if (strcmp(config.layer_rules[ji].layer_name,
-					   l->layer_surface->namespace) == 0) {
+					   l->layer_surface->namespace) == 0 &&
+				config.layer_rules[ji].noblur) {
 				exclude_blur = true;
 				break;
 			}
@@ -3096,7 +3097,6 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 				ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
 			wlr_layer_surface->current.layer !=
 				ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
-			wlr_log(WLR_ERROR, "st");
 
 			wlr_scene_node_for_each_buffer(&l->scene->node,
 										   iter_layer_scene_buffers, l);
@@ -3108,8 +3108,6 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 		if (wlr_layer_surface->current.layer ==
 			ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
 			if (l->mon) {
-				wlr_log(WLR_ERROR, "dirty");
-
 				wlr_scene_optimized_blur_mark_dirty(l->mon->blur);
 			}
 		}
