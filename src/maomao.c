@@ -344,7 +344,7 @@ typedef struct {
 typedef struct {
 	/* Must keep these three elements in this order */
 	unsigned int type; /* LayerShell */
-	struct wlr_box geom;
+	struct wlr_box geom, current, pending, animainit_geom;
 	Monitor *mon;
 	struct wlr_scene_tree *scene;
 	struct wlr_scene_tree *popups;
@@ -357,6 +357,10 @@ typedef struct {
 	struct wl_listener map;
 	struct wl_listener unmap;
 	struct wl_listener surface_commit;
+
+	struct dwl_animation animation;
+	bool dirty;
+	bool need_output_flush;
 } LayerSurface;
 
 typedef struct {
@@ -611,6 +615,7 @@ static struct wlr_box setclient_coordinate_center(Client *c,
 static unsigned int get_tags_first_tag(unsigned int tags);
 
 static void client_commit(Client *c);
+static void layer_commit(LayerSurface *l);
 static void apply_border(Client *c);
 static void client_set_opacity(Client *c, double opacity);
 static void init_baked_points(void);
@@ -624,6 +629,7 @@ static void buffer_set_effect(Client *c, animationScale scale_data);
 static void snap_scene_buffer_apply_effect(struct wlr_scene_buffer *buffer,
 										   int sx, int sy, void *data);
 static void client_set_pending_state(Client *c);
+static void layer_set_pending_state(LayerSurface *l);
 static void set_rect_size(struct wlr_scene_rect *rect, int width, int height);
 static Client *center_select(Monitor *m);
 static void handlecursoractivity(void);
@@ -632,6 +638,7 @@ static bool check_hit_no_border(Client *c);
 static void reset_keyboard_layout(void);
 static void client_update_oldmonname_record(Client *c, Monitor *m);
 static void pending_kill_client(Client *c);
+static void set_layer_open_animaiton(LayerSurface *l, struct wlr_box geo);
 
 #include "data/static_keymap.h"
 #include "dispatch/dispatch.h"
@@ -941,6 +948,42 @@ void fadeout_client_animation_next_tick(Client *c) {
 		c = NULL;
 	} else {
 		c->animation.passed_frames++;
+	}
+}
+
+void layer_animation_next_tick(LayerSurface *l) {
+	double animation_passed =
+		(double)l->animation.passed_frames / l->animation.total_frames;
+
+	int type = l->animation.action == NONE ? MOVE : l->animation.action;
+	double factor = find_animation_curve_at(animation_passed, type);
+
+	unsigned int width =
+		l->animation.initial.width +
+		(l->current.width - l->animation.initial.width) * factor;
+	unsigned int height =
+		l->animation.initial.height +
+		(l->current.height - l->animation.initial.height) * factor;
+
+	unsigned int x = l->animation.initial.x +
+					 (l->current.x - l->animation.initial.x) * factor;
+	unsigned int y = l->animation.initial.y +
+					 (l->current.y - l->animation.initial.y) * factor;
+
+	wlr_scene_node_set_position(&l->scene->node, x, y);
+
+	l->animation.current = (struct wlr_box){
+		.x = x,
+		.y = y,
+		.width = width,
+		.height = height,
+	};
+
+	if (animation_passed == 1.0) {
+		l->animation.running = false;
+		l->need_output_flush = false;
+	} else {
+		l->animation.passed_frames++;
 	}
 }
 
@@ -1377,6 +1420,30 @@ void client_apply_clip(Client *c) {
 	scale_data.percent = percent;
 	scale_data.opacity = opacity;
 	buffer_set_effect(c, scale_data);
+}
+
+bool layer_draw_frame(LayerSurface *l) {
+
+	if (!l || !l->mapped)
+		return false;
+
+	if (!l->need_output_flush)
+		return false;
+
+	if (l->layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_TOP &&
+		l->layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY) {
+		return false;
+	}
+
+	if (animations && l->animation.running) {
+		layer_animation_next_tick(l);
+	} else {
+		wlr_scene_node_set_position(&l->scene->node, l->geom.x, l->geom.y);
+		l->animainit_geom = l->animation.initial = l->pending = l->current =
+			l->geom;
+		l->need_output_flush = false;
+	}
+	return true;
 }
 
 bool client_draw_frame(Client *c) {
@@ -3052,11 +3119,86 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 	if (!l->mon)
 		return;
 	struct wlr_layer_surface_v1 *layer_surface = l->layer_surface;
+	const struct wlr_layer_surface_v1_state *state = &layer_surface->current;
 	strncpy(l->mon->last_surface_ws_name, layer_surface->namespace,
 			sizeof(l->mon->last_surface_ws_name) - 1); // 最多拷贝255个字符
 	l->mon->last_surface_ws_name[sizeof(l->mon->last_surface_ws_name) - 1] =
 		'\0'; // 确保字符串以null结尾
+
+	// 计算几何位置
+	struct wlr_box bounds;
+	if (state->exclusive_zone == -1)
+		bounds = l->mon->m;
+	else
+		bounds = l->mon->w;
+
+	// 初始化几何位置
+	struct wlr_box box = {.width = state->desired_width,
+						  .height = state->desired_height};
+
+	// 水平方向定位
+	const uint32_t both_horiz =
+		ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT | ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT;
+	if (box.width == 0) {
+		box.x = bounds.x;
+	} else if ((state->anchor & both_horiz) == both_horiz) {
+		box.x = bounds.x + ((bounds.width - box.width) / 2);
+	} else if (state->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT) {
+		box.x = bounds.x;
+	} else if (state->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT) {
+		box.x = bounds.x + (bounds.width - box.width);
+	} else {
+		box.x = bounds.x + ((bounds.width - box.width) / 2);
+	}
+
+	// 垂直方向定位
+	const uint32_t both_vert =
+		ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP | ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM;
+	if (box.height == 0) {
+		box.y = bounds.y;
+	} else if ((state->anchor & both_vert) == both_vert) {
+		box.y = bounds.y + ((bounds.height - box.height) / 2);
+	} else if (state->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP) {
+		box.y = bounds.y;
+	} else if (state->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM) {
+		box.y = bounds.y + (bounds.height - box.height);
+	} else {
+		box.y = bounds.y + ((bounds.height - box.height) / 2);
+	}
+
+	// 应用边距
+	if (box.width == 0) {
+		box.x += state->margin.left;
+		box.width = bounds.width - (state->margin.left + state->margin.right);
+	} else if (!(state->anchor & both_horiz)) {
+		if (state->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT) {
+			box.x += state->margin.left;
+		} else if (state->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT) {
+			box.x -= state->margin.right;
+		}
+	}
+
+	if (box.height == 0) {
+		box.y += state->margin.top;
+		box.height = bounds.height - (state->margin.top + state->margin.bottom);
+	} else if (!(state->anchor & both_vert)) {
+		if (state->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP) {
+			box.y += state->margin.top;
+		} else if (state->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM) {
+			box.y -= state->margin.bottom;
+		}
+	}
+
+	// 更新几何位置
+	l->geom = box;
+
+	l->need_output_flush = true;
+	l->mapped = 1;
+	layer_set_pending_state(l);
+	// 刷新布局，让窗口能感应到exclude_zone变化
+	arrangelayers(l->mon);
 }
+
 void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 	LayerSurface *l = wl_container_of(listener, l, surface_commit);
 	struct wlr_layer_surface_v1 *layer_surface = l->layer_surface;
@@ -3076,8 +3218,11 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 		l->layer_surface->current = l->layer_surface->pending;
 		arrangelayers(l->mon);
 		l->layer_surface->current = old_state;
+
 		return;
 	}
+	// wlr_scene_node_set_position(&l->scene->node, 10, 10);
+	// wlr_output_schedule_frame(l->mon->wlr_output);
 
 	if (blur && blur_layer) {
 		// 设置非背景layer模糊
@@ -3090,6 +3235,11 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 				exclude_blur = true;
 				break;
 			}
+		}
+
+		if (l->layer_surface->current.layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP &&
+			l->layer_surface->current.layer ==
+				ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY) {
 		}
 
 		if (!exclude_blur &&
@@ -3137,6 +3287,23 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 	arrangelayers(l->mon);
 }
 
+void layer_set_pending_state(LayerSurface *l) {
+
+	l->pending = l->geom;
+	set_layer_open_animaiton(l, l->geom);
+	// 判断是否需要动画
+	if (!animations) {
+		l->animation.should_animate = false;
+	} else {
+		l->animation.should_animate = true;
+	}
+
+	l->animation.duration = animation_duration_layer;
+	// 开始动画
+	layer_commit(l);
+	l->dirty = true;
+}
+
 void client_set_pending_state(Client *c) {
 
 	// 判断是否需要动画
@@ -3157,7 +3324,7 @@ void client_set_pending_state(Client *c) {
 	c->dirty = true;
 }
 
-double output_frame_duration_ms(Client *c) {
+double output_frame_duration_ms() {
 	int32_t refresh_total = 0;
 	Monitor *m;
 	wl_list_for_each(m, &mons, link) {
@@ -3167,6 +3334,28 @@ double output_frame_duration_ms(Client *c) {
 		refresh_total += m->wlr_output->refresh;
 	}
 	return 1000000.0 / refresh_total;
+}
+
+void layer_commit(LayerSurface *l) {
+	l->current = l->pending; // 设置动画的结束位置
+
+	if (l->animation.should_animate) {
+		if (!l->animation.running) {
+			l->animation.current = l->animainit_geom;
+		}
+
+		l->animation.initial = l->animainit_geom;
+		// 设置动画速度
+		l->animation.passed_frames = 0;
+		l->animation.total_frames =
+			l->animation.duration / output_frame_duration_ms();
+
+		// 标记动画开始
+		l->animation.running = true;
+		l->animation.should_animate = false;
+	}
+	// 请求刷新屏幕
+	wlr_output_schedule_frame(l->mon->wlr_output);
 }
 
 void client_commit(Client *c) {
@@ -3181,7 +3370,7 @@ void client_commit(Client *c) {
 		// 设置动画速度
 		c->animation.passed_frames = 0;
 		c->animation.total_frames =
-			c->animation.duration / output_frame_duration_ms(c);
+			c->animation.duration / output_frame_duration_ms();
 
 		// 标记动画开始
 		c->animation.running = true;
@@ -5171,9 +5360,20 @@ void rendermon(struct wl_listener *listener, void *data) {
 	Monitor *m = wl_container_of(listener, m, frame);
 	Client *c, *tmp;
 	struct wlr_output_state pending = {0};
+	LayerSurface *l, *tmpl;
+	int i;
+	struct wl_list *layer_list;
 
 	struct timespec now;
 	bool need_more_frames = false;
+
+	for (i = 0; i < LENGTH(m->layers); i++) {
+		layer_list = &m->layers[i];
+		// Draw frames for all layer
+		wl_list_for_each_safe(l, tmpl, layer_list, link) {
+			need_more_frames = layer_draw_frame(l) || need_more_frames;
+		}
+	}
 
 	// Draw frames for all clients
 	wl_list_for_each(c, &clients, link) {
@@ -5315,7 +5515,57 @@ int is_special_animaiton_rule(Client *c) {
 	}
 }
 
-void set_open_animaiton(Client *c, struct wlr_box geo) {
+void set_layer_open_animaiton(LayerSurface *l, struct wlr_box geo) {
+	int slide_direction;
+	int horizontal, horizontal_value;
+	int vertical, vertical_value;
+	int center_x, center_y;
+
+	center_x = l->geom.x + l->geom.width / 2;
+	center_y = l->geom.y + l->geom.height / 2;
+	horizontal =
+		l->mon->w.x + l->mon->w.width - center_x < center_x - l->mon->w.x
+			? RIGHT
+			: LEFT;
+	horizontal_value = horizontal == LEFT
+						   ? center_x - l->mon->w.x
+						   : l->mon->w.x + l->mon->w.width - center_x;
+	vertical =
+		l->mon->w.y + l->mon->w.height - center_y < center_y - l->mon->w.y
+			? DOWN
+			: UP;
+	vertical_value = vertical == UP ? center_y - l->mon->w.y
+									: l->mon->w.y + l->mon->w.height - center_y;
+	slide_direction = horizontal_value < vertical_value ? horizontal : vertical;
+
+	l->animainit_geom.width = l->geom.width;
+	l->animainit_geom.height = l->geom.height;
+	switch (slide_direction) {
+	case UP:
+		l->animainit_geom.x = l->geom.x;
+		l->animainit_geom.y = l->mon->m.y - l->geom.height;
+		break;
+	case DOWN:
+		l->animainit_geom.x = l->geom.x;
+		l->animainit_geom.y =
+			l->geom.y + l->mon->m.height - (l->geom.y - l->mon->m.y);
+		break;
+	case LEFT:
+		l->animainit_geom.x = l->mon->m.x - l->geom.width;
+		l->animainit_geom.y = l->geom.y;
+		break;
+	case RIGHT:
+		l->animainit_geom.x =
+			l->geom.x + l->mon->m.width - (l->geom.x - l->mon->m.x);
+		l->animainit_geom.y = l->geom.y;
+		break;
+	default:
+		l->animainit_geom.x = l->geom.x;
+		l->animainit_geom.y = 0 - l->geom.height;
+	}
+}
+
+void set_client_open_animaiton(Client *c, struct wlr_box geo) {
 	int slide_direction;
 	int horizontal, horizontal_value;
 	int vertical, vertical_value;
@@ -5445,7 +5695,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
 		c->animainit_geom.height = c->animation.current.height;
 		c->animainit_geom.width = c->animation.current.width;
 	} else if (c->is_open_animation) {
-		set_open_animaiton(c, c->geom);
+		set_client_open_animaiton(c, c->geom);
 	} else {
 		c->animainit_geom = c->animation.current;
 	}
@@ -7092,7 +7342,7 @@ void init_fadeout_client(Client *c) {
 
 	fadeout_cient->animation.passed_frames = 0;
 	fadeout_cient->animation.total_frames =
-		fadeout_cient->animation.duration / output_frame_duration_ms(c);
+		fadeout_cient->animation.duration / output_frame_duration_ms();
 	wlr_scene_node_set_enabled(&fadeout_cient->scene->node, true);
 	wl_list_insert(&fadeout_clients, &fadeout_cient->fadeout_link);
 }
