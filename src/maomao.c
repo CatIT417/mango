@@ -127,9 +127,9 @@ enum {
 	LyrBlur,
 	LyrBottom,
 	LyrTile,
+	LyrTop,
 	LyrFloat,
 	LyrFS,
-	LyrTop,
 	LyrOverlay,
 	LyrIMPopup, // text-input layer
 	LyrFadeOut,
