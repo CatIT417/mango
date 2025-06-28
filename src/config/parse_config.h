@@ -119,6 +119,7 @@ typedef struct {
 typedef struct {
 	int id;			   // 标签ID (1-9)
 	char *layout_name; // 布局名称
+	char *monitor_name;
 	int no_render_border;
 } ConfigTagRule;
 
@@ -1254,6 +1255,7 @@ void parse_config_line(Config *config, const char *line) {
 		// 设置默认值
 		rule->id = 0;
 		rule->layout_name = NULL;
+		rule->monitor_name = NULL;
 
 		char *token = strtok(value, ",");
 		while (token != NULL) {
@@ -1270,6 +1272,8 @@ void parse_config_line(Config *config, const char *line) {
 					rule->id = CLAMP_INT(atoi(val), 1, LENGTH(tags));
 				} else if (strcmp(key, "layout_name") == 0) {
 					rule->layout_name = strdup(val);
+				} else if (strcmp(key, "monitor_name") == 0) {
+					rule->monitor_name = strdup(val);
 				} else if (strcmp(key, "no_render_border") == 0) {
 					rule->no_render_border = CLAMP_INT(atoi(val), 0, 1);
 				}
@@ -1994,7 +1998,10 @@ void free_config(void) {
 	// 释放 tag_rules
 	if (config.tag_rules) {
 		for (int i = 0; i < config.tag_rules_count; i++) {
-			free((void *)config.tag_rules[i].layout_name);
+			if (config.tag_rules[i].layout_name)
+				free((void *)config.tag_rules[i].layout_name);
+			if (config.tag_rules[i].monitor_name)
+				free((void *)config.tag_rules[i].monitor_name);
 		}
 		free(config.tag_rules);
 		config.tag_rules = NULL;
@@ -2443,6 +2450,7 @@ void reload_config(const Arg *arg) {
 	Monitor *m;
 	int i, jk;
 	Keyboard *kb;
+	char *rule_monitor_name = NULL;
 	parse_config();
 	init_baked_points();
 	handlecursoractivity();
@@ -2489,12 +2497,16 @@ void reload_config(const Arg *arg) {
 
 		// apply tag rule
 		for (i = 1; i <= config.tag_rules_count; i++) {
-			for (jk = 0; jk < LENGTH(layouts); jk++) {
-				if (config.tag_rules_count > 0 &&
-					strcmp(layouts[jk].name,
-						   config.tag_rules[i - 1].layout_name) == 0) {
-					m->pertag->ltidxs[config.tag_rules[i - 1].id] =
-						&layouts[jk];
+			rule_monitor_name = config.tag_rules[i - 1].monitor_name;
+			if (regex_match(rule_monitor_name, m->wlr_output->name) ||
+				!rule_monitor_name) {
+				for (jk = 0; jk < LENGTH(layouts); jk++) {
+					if (config.tag_rules_count > 0 &&
+						strcmp(layouts[jk].name,
+							   config.tag_rules[i - 1].layout_name) == 0) {
+						m->pertag->ltidxs[config.tag_rules[i - 1].id] =
+							&layouts[jk];
+					}
 				}
 			}
 		}
