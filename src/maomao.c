@@ -526,7 +526,6 @@ static void locksession(struct wl_listener *listener, void *data);
 static void mapnotify(struct wl_listener *listener, void *data);
 static void maximizenotify(struct wl_listener *listener, void *data);
 static void minimizenotify(struct wl_listener *listener, void *data);
-static void monocle(Monitor *m);
 static void motionabsolute(struct wl_listener *listener, void *data);
 static void motionnotify(unsigned int time, struct wlr_input_device *device,
 						 double sx, double sy, double sx_unaccel,
@@ -565,13 +564,6 @@ static void setsel(struct wl_listener *listener, void *data);
 static void setup(void);
 static void startdrag(struct wl_listener *listener, void *data);
 
-static void tile(Monitor *m);
-static void overview(Monitor *m);
-static void grid(Monitor *m);
-static void scroller(Monitor *m);
-static void deck(Monitor *mon);
-static void dwindle(Monitor *mon);
-static void spiral(Monitor *mon);
 static void unlocksession(struct wl_listener *listener, void *data);
 static void unmaplayersurfacenotify(struct wl_listener *listener, void *data);
 static void unmapnotify(struct wl_listener *listener, void *data);
@@ -635,6 +627,7 @@ static void pending_kill_client(Client *c);
 
 #include "data/static_keymap.h"
 #include "dispatch/dispatch.h"
+#include "layout/layout.h"
 
 /* variables */
 static const char broken[] = "broken";
@@ -779,7 +772,8 @@ static struct wlr_xwayland *xwayland;
 #include "client/client.h"
 #include "config/parse_config.h"
 #include "ext-protocol/all.h"
-#include "layout/layout.h"
+#include "layout/horizontal.h"
+#include "layout/vertical.h"
 
 struct dvec2 calculate_animation_curve_at(double t, int type) {
 	struct dvec2 point;
@@ -2023,6 +2017,15 @@ applyrules(Client *c) {
 	setborder_color(c);
 }
 
+bool is_scroller_layout(Monitor *m) {
+	if (strcmp(m->pertag->ltidxs[m->pertag->curtag]->name, "scroller") == 0)
+		return true;
+	if (strcmp(m->pertag->ltidxs[m->pertag->curtag]->name,
+			   "vertical_scroller") == 0)
+		return true;
+	return false;
+}
+
 void // 17
 arrange(Monitor *m, bool want_animation) {
 	Client *c;
@@ -2052,8 +2055,7 @@ arrange(Monitor *m, bool want_animation) {
 				}
 
 				if (!c->is_clip_to_hide || !ISTILED(c) ||
-					strcmp(c->mon->pertag->ltidxs[c->mon->pertag->curtag]->name,
-						   "scroller") != 0) {
+					!is_scroller_layout(c->mon)) {
 					c->is_clip_to_hide = false;
 					wlr_scene_node_set_enabled(&c->scene->node, true);
 				}
@@ -3872,9 +3874,7 @@ void focusclient(Client *c, int lift) {
 		if (c && selmon->prevsel && !selmon->prevsel->isfloating &&
 			(selmon->prevsel->tags & selmon->tagset[selmon->seltags]) &&
 			(c->tags & selmon->tagset[selmon->seltags]) && !c->isfloating &&
-			!c->isfullscreen &&
-			strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
-				   "scroller") == 0) {
+			!c->isfullscreen && is_scroller_layout(selmon)) {
 			arrange(selmon, false);
 		} else if (selmon->prevsel) {
 			selmon->prevsel = NULL;
@@ -4632,15 +4632,10 @@ mapnotify(struct wl_listener *listener, void *data) {
 	c->nofadeout = 0;
 	c->no_force_center = 0;
 
-	if (new_is_master && selmon &&
-		strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
-			   "scroller") != 0)
+	if (new_is_master && selmon && !is_scroller_layout(selmon))
 		// tile at the top
 		wl_list_insert(&clients, &c->link); // 新窗口是master,头部入栈
-	else if (selmon &&
-			 strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
-					"scroller") == 0 &&
-			 center_select(selmon)) {
+	else if (selmon && is_scroller_layout(selmon) && center_select(selmon)) {
 		Client *at_client = center_select(selmon);
 		at_client->link.next->prev = &c->link;
 		c->link.prev = &at_client->link;
@@ -4857,9 +4852,7 @@ void motionnotify(unsigned int time, struct wlr_input_device *device, double dx,
 		!(c && c->mon &&
 		  (c->geom.x + c->geom.width > c->mon->m.x + c->mon->m.width ||
 		   c->geom.x < c->mon->m.x))) {
-		if (c && c->mon &&
-			strcmp(c->mon->pertag->ltidxs[c->mon->pertag->curtag]->name,
-				   "scroller") == 0 &&
+		if (c && c->mon && is_scroller_layout(c->mon) &&
 			(c->geom.x + c->geom.width > c->mon->m.x + c->mon->m.width ||
 			 c->geom.x < c->mon->m.x)) {
 			should_lock = true;
@@ -5300,9 +5293,7 @@ int is_special_animaiton_rule(Client *c) {
 		}
 	}
 
-	if (strcmp(selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
-			   "scroller") == 0 &&
-		!c->isfloating) {
+	if (is_scroller_layout(selmon) && !c->isfloating) {
 		return DOWN;
 	} else if (visible_client_number < 2 && !c->isfloating) {
 		return DOWN;
@@ -5401,9 +5392,7 @@ void resize(Client *c, struct wlr_box geo, int interact) {
 	// oldgeom = c->geom;
 	bbox = (interact || c->isfloating || c->isfullscreen) ? &sgeom : &c->mon->w;
 
-	if (strcmp(c->mon->pertag->ltidxs[c->mon->pertag->curtag]->name,
-			   "scroller") == 0 &&
-		(!c->isfloating || c == grabc)) {
+	if (is_scroller_layout(c->mon) && (!c->isfloating || c == grabc)) {
 		c->geom = geo;
 		c->geom.width = MAX(1 + 2 * (int)c->bw, c->geom.width);
 		c->geom.height = MAX(1 + 2 * (int)c->bw, c->geom.height);
