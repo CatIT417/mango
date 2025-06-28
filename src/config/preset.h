@@ -90,29 +90,6 @@ int warpcursor = 1;			  /* Warp cursor to focused client */
 int xwayland_persistence = 1; /* xwayland persistence */
 int syncobj_enable = 0;
 
-/* layout(s) */
-Layout overviewlayout = {"󰃇", overview, "overview"};
-
-Layout layouts[] = {
-	// 最少两个,不能删除少于两个
-	/* symbol     arrange function   name */
-	{"S", scroller, "scroller"}, // 滚动布局
-	{"T", tile, "tile"},		 // 堆栈布局
-	{"G", grid, "grid"},
-	{"M", monocle, "monocle"},
-	{"D", dwindle, "dwindle"},
-	{"P", spiral, "spiral"},
-	{"K", deck, "deck"},
-	{"VS", vertical_scroller, "vertical_scroller"},
-	{"VT", vertical_tile, "vertical_tile"},
-	{"VM", vertical_monocle, "vertical_monocle"},
-	{"VD", vertical_dwindle, "vertical_dwindle"},
-	{"VP", vertical_spiral, "vertical_spiral"},
-	{"VG", vertical_grid, "vertical_grid"},
-	{"VK", vertical_deck, "vertical_deck"},
-
-};
-
 /* keyboard */
 
 /*
