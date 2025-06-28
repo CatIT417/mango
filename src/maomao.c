@@ -4842,7 +4842,9 @@ void motionnotify(unsigned int time, struct wlr_input_device *device, double dx,
 
 	if (c && c->mon && !c->animation.running &&
 		(!(c->geom.x + c->geom.width > c->mon->m.x + c->mon->m.width ||
-		   c->geom.x < c->mon->m.x) ||
+		   c->geom.x < c->mon->m.x ||
+		   c->geom.y + c->geom.height > c->mon->m.y + c->mon->m.height ||
+		   c->geom.y < c->mon->m.y) ||
 		 !ISTILED(c))) {
 		scroller_focus_lock = 0;
 	}
@@ -4851,10 +4853,14 @@ void motionnotify(unsigned int time, struct wlr_input_device *device, double dx,
 	if (!scroller_focus_lock ||
 		!(c && c->mon &&
 		  (c->geom.x + c->geom.width > c->mon->m.x + c->mon->m.width ||
-		   c->geom.x < c->mon->m.x))) {
+		   c->geom.x < c->mon->m.x ||
+		   c->geom.y + c->geom.height > c->mon->m.y + c->mon->m.height ||
+		   c->geom.y < c->mon->m.y))) {
 		if (c && c->mon && is_scroller_layout(c->mon) &&
 			(c->geom.x + c->geom.width > c->mon->m.x + c->mon->m.width ||
-			 c->geom.x < c->mon->m.x)) {
+			 c->geom.x < c->mon->m.x ||
+			 c->geom.y + c->geom.height > c->mon->m.y + c->mon->m.height ||
+			 c->geom.y < c->mon->m.y)) {
 			should_lock = true;
 		}
 		pointerfocus(c, surface, sx, sy, time);
