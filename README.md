@@ -10,8 +10,9 @@ This project's development is based on [dwl](https://codeberg.org/dwl/dwl/).
 
 2. **Feature Highlights**
    - In addition to basic WM functionality, Maomao provides:
+     - Excellent xwayland support.
      - Base tag not workspace (supports separate window layouts for each tag)
-     - Smooth and customizable complete animations (window open/move/close, tag enter/leave)
+     - Smooth and customizable complete animations (window open/move/close, tag enter/leave,layer open/close/move)
      - Excellent input method support (text input v2/v3)
      - Flexible window layouts with easy switching (scroller, master, monocle, spiral, etc.)
      - Rich window states (swallow, minimize, maximize, unglobal, global, fakefullscreen, overlay, etc.)
@@ -20,6 +21,10 @@ This project's development is based on [dwl](https://codeberg.org/dwl/dwl/).
      - Minimize window to scratchpad
      - Hycov-like overview
      - Window effects from scenefx(blur, shadow, corner radius, opacity)
+
+3. **Some disadvantages**
+   - Since it uses the fully automatic layout like dwm style, it not allow you to manually adjust the window size when window is in tiled state. It only allows you to change the layout parameters to adjust the window ratio.
+
 
 Master-Stack Layout
 
