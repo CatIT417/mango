@@ -3177,9 +3177,12 @@ static void iter_layer_scene_buffers(struct wlr_scene_buffer *buffer, int sx,
 void get_layer_target_geometry(LayerSurface *l, struct wlr_box *target_box) {
 	const struct wlr_layer_surface_v1_state *state = &l->layer_surface->current;
 
-	// 计算几何位置
+	// 限制区域
+	// waybar一般都是大于0,表示要占用多少区域，所以计算位置也要用全部区域作为基准
+	// 如果是-1可能表示独占所有可用空间
+	// 如果是0，应该是表示使用exclusive_zone外的可用区域
 	struct wlr_box bounds;
-	if (state->exclusive_zone == -1)
+	if (state->exclusive_zone > 0 || state->exclusive_zone == -1)
 		bounds = l->mon->m;
 	else
 		bounds = l->mon->w;
@@ -3284,6 +3287,7 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 
 	l->need_output_flush = true;
 	l->mapped = 1;
+	l->animation.action = OPEN;
 	layer_set_pending_state(l);
 	// 刷新布局，让窗口能感应到exclude_zone变化
 	arrangelayers(l->mon);
@@ -3296,6 +3300,7 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 		layers[layermap[layer_surface->current.layer]];
 	struct wlr_layer_surface_v1_state old_state;
 	struct wlr_layer_surface_v1 *wlr_layer_surface = l->layer_surface;
+	struct wlr_box box;
 
 	if (l->layer_surface->initial_commit) {
 		client_set_scale(layer_surface->surface, l->mon->wlr_output->scale);
@@ -3309,6 +3314,20 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 
 		return;
 	}
+
+	get_layer_target_geometry(l, &box);
+
+	if (wlr_layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
+		wlr_layer_surface->current.layer !=
+			ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND &&
+		!wlr_box_equal(&box, &l->geom)) {
+
+		l->geom = box;
+		l->animation.action = MOVE;
+		l->need_output_flush = true;
+		layer_set_pending_state(l);
+	}
+
 	// wlr_scene_node_set_position(&l->scene->node, 10, 10);
 	// wlr_output_schedule_frame(l->mon->wlr_output);
 
@@ -3363,7 +3382,10 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 void layer_set_pending_state(LayerSurface *l) {
 
 	l->pending = l->geom;
-	set_layer_open_animaiton(l, l->geom);
+	if (l->animation.action == OPEN)
+		set_layer_open_animaiton(l, l->geom);
+	else
+		l->animainit_geom = l->animation.current;
 	// 判断是否需要动画
 	if (!animations || !layer_animations || l->noanim ||
 		l->layer_surface->current.layer ==
