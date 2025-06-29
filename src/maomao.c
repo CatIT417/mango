@@ -1033,6 +1033,7 @@ void layer_animation_next_tick(LayerSurface *l) {
 	if (animation_passed == 1.0) {
 		l->animation.running = false;
 		l->need_output_flush = false;
+		l->animation.action = MOVE;
 	} else {
 		l->animation.passed_frames++;
 	}
@@ -1486,7 +1487,7 @@ bool layer_draw_frame(LayerSurface *l) {
 		return false;
 	}
 
-	if (animations && l->animation.running && !l->noanim) {
+	if (animations && layer_animations && l->animation.running && !l->noanim) {
 		layer_animation_next_tick(l);
 	} else {
 		wlr_scene_node_set_position(&l->scene->node, l->geom.x, l->geom.y);
@@ -3173,17 +3174,8 @@ static void iter_layer_scene_buffers(struct wlr_scene_buffer *buffer, int sx,
 	}
 }
 
-void maplayersurfacenotify(struct wl_listener *listener, void *data) {
-	int ji;
-	LayerSurface *l = wl_container_of(listener, l, map);
-	if (!l->mon)
-		return;
-	struct wlr_layer_surface_v1 *layer_surface = l->layer_surface;
-	const struct wlr_layer_surface_v1_state *state = &layer_surface->current;
-	strncpy(l->mon->last_surface_ws_name, layer_surface->namespace,
-			sizeof(l->mon->last_surface_ws_name) - 1); // 最多拷贝255个字符
-	l->mon->last_surface_ws_name[sizeof(l->mon->last_surface_ws_name) - 1] =
-		'\0'; // 确保字符串以null结尾
+void get_layer_target_geometry(LayerSurface *l, struct wlr_box *target_box) {
+	const struct wlr_layer_surface_v1_state *state = &l->layer_surface->current;
 
 	// 计算几何位置
 	struct wlr_box bounds;
@@ -3248,6 +3240,26 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 			box.y -= state->margin.bottom;
 		}
 	}
+
+	target_box->x = box.x;
+	target_box->y = box.y;
+	target_box->width = box.width;
+	target_box->height = box.height;
+}
+
+void maplayersurfacenotify(struct wl_listener *listener, void *data) {
+	int ji;
+	LayerSurface *l = wl_container_of(listener, l, map);
+	if (!l->mon)
+		return;
+	struct wlr_layer_surface_v1 *layer_surface = l->layer_surface;
+	strncpy(l->mon->last_surface_ws_name, layer_surface->namespace,
+			sizeof(l->mon->last_surface_ws_name) - 1); // 最多拷贝255个字符
+	l->mon->last_surface_ws_name[sizeof(l->mon->last_surface_ws_name) - 1] =
+		'\0'; // 确保字符串以null结尾
+
+	struct wlr_box box;
+	get_layer_target_geometry(l, &box);
 
 	// 更新几何位置
 	l->geom = box;
@@ -3353,7 +3365,7 @@ void layer_set_pending_state(LayerSurface *l) {
 	l->pending = l->geom;
 	set_layer_open_animaiton(l, l->geom);
 	// 判断是否需要动画
-	if (!animations || l->noanim ||
+	if (!animations || !layer_animations || l->noanim ||
 		l->layer_surface->current.layer ==
 			ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND ||
 		l->layer_surface->current.layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM) {
@@ -7348,7 +7360,7 @@ void unmaplayersurfacenotify(struct wl_listener *listener, void *data) {
 
 void init_fadeout_layers(LayerSurface *l) {
 
-	if (!layer_animaitons || l->noanim) {
+	if (!layer_animations || l->noanim) {
 		return;
 	}
 
