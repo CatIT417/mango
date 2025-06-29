@@ -11,6 +11,7 @@
 char *animation_type_open = "slide";	  // 是否启用动画 //slide,zoom
 char *animation_type_close = "slide";	  // 是否启用动画 //slide,zoom
 int animations = 1;						  // 是否启用动画
+int layer_animations = 1;				  // 是否启用layer动画
 int tag_animation_direction = HORIZONTAL; // 标签动画方向
 int animation_fade_in = 1;				  // Enable animation fade in
 int animation_fade_out = 1;				  // Enable animation fade out

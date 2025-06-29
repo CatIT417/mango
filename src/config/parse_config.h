@@ -126,10 +126,12 @@ typedef struct {
 typedef struct {
 	char *layer_name; // 布局名称
 	int noblur;
+	int noanim;
 } ConfigLayerRule;
 
 typedef struct {
 	int animations;
+	int layer_animations;
 	char animation_type_open[10];
 	char animation_type_close[10];
 	int animation_fade_in;
@@ -832,6 +834,8 @@ void parse_config_line(Config *config, const char *line) {
 
 	if (strcmp(key, "animations") == 0) {
 		config->animations = atoi(value);
+	} else if (strcmp(key, "layer_animations") == 0) {
+		config->layer_animations = atoi(value);
 	} else if (strcmp(key, "animation_type_open") == 0) {
 		snprintf(config->animation_type_open,
 				 sizeof(config->animation_type_open), "%.9s",
@@ -1298,6 +1302,7 @@ void parse_config_line(Config *config, const char *line) {
 		// 设置默认值
 		rule->layer_name = NULL;
 		rule->noblur = 0;
+		rule->noanim = 0;
 
 		char *token = strtok(value, ",");
 		while (token != NULL) {
@@ -1314,6 +1319,8 @@ void parse_config_line(Config *config, const char *line) {
 					rule->layer_name = strdup(val);
 				} else if (strcmp(key, "noblur") == 0) {
 					rule->noblur = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "noanim") == 0) {
+					rule->noanim = CLAMP_INT(atoi(val), 0, 1);
 				}
 			}
 			token = strtok(NULL, ",");
@@ -2060,6 +2067,7 @@ void free_config(void) {
 void override_config(void) {
 	// 动画启用
 	animations = CLAMP_INT(config.animations, 0, 1);
+	layer_animations = CLAMP_INT(config.layer_animations, 0, 1);
 
 	// 标签动画方向
 	tag_animation_direction = CLAMP_INT(config.tag_animation_direction, 0, 1);
@@ -2202,6 +2210,7 @@ void override_config(void) {
 void set_value_default() {
 	/* animaion */
 	config.animations = animations;					// 是否启用动画
+	config.layer_animations = layer_animations;		// 是否启用layer动画
 	config.animation_fade_in = animation_fade_in;	// Enable animation fade in
 	config.animation_fade_out = animation_fade_out; // Enable animation fade out
 	config.tag_animation_direction = tag_animation_direction; // 标签动画方向
