@@ -1003,6 +1003,9 @@ void fadeout_client_animation_next_tick(Client *c) {
 
 void layer_animation_next_tick(LayerSurface *l) {
 
+	if (!l || !l->mapped)
+		return;
+
 	double animation_passed =
 		(double)l->animation.passed_frames / l->animation.total_frames;
 
@@ -3175,6 +3178,10 @@ static void iter_layer_scene_buffers(struct wlr_scene_buffer *buffer, int sx,
 }
 
 void get_layer_target_geometry(LayerSurface *l, struct wlr_box *target_box) {
+
+	if (!l || !l->mapped)
+		return;
+
 	const struct wlr_layer_surface_v1_state *state = &l->layer_surface->current;
 
 	// 限制区域
@@ -3253,6 +3260,8 @@ void get_layer_target_geometry(LayerSurface *l, struct wlr_box *target_box) {
 void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 	int ji;
 	LayerSurface *l = wl_container_of(listener, l, map);
+	l->mapped = 1;
+
 	if (!l->mon)
 		return;
 	struct wlr_layer_surface_v1 *layer_surface = l->layer_surface;
@@ -3286,7 +3295,6 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 	}
 
 	l->need_output_flush = true;
-	l->mapped = 1;
 	l->animation.action = OPEN;
 	layer_set_pending_state(l);
 	// 刷新布局，让窗口能感应到exclude_zone变化
@@ -3317,7 +3325,8 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 
 	get_layer_target_geometry(l, &box);
 
-	if (wlr_layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
+	if (l->mapped &&
+		wlr_layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
 		wlr_layer_surface->current.layer !=
 			ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND &&
 		!wlr_box_equal(&box, &l->geom)) {
@@ -3381,6 +3390,9 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 
 void layer_set_pending_state(LayerSurface *l) {
 
+	if (!l || !l->mapped)
+		return;
+
 	l->pending = l->geom;
 	if (l->animation.action == OPEN)
 		set_layer_open_animaiton(l, l->geom);
@@ -3436,6 +3448,10 @@ double output_frame_duration_ms() {
 }
 
 void layer_commit(LayerSurface *l) {
+
+	if (!l || !l->mapped)
+		return;
+
 	l->current = l->pending; // 设置动画的结束位置
 
 	if (l->animation.should_animate) {
@@ -5623,6 +5639,9 @@ void set_layer_open_animaiton(LayerSurface *l, struct wlr_box geo) {
 	int horizontal, horizontal_value;
 	int vertical, vertical_value;
 	int center_x, center_y;
+
+	if (!l || !l->mapped)
+		return;
 
 	center_x = l->geom.x + l->geom.width / 2;
 	center_y = l->geom.y + l->geom.height / 2;
