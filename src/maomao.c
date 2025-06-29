@@ -1003,13 +1003,6 @@ void fadeout_client_animation_next_tick(Client *c) {
 
 void layer_animation_next_tick(LayerSurface *l) {
 
-	if (!animations || l->noanim) {
-		wlr_scene_node_set_position(&l->scene->node, l->geom.x, l->geom.y);
-		l->animation.passed_frames = 0;
-		l->animation.running = false;
-		l->need_output_flush = false;
-	}
-
 	double animation_passed =
 		(double)l->animation.passed_frames / l->animation.total_frames;
 
@@ -1493,7 +1486,7 @@ bool layer_draw_frame(LayerSurface *l) {
 		return false;
 	}
 
-	if (animations && l->animation.running) {
+	if (animations && l->animation.running && !l->noanim) {
 		layer_animation_next_tick(l);
 	} else {
 		wlr_scene_node_set_position(&l->scene->node, l->geom.x, l->geom.y);
@@ -7362,6 +7355,10 @@ void init_fadeout_layers(LayerSurface *l) {
 	if (!l->scene) {
 		return;
 	}
+
+	if (l->layer_surface->current.layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM ||
+		l->layer_surface->current.layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND)
+		return;
 
 	LayerSurface *fadeout_layer = ecalloc(1, sizeof(*fadeout_layer));
 
