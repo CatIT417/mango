@@ -125,6 +125,7 @@ typedef struct {
 typedef struct {
 	char *layer_name; // 布局名称
 	int noblur;
+	int noanim;
 } ConfigLayerRule;
 
 typedef struct {
@@ -1294,6 +1295,7 @@ void parse_config_line(Config *config, const char *line) {
 		// 设置默认值
 		rule->layer_name = NULL;
 		rule->noblur = 0;
+		rule->noanim = 0;
 
 		char *token = strtok(value, ",");
 		while (token != NULL) {
@@ -1310,6 +1312,8 @@ void parse_config_line(Config *config, const char *line) {
 					rule->layer_name = strdup(val);
 				} else if (strcmp(key, "noblur") == 0) {
 					rule->noblur = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "noanim") == 0) {
+					rule->noanim = CLAMP_INT(atoi(val), 0, 1);
 				}
 			}
 			token = strtok(NULL, ",");

@@ -350,6 +350,7 @@ typedef struct {
 	struct wlr_scene_tree *popups;
 	struct wlr_scene_layer_surface_v1 *scene_layer;
 	struct wl_list link;
+	struct wl_list fadeout_link;
 	int mapped;
 	struct wlr_layer_surface_v1 *layer_surface;
 
@@ -360,6 +361,8 @@ typedef struct {
 
 	struct dwl_animation animation;
 	bool dirty;
+	int noblur;
+	int noanim;
 	bool need_output_flush;
 } LayerSurface;
 
@@ -639,6 +642,7 @@ static void reset_keyboard_layout(void);
 static void client_update_oldmonname_record(Client *c, Monitor *m);
 static void pending_kill_client(Client *c);
 static void set_layer_open_animaiton(LayerSurface *l, struct wlr_box geo);
+static void init_fadeout_layers(LayerSurface *l);
 
 #include "data/static_keymap.h"
 #include "dispatch/dispatch.h"
@@ -666,6 +670,7 @@ static struct wlr_xdg_decoration_manager_v1 *xdg_decoration_mgr;
 static struct wl_list clients; /* tiling order */
 static struct wl_list fstack;  /* focus order */
 static struct wl_list fadeout_clients;
+static struct wl_list fadeout_layers;
 static struct wlr_idle_notifier_v1 *idle_notifier;
 static struct wlr_idle_inhibit_manager_v1 *idle_inhibit_mgr;
 static struct wlr_layer_shell_v1 *layer_shell;
@@ -888,6 +893,51 @@ void apply_opacity_to_rect_nodes(Client *c, struct wlr_scene_node *node,
 	}
 }
 
+void fadeout_layer_animation_next_tick(LayerSurface *l) {
+	if (!l)
+		return;
+
+	double animation_passed =
+		(double)l->animation.passed_frames / l->animation.total_frames;
+	int type = l->animation.action = l->animation.action;
+	double factor = find_animation_curve_at(animation_passed, type);
+	unsigned int width =
+		l->animation.initial.width +
+		(l->current.width - l->animation.initial.width) * factor;
+	unsigned int height =
+		l->animation.initial.height +
+		(l->current.height - l->animation.initial.height) * factor;
+
+	unsigned int x = l->animation.initial.x +
+					 (l->current.x - l->animation.initial.x) * factor;
+	unsigned int y = l->animation.initial.y +
+					 (l->current.y - l->animation.initial.y) * factor;
+
+	wlr_scene_node_set_position(&l->scene->node, x, y);
+
+	l->animation.current = (struct wlr_box){
+		.x = x,
+		.y = y,
+		.width = width,
+		.height = height,
+	};
+
+	double opacity = MAX(fadeout_begin_opacity - animation_passed, 0);
+
+	if (animation_fade_out)
+		wlr_scene_node_for_each_buffer(&l->scene->node,
+									   scene_buffer_apply_opacity, &opacity);
+
+	if (animation_passed == 1.0) {
+		wl_list_remove(&l->fadeout_link);
+		wlr_scene_node_destroy(&l->scene->node);
+		free(l);
+		l = NULL;
+	} else {
+		l->animation.passed_frames++;
+	}
+}
+
 void fadeout_client_animation_next_tick(Client *c) {
 	if (!c)
 		return;
@@ -952,6 +1002,14 @@ void fadeout_client_animation_next_tick(Client *c) {
 }
 
 void layer_animation_next_tick(LayerSurface *l) {
+
+	if (!animations || l->noanim) {
+		wlr_scene_node_set_position(&l->scene->node, l->geom.x, l->geom.y);
+		l->animation.passed_frames = 0;
+		l->animation.running = false;
+		l->need_output_flush = false;
+	}
+
 	double animation_passed =
 		(double)l->animation.passed_frames / l->animation.total_frames;
 
@@ -1481,6 +1539,14 @@ bool client_draw_fadeout_frame(Client *c) {
 		return false;
 
 	fadeout_client_animation_next_tick(c);
+	return true;
+}
+
+bool layer_draw_fadeout_frame(LayerSurface *l) {
+	if (!l)
+		return false;
+
+	fadeout_layer_animation_next_tick(l);
 	return true;
 }
 
@@ -3115,6 +3181,7 @@ static void iter_layer_scene_buffers(struct wlr_scene_buffer *buffer, int sx,
 }
 
 void maplayersurfacenotify(struct wl_listener *listener, void *data) {
+	int ji;
 	LayerSurface *l = wl_container_of(listener, l, map);
 	if (!l->mon)
 		return;
@@ -3191,6 +3258,24 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 
 	// 更新几何位置
 	l->geom = box;
+	l->noanim = 0;
+	l->dirty = false;
+	l->noblur = 0;
+
+	// 应用layer规则
+	for (ji = 0; ji < config.layer_rules_count; ji++) {
+		if (config.layer_rules_count < 1)
+			break;
+		if (strcmp(config.layer_rules[ji].layer_name,
+				   l->layer_surface->namespace) == 0) {
+			if (config.layer_rules[ji].noblur > 0) {
+				l->noblur = 1;
+			}
+			if (config.layer_rules[ji].noanim > 0) {
+				l->noanim = 1;
+			}
+		}
+	}
 
 	l->need_output_flush = true;
 	l->mapped = 1;
@@ -3206,8 +3291,6 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 		layers[layermap[layer_surface->current.layer]];
 	struct wlr_layer_surface_v1_state old_state;
 	struct wlr_layer_surface_v1 *wlr_layer_surface = l->layer_surface;
-	int ji;
-	bool exclude_blur = false;
 
 	if (l->layer_surface->initial_commit) {
 		client_set_scale(layer_surface->surface, l->mon->wlr_output->scale);
@@ -3226,23 +3309,8 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 
 	if (blur && blur_layer) {
 		// 设置非背景layer模糊
-		for (ji = 0; ji < config.layer_rules_count; ji++) {
-			if (config.layer_rules_count < 1)
-				break;
-			if (strcmp(config.layer_rules[ji].layer_name,
-					   l->layer_surface->namespace) == 0 &&
-				config.layer_rules[ji].noblur) {
-				exclude_blur = true;
-				break;
-			}
-		}
 
-		if (l->layer_surface->current.layer == ZWLR_LAYER_SHELL_V1_LAYER_TOP &&
-			l->layer_surface->current.layer ==
-				ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY) {
-		}
-
-		if (!exclude_blur &&
+		if (!l->noblur &&
 			wlr_layer_surface->current.layer !=
 				ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
 			wlr_layer_surface->current.layer !=
@@ -3298,7 +3366,8 @@ void layer_set_pending_state(LayerSurface *l) {
 		l->animation.should_animate = true;
 	}
 
-	l->animation.duration = animation_duration_layer;
+	l->animation.duration = animation_duration_open;
+	l->animation.action = OPEN;
 	// 开始动画
 	layer_commit(l);
 	l->dirty = true;
@@ -5384,6 +5453,10 @@ void rendermon(struct wl_listener *listener, void *data) {
 		need_more_frames = client_draw_fadeout_frame(c) || need_more_frames;
 	}
 
+	wl_list_for_each_safe(l, tmpl, &fadeout_layers, fadeout_link) {
+		need_more_frames = layer_draw_fadeout_frame(l) || need_more_frames;
+	}
+
 	wlr_scene_output_commit(m->scene_output, NULL);
 
 	// Send frame done notification
@@ -6644,6 +6717,7 @@ void setup(void) {
 	wl_list_init(&clients);
 	wl_list_init(&fstack);
 	wl_list_init(&fadeout_clients);
+	wl_list_init(&fadeout_layers);
 
 	idle_notifier = wlr_idle_notifier_v1_create(dpy);
 
@@ -7263,6 +7337,9 @@ void unmaplayersurfacenotify(struct wl_listener *listener, void *data) {
 	LayerSurface *l = wl_container_of(listener, l, unmap);
 
 	l->mapped = 0;
+
+	init_fadeout_layers(l);
+
 	wlr_scene_node_set_enabled(&l->scene->node, false);
 	if (l == exclusive_focus)
 		exclusive_focus = NULL;
@@ -7271,6 +7348,58 @@ void unmaplayersurfacenotify(struct wl_listener *listener, void *data) {
 	if (l->layer_surface->surface == seat->keyboard_state.focused_surface)
 		focusclient(focustop(selmon), 1);
 	motionnotify(0, NULL, 0, 0, 0, 0);
+}
+
+void init_fadeout_layers(LayerSurface *l) {
+
+	if (!layer_animaitons || l->noanim) {
+		return;
+	}
+
+	if (!l->mon)
+		return;
+
+	if (!l->scene) {
+		return;
+	}
+
+	LayerSurface *fadeout_layer = ecalloc(1, sizeof(*fadeout_layer));
+
+	wlr_scene_node_set_enabled(&l->scene->node, true);
+	fadeout_layer->scene =
+		wlr_scene_tree_snapshot(&l->scene->node, layers[LyrFadeOut]);
+	wlr_scene_node_set_enabled(&l->scene->node, false);
+
+	if (!fadeout_layer->scene) {
+		free(fadeout_layer);
+		return;
+	}
+
+	fadeout_layer->animation.duration = animation_duration_close;
+	fadeout_layer->geom = fadeout_layer->current =
+		fadeout_layer->animainit_geom = fadeout_layer->animation.initial =
+			l->animation.current;
+	fadeout_layer->mon = l->mon;
+	fadeout_layer->animation.action = CLOSE;
+
+	// 这里snap节点的坐标设置是使用的相对坐标，所以不能加上原来坐标
+	// 这跟普通node有区别
+
+	fadeout_layer->animation.initial.x = 0;
+	fadeout_layer->animation.initial.y = 0;
+
+	fadeout_layer->current.y =
+		l->geom.y + l->geom.height / 2 > l->mon->m.y + l->mon->m.height / 2
+			? l->mon->m.height -
+				  (l->animation.current.y - l->mon->m.y) // down out
+			: l->mon->m.y - l->geom.height;				 // up out
+	fadeout_layer->current.x = 0;						 // x无偏差，垂直划出
+
+	fadeout_layer->animation.passed_frames = 0;
+	fadeout_layer->animation.total_frames =
+		fadeout_layer->animation.duration / output_frame_duration_ms();
+	wlr_scene_node_set_enabled(&fadeout_layer->scene->node, true);
+	wl_list_insert(&fadeout_layers, &fadeout_layer->fadeout_link);
 }
 
 void init_fadeout_client(Client *c) {

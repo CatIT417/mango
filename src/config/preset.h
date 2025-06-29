@@ -11,6 +11,7 @@
 char *animation_type_open = "slide";	  // 是否启用动画 //slide,zoom
 char *animation_type_close = "slide";	  // 是否启用动画 //slide,zoom
 int animations = 1;						  // 是否启用动画
+int layer_animaitons = 1;				  // 是否启用layer动画
 int tag_animation_direction = HORIZONTAL; // 标签动画方向
 int animation_fade_in = 1;				  // Enable animation fade in
 int animation_fade_out = 1;				  // Enable animation fade out
@@ -21,7 +22,6 @@ uint32_t animation_duration_move = 500;	 // Animation move speed
 uint32_t animation_duration_open = 400;	 // Animation open speed
 uint32_t animation_duration_tag = 300;	 // Animation tag speed
 uint32_t animation_duration_close = 300; // Animation close speed
-uint32_t animation_duration_layer = 300; // Animation layer speed
 double animation_curve_move[4] = {0.46, 1.0, 0.29, 0.99};  // 动画曲线
 double animation_curve_open[4] = {0.46, 1.0, 0.29, 0.99};  // 动画曲线
 double animation_curve_tag[4] = {0.46, 1.0, 0.29, 0.99};   // 动画曲线
