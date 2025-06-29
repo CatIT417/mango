@@ -3353,7 +3353,10 @@ void layer_set_pending_state(LayerSurface *l) {
 	l->pending = l->geom;
 	set_layer_open_animaiton(l, l->geom);
 	// 判断是否需要动画
-	if (!animations) {
+	if (!animations || l->noanim ||
+		l->layer_surface->current.layer ==
+			ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND ||
+		l->layer_surface->current.layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM) {
 		l->animation.should_animate = false;
 	} else {
 		l->animation.should_animate = true;
