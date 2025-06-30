@@ -4302,6 +4302,8 @@ focusstack(const Arg *arg) {
 	}
 	/* If only one client is visible on selmon, then c == sel */
 	focusclient(c, 1);
+	if (warpcursor)
+		warp_cursor(c);
 }
 
 /* We probably should change the name of this, it sounds like
