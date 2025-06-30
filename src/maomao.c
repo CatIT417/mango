@@ -1487,9 +1487,6 @@ bool layer_draw_frame(LayerSurface *l) {
 	if (animations && layer_animations && l->animation.running && !l->noanim) {
 		layer_animation_next_tick(l);
 	} else {
-		wlr_scene_node_set_position(&l->scene->node, l->geom.x, l->geom.y);
-		l->animainit_geom = l->animation.initial = l->pending = l->current =
-			l->geom;
 		l->need_output_flush = false;
 	}
 	return true;
@@ -3276,7 +3273,6 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 	get_layer_target_geometry(l, &box);
 
 	// 更新几何位置
-	l->geom = box;
 	l->noanim = 0;
 	l->dirty = false;
 	l->noblur = 0;
@@ -3296,10 +3292,13 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 		}
 	}
 
-	l->need_output_flush = true;
-	l->animation.action = OPEN;
-	layer_set_pending_state(l);
-	// 刷新布局，让窗口能感应到exclude_zone变化
+	if (animations && layer_animations && !l->noanim) {
+		l->need_output_flush = true;
+		l->animation.action = OPEN;
+		l->geom = box;
+		layer_set_pending_state(l);
+	}
+	// 刷新布局，让窗口能感应到exclude_zone变化以及设置独占表面
 	arrangelayers(l->mon);
 }
 
@@ -3327,7 +3326,7 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 
 	get_layer_target_geometry(l, &box);
 
-	if (l->mapped &&
+	if (animations && layer_animations && !l->noanim && l->mapped &&
 		wlr_layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
 		wlr_layer_surface->current.layer !=
 			ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND &&
