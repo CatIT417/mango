@@ -2658,7 +2658,7 @@ void arrangelayers(Monitor *m) {
 			if (locked ||
 				l->layer_surface->current.keyboard_interactive !=
 					ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE ||
-				!l->mapped)
+				!l->mapped || l == exclusive_focus)
 				continue;
 			/* Deactivate the focused client. */
 			focusclient(NULL, 0);
