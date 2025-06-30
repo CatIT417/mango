@@ -593,7 +593,7 @@ static int isdescprocess(pid_t p, pid_t c);
 static Client *termforwin(Client *w);
 static void swallow(Client *c, Client *w);
 
-static void warp_cursor_to_selmon(const Monitor *m);
+static void warp_cursor_to_selmon(Monitor *m);
 unsigned int want_restore_fullscreen(Client *target_client);
 static void overview_restore(Client *c, const Arg *arg);
 static void overview_backup(Client *c);
@@ -4271,9 +4271,11 @@ void focusmon(const Arg *arg) {
 	}
 	warp_cursor_to_selmon(selmon);
 	c = focustop(selmon);
-	if (!c)
+	if (!c) {
 		selmon->sel = NULL;
-	else
+		wlr_seat_pointer_notify_clear_focus(seat);
+		wlr_seat_keyboard_notify_clear_focus(seat);
+	} else
 		focusclient(c, 1);
 }
 
@@ -8029,10 +8031,12 @@ void warp_cursor(const Client *c) {
 	}
 }
 
-void warp_cursor_to_selmon(const Monitor *m) {
+void warp_cursor_to_selmon(Monitor *m) {
 
 	wlr_cursor_warp_closest(cursor, NULL, m->w.x + m->w.width / 2.0,
 							m->w.y + m->w.height / 2.0);
+	wlr_cursor_set_xcursor(cursor, cursor_mgr, "default");
+	handlecursoractivity();
 }
 
 void virtualpointer(struct wl_listener *listener, void *data) {
