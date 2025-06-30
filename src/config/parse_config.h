@@ -533,6 +533,10 @@ uint32_t parse_mod(const char *mod_str) {
 				strstr(token, "alt_r")) {
 				mod |= WLR_MODIFIER_ALT;
 			}
+			if (strstr(token, "hyper") || strstr(token, "hyper_l") ||
+				strstr(token, "hyper_r")) {
+				mod |= WLR_MODIFIER_MOD3;
+			}
 		}
 
 		token = strtok_r(NULL, "+", &saveptr);
