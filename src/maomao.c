@@ -129,10 +129,10 @@ enum {
 	LyrTile,
 	LyrFloat,
 	LyrTop,
+	LyrFadeOut,
 	LyrFS,
 	LyrOverlay,
 	LyrIMPopup, // text-input layer
-	LyrFadeOut,
 	LyrBlock,
 	NUM_LAYERS
 }; /* scene layers */
