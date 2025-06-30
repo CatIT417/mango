@@ -1563,7 +1563,7 @@ void clear_fullscreen_flag(Client *c) {
 		c->isfloating = 0;
 		c->ismaxmizescreen = 0;
 		c->bw = c->isnoborder ? 0 : borderpx;
-		client_set_fullscreen(c, false);
+		setfullscreen(c, false);
 	}
 }
 
@@ -6044,8 +6044,6 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
 
 	c->ismaxmizescreen = maxmizescreen;
 
-	// c->bw = fullscreen ? 0 : borderpx;
-	// client_set_fullscreen(c, maxmizescreen);
 	wlr_scene_node_reparent(&c->scene->node, layers[maxmizescreen	? LyrTile
 													: c->isfloating ? LyrFloat
 																	: LyrTile]);
@@ -6069,7 +6067,7 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
 		c->bw = c->isnoborder ? 0 : borderpx;
 		c->ismaxmizescreen = 0;
 		c->isfullscreen = 0;
-		client_set_fullscreen(c, false);
+		setfullscreen(c, false);
 		if (c->isfloating)
 			setfloating(c, 1);
 		arrange(c->mon, false);
