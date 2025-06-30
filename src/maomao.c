@@ -127,8 +127,8 @@ enum {
 	LyrBlur,
 	LyrBottom,
 	LyrTile,
-	LyrTop,
 	LyrFloat,
+	LyrTop,
 	LyrFS,
 	LyrOverlay,
 	LyrIMPopup, // text-input layer
@@ -6098,7 +6098,7 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
 		wlr_scene_node_reparent(&c->scene->node, layers[LyrOverlay]);
 	} else {
 		wlr_scene_node_reparent(&c->scene->node,
-								layers[fullscreen	   ? LyrFloat
+								layers[fullscreen	   ? LyrFS
 									   : c->isfloating ? LyrFloat
 													   : LyrTile]);
 	}
