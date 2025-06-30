@@ -4207,7 +4207,7 @@ void focusclient(Client *c, int lift) {
 			toplevel_from_wlr_surface(old_keyboard_focus_surface, &w, &l);
 		if (type == LayerShell && l->scene->node.enabled &&
 			l->layer_surface->current.layer >= ZWLR_LAYER_SHELL_V1_LAYER_TOP &&
-			!l->layer_surface->current.keyboard_interactive) {
+			l == exclusive_focus) {
 			return;
 		} else if (w && w == exclusive_focus && client_wants_focus(w)) {
 			return;
