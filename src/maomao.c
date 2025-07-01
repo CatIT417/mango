@@ -2917,7 +2917,10 @@ buttonpress(struct wl_listener *listener, void *data) {
 				motionnotify(0, NULL, 0, 0, 0, 0);
 			}
 
-			if (l && l->layer_surface->current.keyboard_interactive) {
+			// 聚焦按需要交互焦点的layer，但注意不能抢占独占焦点的layer
+			if (l && !exclusive_focus &&
+				l->layer_surface->current.keyboard_interactive ==
+					ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND) {
 				focusclient(NULL, 0);
 				client_notify_enter(l->layer_surface->surface,
 									wlr_seat_get_keyboard(seat));
@@ -3258,6 +3261,7 @@ void get_layer_target_geometry(LayerSurface *l, struct wlr_box *target_box) {
 
 void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 	int ji;
+
 	LayerSurface *l = wl_container_of(listener, l, map);
 	l->mapped = 1;
 
@@ -3300,6 +3304,15 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 	}
 	// 刷新布局，让窗口能感应到exclude_zone变化以及设置独占表面
 	arrangelayers(l->mon);
+
+	// 按需交互layer需要像正常窗口一样抢占非独占layer的焦点
+	if (!exclusive_focus &&
+		l->layer_surface->current.keyboard_interactive ==
+			ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND) {
+		focusclient(NULL, 0);
+		client_notify_enter(l->layer_surface->surface,
+							wlr_seat_get_keyboard(seat));
+	}
 }
 
 void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
@@ -4198,9 +4211,10 @@ void focusclient(Client *c, int lift) {
 	/* Deactivate old client if focus is changing */
 	if (old_keyboard_focus_surface &&
 		(!c || client_surface(c) != old_keyboard_focus_surface)) {
-		/* If an overlay is focused, don't focus or activate the client,
-		 * but only update its position in fstack to render its border with
-		 * focuscolor and focus it after the overlay is closed. */
+		/* If an exclusive_focus layer is focused, don't focus or activate the
+		 * client, but only update its position in fstack to render its border
+		 * with focuscolor and focus it after the exclusive_focus layer is
+		 * closed. */
 		Client *w = NULL;
 		LayerSurface *l = NULL;
 		int type =
