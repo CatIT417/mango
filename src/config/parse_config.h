@@ -204,6 +204,10 @@ typedef struct {
 	int middle_button_emulation;
 	unsigned int accel_profile;
 	double accel_speed;
+	unsigned int scroll_method;
+	unsigned int click_method;
+	unsigned int send_events_mode;
+	unsigned int button_map;
 
 	int blur;
 	int blur_layer;
@@ -1164,6 +1168,14 @@ void parse_config_line(Config *config, const char *line) {
 		config->accel_profile = atoi(value);
 	} else if (strcmp(key, "accel_speed") == 0) {
 		config->accel_speed = atof(value);
+	} else if (strcmp(key, "scroll_method") == 0) {
+		config->scroll_method = atoi(value);
+	} else if (strcmp(key, "click_method") == 0) {
+		config->click_method = atoi(value);
+	} else if (strcmp(key, "send_events_mode") == 0) {
+		config->send_events_mode = atoi(value);
+	} else if (strcmp(key, "button_map") == 0) {
+		config->button_map = atoi(value);
 	} else if (strcmp(key, "gappih") == 0) {
 		config->gappih = atoi(value);
 	} else if (strcmp(key, "gappiv") == 0) {
@@ -2161,6 +2173,10 @@ void override_config(void) {
 	mouse_natural_scrolling = CLAMP_INT(config.mouse_natural_scrolling, 0, 1);
 	accel_profile = CLAMP_INT(config.accel_profile, 0, 2);
 	accel_speed = CLAMP_FLOAT(config.accel_speed, -1.0f, 1.0f);
+	scroll_method = CLAMP_INT(config.scroll_method, 0, 4);
+	click_method = CLAMP_INT(config.click_method, 0, 2);
+	send_events_mode = CLAMP_INT(config.send_events_mode, 0, 2);
+	button_map = CLAMP_INT(config.button_map, 0, 1);
 
 	// 外观设置
 	gappih = CLAMP_INT(config.gappih, 0, 1000);
@@ -2301,6 +2317,10 @@ void set_value_default() {
 	config.middle_button_emulation = middle_button_emulation;
 	config.accel_profile = accel_profile;
 	config.accel_speed = accel_speed;
+	config.scroll_method = scroll_method;
+	config.click_method = click_method;
+	config.send_events_mode = send_events_mode;
+	config.button_map = button_map;
 
 	config.blur = blur;
 	config.blur_layer = blur_layer;
