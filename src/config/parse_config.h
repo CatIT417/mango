@@ -2290,9 +2290,9 @@ void set_value_default() {
 	config.swipe_min_threshold = swipe_min_threshold;
 
 	config.inhibit_regardless_of_visibility =
-		inhibit_regardless_of_visibility; /* 1 means idle inhibitors will disable idle
-									  tracking even if it's surface isn't
-									  visible
+		inhibit_regardless_of_visibility; /* 1 means idle inhibitors will
+									  disable idle tracking even if it's surface
+									  isn't visible
 									*/
 
 	config.borderpx = borderpx;
