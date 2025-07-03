@@ -66,7 +66,7 @@ unsigned int cursor_hide_timeout = 0;
 
 unsigned int swipe_min_threshold = 20;
 
-int bypass_surface_visibility =
+int inhibit_regardless_of_visibility =
 	0; /* 1 means idle inhibitors will disable idle tracking even if it's
 		  surface isn't visible  */
 unsigned int borderpx = 4; /* border pixel of windows */

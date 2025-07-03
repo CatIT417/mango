@@ -2995,7 +2995,7 @@ void checkidleinhibitor(struct wlr_surface *exclude) {
 			wlr_surface_get_root_surface(inhibitor->surface);
 		struct wlr_scene_tree *tree = surface->data;
 		if (exclude != surface &&
-			(bypass_surface_visibility ||
+			(inhibit_regardless_of_visibility ||
 			 (!tree ||
 			  wlr_scene_node_coords(&tree->node, &unused_lx, &unused_ly)))) {
 			inhibited = 1;
