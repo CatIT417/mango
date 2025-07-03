@@ -3234,7 +3234,7 @@ void get_layer_target_geometry(LayerSurface *l, struct wlr_box *target_box) {
 	if (box.width == 0) {
 		box.x += state->margin.left;
 		box.width = bounds.width - (state->margin.left + state->margin.right);
-	} else if (!(state->anchor & both_horiz)) {
+	} else {
 		if (state->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT) {
 			box.x += state->margin.left;
 		} else if (state->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT) {
@@ -3245,7 +3245,7 @@ void get_layer_target_geometry(LayerSurface *l, struct wlr_box *target_box) {
 	if (box.height == 0) {
 		box.y += state->margin.top;
 		box.height = bounds.height - (state->margin.top + state->margin.bottom);
-	} else if (!(state->anchor & both_vert)) {
+	} else {
 		if (state->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP) {
 			box.y += state->margin.top;
 		} else if (state->anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM) {
