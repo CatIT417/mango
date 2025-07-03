@@ -134,6 +134,7 @@ LIBINPUT_CONFIG_SCROLL_EDGE
 LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN
 */
 enum libinput_config_scroll_method scroll_method = LIBINPUT_CONFIG_SCROLL_2FG;
+unsigned int scroll_button = 274;
 
 /* You can choose between:
 LIBINPUT_CONFIG_CLICK_METHOD_NONE
