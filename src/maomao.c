@@ -3299,7 +3299,10 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 	if (animations && layer_animations && !l->noanim) {
 		l->need_output_flush = true;
 		l->animation.action = OPEN;
-		l->geom = box;
+		l->geom.x = box.x;
+		l->geom.y = box.y;
+		l->geom.width = box.width;
+		l->geom.height = box.height;
 		layer_set_pending_state(l);
 	}
 	// 刷新布局，让窗口能感应到exclude_zone变化以及设置独占表面
