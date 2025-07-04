@@ -6058,6 +6058,7 @@ setfloating(Client *c, int floating) {
 	int hit;
 	struct wlr_box target_box, backup_box;
 	c->isfloating = floating;
+	bool window_size_outofrange = false;
 
 	if (!c || !c->mon || !client_surface(c)->mapped || c->iskilling)
 		return;
@@ -6089,6 +6090,17 @@ setfloating(Client *c, int floating) {
 
 		// restore to the memeroy geom
 		if (c->oldgeom.width > 0 && c->oldgeom.height > 0) {
+			if (c->mon && c->oldgeom.width >= c->mon->w.width - gappoh) {
+				c->oldgeom.width = c->mon->w.width * 0.9;
+				window_size_outofrange = true;
+			}
+			if (c->mon && c->oldgeom.height >= c->mon->w.height - gappov) {
+				c->oldgeom.height = c->mon->w.height * 0.9;
+				window_size_outofrange = true;
+			}
+			if (window_size_outofrange) {
+				c->oldgeom = setclient_coordinate_center(c, c->oldgeom, 0, 0);
+			}
 			resize(c, c->oldgeom, 0);
 		} else {
 			resize(c, target_box, 0);
