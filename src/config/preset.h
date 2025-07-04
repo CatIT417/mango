@@ -190,6 +190,7 @@ float blur_params_contrast = 0.9;
 float blur_params_saturation = 1.2;
 
 int shadows = 0;
+int layer_shadows = 0;
 unsigned int shadows_size = 10;
 double shadows_blur = 15;
 int shadows_position_x = 0;

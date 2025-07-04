@@ -348,6 +348,7 @@ typedef struct {
 	Monitor *mon;
 	struct wlr_scene_tree *scene;
 	struct wlr_scene_tree *popups;
+	struct wlr_scene_shadow *shadow;
 	struct wlr_scene_layer_surface_v1 *scene_layer;
 	struct wl_list link;
 	struct wl_list fadeout_link;
@@ -363,6 +364,7 @@ typedef struct {
 	bool dirty;
 	int noblur;
 	int noanim;
+	int noshadow;
 	bool need_output_flush;
 } LayerSurface;
 
@@ -635,6 +637,10 @@ static void client_update_oldmonname_record(Client *c, Monitor *m);
 static void pending_kill_client(Client *c);
 static void set_layer_open_animaiton(LayerSurface *l, struct wlr_box geo);
 static void init_fadeout_layers(LayerSurface *l);
+static void layer_actual_size(LayerSurface *l, unsigned int *width,
+							  unsigned int *height);
+static void get_layer_target_geometry(LayerSurface *l,
+									  struct wlr_box *target_box);
 
 #include "data/static_keymap.h"
 #include "dispatch/dispatch.h"
@@ -1102,6 +1108,20 @@ void client_animation_next_tick(Client *c) {
 	}
 }
 
+void layer_actual_size(LayerSurface *l, unsigned int *width,
+					   unsigned int *height) {
+	struct wlr_box box;
+
+	if (l->animation.running) {
+		*width = l->animation.current.width;
+		*height = l->animation.current.height;
+	} else {
+		get_layer_target_geometry(l, &box);
+		*width = box.width;
+		*height = box.height;
+	}
+}
+
 void client_actual_size(Client *c, unsigned int *width, unsigned int *height) {
 	*width = c->animation.current.width - c->bw;
 
@@ -1138,6 +1158,55 @@ bool check_hit_no_border(Client *c) {
 		hit_no_border = true;
 	}
 	return hit_no_border;
+}
+
+void layer_draw_shadow(LayerSurface *l) {
+
+	if (!l->mapped || !l->shadow)
+		return;
+
+	if (!shadows || !layer_shadows || l->noshadow) {
+		wlr_scene_shadow_set_size(l->shadow, 0, 0);
+		return;
+	}
+
+	uint32_t width, height;
+	layer_actual_size(l, &width, &height);
+
+	uint32_t delta = shadows_size;
+
+	/* we calculate where to clip the shadow */
+	struct wlr_box layer_box = {
+		.x = 0,
+		.y = 0,
+		.width = width,
+		.height = height,
+	};
+
+	struct wlr_box shadow_box = {
+		.x = shadows_position_x,
+		.y = shadows_position_y,
+		.width = width + 2 * delta,
+		.height = height + 2 * delta,
+	};
+
+	struct wlr_box intersection_box;
+	wlr_box_intersection(&intersection_box, &layer_box, &shadow_box);
+	/* clipped region takes shadow relative coords, so we translate everything
+	 * by its position */
+	intersection_box.x -= shadows_position_x;
+	intersection_box.y -= shadows_position_y;
+
+	struct clipped_region clipped_region = {
+		.area = intersection_box,
+		.corner_radius = border_radius,
+		.corners = border_radius_location_default,
+	};
+
+	wlr_scene_node_set_position(&l->shadow->node, shadow_box.x, shadow_box.y);
+
+	wlr_scene_shadow_set_size(l->shadow, shadow_box.width, shadow_box.height);
+	wlr_scene_shadow_set_clipped_region(l->shadow, clipped_region);
 }
 
 void client_draw_shadow(Client *c) {
@@ -1486,7 +1555,9 @@ bool layer_draw_frame(LayerSurface *l) {
 
 	if (animations && layer_animations && l->animation.running && !l->noanim) {
 		layer_animation_next_tick(l);
+		layer_draw_shadow(l);
 	} else {
+		layer_draw_shadow(l);
 		l->need_output_flush = false;
 	}
 	return true;
@@ -3263,11 +3334,12 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 	int ji;
 
 	LayerSurface *l = wl_container_of(listener, l, map);
+	struct wlr_layer_surface_v1 *layer_surface = l->layer_surface;
+
 	l->mapped = 1;
 
 	if (!l->mon)
 		return;
-	struct wlr_layer_surface_v1 *layer_surface = l->layer_surface;
 	strncpy(l->mon->last_surface_ws_name, layer_surface->namespace,
 			sizeof(l->mon->last_surface_ws_name) - 1); // 最多拷贝255个字符
 	l->mon->last_surface_ws_name[sizeof(l->mon->last_surface_ws_name) - 1] =
@@ -3280,6 +3352,8 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 	l->noanim = 0;
 	l->dirty = false;
 	l->noblur = 0;
+	l->shadow = NULL;
+	l->need_output_flush = true;
 
 	// 应用layer规则
 	for (ji = 0; ji < config.layer_rules_count; ji++) {
@@ -3293,11 +3367,22 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 			if (config.layer_rules[ji].noanim > 0) {
 				l->noanim = 1;
 			}
+			if (config.layer_rules[ji].noshadow > 0) {
+				l->noshadow = 1;
+			}
 		}
 	}
 
+	if (layer_surface->current.exclusive_zone == 0 &&
+		layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
+		layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
+		l->shadow = wlr_scene_shadow_create(l->scene, 0, 0, border_radius,
+											shadows_blur, shadowscolor);
+		wlr_scene_node_lower_to_bottom(&l->shadow->node);
+		wlr_scene_node_set_enabled(&l->shadow->node, true);
+	}
+
 	if (animations && layer_animations && !l->noanim) {
-		l->need_output_flush = true;
 		l->animation.action = OPEN;
 		l->geom.x = box.x;
 		l->geom.y = box.y;
@@ -3348,7 +3433,10 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 			ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND &&
 		!wlr_box_equal(&box, &l->geom)) {
 
-		l->geom = box;
+		l->geom.x = box.x;
+		l->geom.y = box.y;
+		l->geom.width = box.width;
+		l->geom.height = box.height;
 		l->animation.action = MOVE;
 		l->need_output_flush = true;
 		layer_set_pending_state(l);

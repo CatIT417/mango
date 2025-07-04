@@ -127,6 +127,7 @@ typedef struct {
 	char *layer_name; // 布局名称
 	int noblur;
 	int noanim;
+	int noshadow;
 } ConfigLayerRule;
 
 typedef struct {
@@ -216,6 +217,7 @@ typedef struct {
 	int border_radius;
 	struct blur_data blur_params;
 	int shadows;
+	int layer_shadows;
 	unsigned int shadows_size;
 	float shadows_blur;
 	int shadows_position_x;
@@ -936,6 +938,8 @@ void parse_config_line(Config *config, const char *line) {
 		config->blur_params.saturation = atof(value);
 	} else if (strcmp(key, "shadows") == 0) {
 		config->shadows = atoi(value);
+	} else if (strcmp(key, "layer_shadows") == 0) {
+		config->layer_shadows = atoi(value);
 	} else if (strcmp(key, "shadows_size") == 0) {
 		config->shadows_size = atoi(value);
 	} else if (strcmp(key, "shadows_blur") == 0) {
@@ -1322,6 +1326,7 @@ void parse_config_line(Config *config, const char *line) {
 		rule->layer_name = NULL;
 		rule->noblur = 0;
 		rule->noanim = 0;
+		rule->noshadow = 0;
 
 		char *token = strtok(value, ",");
 		while (token != NULL) {
@@ -1340,6 +1345,8 @@ void parse_config_line(Config *config, const char *line) {
 					rule->noblur = CLAMP_INT(atoi(val), 0, 1);
 				} else if (strcmp(key, "noanim") == 0) {
 					rule->noanim = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "noshadow") == 0) {
+					rule->noshadow = CLAMP_INT(atoi(val), 0, 1);
 				}
 			}
 			token = strtok(NULL, ",");
@@ -2201,6 +2208,7 @@ void override_config(void) {
 	blur_params.contrast = CLAMP_FLOAT(config.blur_params.contrast, 0, 1);
 	blur_params.saturation = CLAMP_FLOAT(config.blur_params.saturation, 0, 1);
 	shadows = CLAMP_INT(config.shadows, 0, 1);
+	layer_shadows = CLAMP_INT(config.layer_shadows, 0, 1);
 	shadows_size = CLAMP_INT(config.shadows_size, 0, 100);
 	shadows_blur = CLAMP_INT(config.shadows_blur, 0, 100);
 	shadows_position_x = CLAMP_INT(config.shadows_position_x, -1000, 1000);
@@ -2338,6 +2346,7 @@ void set_value_default() {
 	config.blur_params.contrast = blur_params_contrast;
 	config.blur_params.saturation = blur_params_saturation;
 	config.shadows = shadows;
+	config.layer_shadows = layer_shadows;
 	config.shadows_size = shadows_size;
 	config.shadows_blur = shadows_blur;
 	config.shadows_position_x = shadows_position_x;
