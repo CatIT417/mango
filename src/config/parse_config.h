@@ -205,6 +205,7 @@ typedef struct {
 	unsigned int accel_profile;
 	double accel_speed;
 	unsigned int scroll_method;
+	unsigned int scroll_button;
 	unsigned int click_method;
 	unsigned int send_events_mode;
 	unsigned int button_map;
@@ -1170,6 +1171,8 @@ void parse_config_line(Config *config, const char *line) {
 		config->accel_speed = atof(value);
 	} else if (strcmp(key, "scroll_method") == 0) {
 		config->scroll_method = atoi(value);
+	} else if (strcmp(key, "scroll_button") == 0) {
+			config->scroll_button = atoi(value);
 	} else if (strcmp(key, "click_method") == 0) {
 		config->click_method = atoi(value);
 	} else if (strcmp(key, "send_events_mode") == 0) {
@@ -2174,6 +2177,7 @@ void override_config(void) {
 	accel_profile = CLAMP_INT(config.accel_profile, 0, 2);
 	accel_speed = CLAMP_FLOAT(config.accel_speed, -1.0f, 1.0f);
 	scroll_method = CLAMP_INT(config.scroll_method, 0, 4);
+	scroll_button = CLAMP_INT(config.scroll_button, 272, 276);
 	click_method = CLAMP_INT(config.click_method, 0, 2);
 	send_events_mode = CLAMP_INT(config.send_events_mode, 0, 2);
 	button_map = CLAMP_INT(config.button_map, 0, 1);
@@ -2318,6 +2322,7 @@ void set_value_default() {
 	config.accel_profile = accel_profile;
 	config.accel_speed = accel_speed;
 	config.scroll_method = scroll_method;
+	config.scroll_button = scroll_button;
 	config.click_method = click_method;
 	config.send_events_mode = send_events_mode;
 	config.button_map = button_map;
