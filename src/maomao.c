@@ -3941,8 +3941,8 @@ void createpointer(struct wlr_pointer *pointer) {
 			LIBINPUT_CONFIG_SCROLL_NO_SCROLL)
 			libinput_device_config_scroll_set_method(device, scroll_method);
 		if (libinput_device_config_scroll_get_methods(device) ==
-					LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN)
-					libinput_device_config_scroll_set_button(device, scroll_button);
+			LIBINPUT_CONFIG_SCROLL_ON_BUTTON_DOWN)
+			libinput_device_config_scroll_set_button(device, scroll_button);
 
 		if (libinput_device_config_click_get_methods(device) !=
 			LIBINPUT_CONFIG_CLICK_METHOD_NONE)

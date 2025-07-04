@@ -1172,7 +1172,7 @@ void parse_config_line(Config *config, const char *line) {
 	} else if (strcmp(key, "scroll_method") == 0) {
 		config->scroll_method = atoi(value);
 	} else if (strcmp(key, "scroll_button") == 0) {
-			config->scroll_button = atoi(value);
+		config->scroll_button = atoi(value);
 	} else if (strcmp(key, "click_method") == 0) {
 		config->click_method = atoi(value);
 	} else if (strcmp(key, "send_events_mode") == 0) {
