@@ -3331,10 +3331,9 @@ void get_layer_target_geometry(LayerSurface *l, struct wlr_box *target_box) {
 }
 
 void maplayersurfacenotify(struct wl_listener *listener, void *data) {
-	int ji;
-
 	LayerSurface *l = wl_container_of(listener, l, map);
 	struct wlr_layer_surface_v1 *layer_surface = l->layer_surface;
+	int ji;
 
 	l->mapped = 1;
 
@@ -3345,10 +3344,9 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 	l->mon->last_surface_ws_name[sizeof(l->mon->last_surface_ws_name) - 1] =
 		'\0'; // 确保字符串以null结尾
 
-	struct wlr_box box;
-	get_layer_target_geometry(l, &box);
+	// 初始化几何位置
+	get_layer_target_geometry(l, &l->geom);
 
-	// 更新几何位置
 	l->noanim = 0;
 	l->dirty = false;
 	l->noblur = 0;
@@ -3373,6 +3371,7 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 		}
 	}
 
+	// 初始化阴影
 	if (layer_surface->current.exclusive_zone == 0 &&
 		layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
 		layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
@@ -3382,12 +3381,9 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 		wlr_scene_node_set_enabled(&l->shadow->node, true);
 	}
 
+	// 初始化动画
 	if (animations && layer_animations && !l->noanim) {
 		l->animation.action = OPEN;
-		l->geom.x = box.x;
-		l->geom.y = box.y;
-		l->geom.width = box.width;
-		l->geom.height = box.height;
 		layer_set_pending_state(l);
 	}
 	// 刷新布局，让窗口能感应到exclude_zone变化以及设置独占表面
@@ -3409,7 +3405,6 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 	struct wlr_scene_tree *scene_layer =
 		layers[layermap[layer_surface->current.layer]];
 	struct wlr_layer_surface_v1_state old_state;
-	struct wlr_layer_surface_v1 *wlr_layer_surface = l->layer_surface;
 	struct wlr_box box;
 
 	if (l->layer_surface->initial_commit) {
@@ -3428,9 +3423,8 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 	get_layer_target_geometry(l, &box);
 
 	if (animations && layer_animations && !l->noanim && l->mapped &&
-		wlr_layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
-		wlr_layer_surface->current.layer !=
-			ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND &&
+		layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
+		layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND &&
 		!wlr_box_equal(&box, &l->geom)) {
 
 		l->geom.x = box.x;
@@ -3442,16 +3436,12 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 		layer_set_pending_state(l);
 	}
 
-	// wlr_scene_node_set_position(&l->scene->node, 10, 10);
-	// wlr_output_schedule_frame(l->mon->wlr_output);
-
 	if (blur && blur_layer) {
 		// 设置非背景layer模糊
 
 		if (!l->noblur &&
-			wlr_layer_surface->current.layer !=
-				ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
-			wlr_layer_surface->current.layer !=
+			layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
+			layer_surface->current.layer !=
 				ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
 
 			wlr_scene_node_for_each_buffer(&l->scene->node,
@@ -3461,7 +3451,7 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 
 	if (blur) {
 		// 如果背景层发生变化,标记优化的模糊背景缓存需要更新
-		if (wlr_layer_surface->current.layer ==
+		if (layer_surface->current.layer ==
 			ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
 			if (l->mon) {
 				wlr_scene_optimized_blur_mark_dirty(l->mon->blur);
