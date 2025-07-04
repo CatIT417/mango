@@ -230,6 +230,8 @@ typedef struct {
 	unsigned int gappoh;
 	unsigned int gappov;
 	unsigned int borderpx;
+	float scratchpad_width_ratio;
+	float scratchpad_height_ratio;
 	float rootcolor[4];
 	float bordercolor[4];
 	float focuscolor[4];
@@ -1191,6 +1193,10 @@ void parse_config_line(Config *config, const char *line) {
 		config->gappoh = atoi(value);
 	} else if (strcmp(key, "gappov") == 0) {
 		config->gappov = atoi(value);
+	} else if (strcmp(key, "scratchpad_width_ratio") == 0) {
+		config->scratchpad_width_ratio = atof(value);
+	} else if (strcmp(key, "scratchpad_height_ratio") == 0) {
+		config->scratchpad_height_ratio = atof(value);
 	} else if (strcmp(key, "borderpx") == 0) {
 		config->borderpx = atoi(value);
 	} else if (strcmp(key, "rootcolor") == 0) {
@@ -2194,6 +2200,10 @@ void override_config(void) {
 	gappiv = CLAMP_INT(config.gappiv, 0, 1000);
 	gappoh = CLAMP_INT(config.gappoh, 0, 1000);
 	gappov = CLAMP_INT(config.gappov, 0, 1000);
+	scratchpad_width_ratio =
+		CLAMP_FLOAT(config.scratchpad_width_ratio, 0.1f, 1.0f);
+	scratchpad_height_ratio =
+		CLAMP_FLOAT(config.scratchpad_height_ratio, 0.1f, 1.0f);
 	borderpx = CLAMP_INT(config.borderpx, 0, 200);
 	smartgaps = CLAMP_INT(config.smartgaps, 0, 1);
 
@@ -2282,6 +2292,8 @@ void set_value_default() {
 	config.gappoh =
 		gappoh; /* horiz outer gap between windows and screen edge */
 	config.gappov = gappov; /* vert outer gap between windows and screen edge */
+	config.scratchpad_width_ratio = scratchpad_width_ratio;
+	config.scratchpad_height_ratio = scratchpad_height_ratio;
 
 	config.scroller_structs = scroller_structs;
 	config.scroller_default_proportion = scroller_default_proportion;

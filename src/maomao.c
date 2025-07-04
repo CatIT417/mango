@@ -1695,10 +1695,12 @@ void show_scratchpad(Client *c) {
 	/* return if fullscreen */
 	if (!c->isfloating) {
 		setfloating(c, 1);
-		c->geom.width = c->scratchpad_geom.width ? c->scratchpad_geom.width
-												 : c->mon->w.width * 0.7;
-		c->geom.height = c->scratchpad_geom.height ? c->scratchpad_geom.height
-												   : c->mon->w.height * 0.8;
+		c->geom.width = c->scratchpad_geom.width
+							? c->scratchpad_geom.width
+							: c->mon->w.width * scratchpad_width_ratio;
+		c->geom.height = c->scratchpad_geom.height
+							 ? c->scratchpad_geom.height
+							 : c->mon->w.height * scratchpad_height_ratio;
 		// 重新计算居中的坐标
 		c->oldgeom = c->geom = c->animainit_geom = c->animation.current =
 			setclient_coordinate_center(c, c->geom, 0, 0);

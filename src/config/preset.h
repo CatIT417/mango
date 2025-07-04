@@ -48,6 +48,8 @@ unsigned int gappih = 5;  /* horiz inner gap between windows */
 unsigned int gappiv = 5;  /* vert inner gap between windows */
 unsigned int gappoh = 10; /* horiz outer gap between windows and screen edge */
 unsigned int gappov = 10; /* vert outer gap between windows and screen edge */
+float scratchpad_width_ratio = 0.8;
+float scratchpad_height_ratio = 0.9;
 
 int scroller_structs = 20;
 float scroller_default_proportion = 0.9;
