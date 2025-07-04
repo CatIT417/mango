@@ -1692,11 +1692,6 @@ void show_scratchpad(Client *c) {
 		c->bw = c->isnoborder ? 0 : borderpx;
 	}
 
-	if (c->oldgeom.width)
-		c->scratchpad_geom.width = c->oldgeom.width;
-	if (c->oldgeom.height)
-		c->scratchpad_geom.height = c->oldgeom.height;
-
 	/* return if fullscreen */
 	if (!c->isfloating) {
 		setfloating(c, 1);
@@ -1705,19 +1700,11 @@ void show_scratchpad(Client *c) {
 		c->geom.height = c->scratchpad_geom.height ? c->scratchpad_geom.height
 												   : c->mon->w.height * 0.8;
 		// 重新计算居中的坐标
-		c->geom = c->animainit_geom = c->animation.current =
-			setclient_coordinate_center(c, c->geom, 0, 0);
-		resize(c, c->geom, 0);
-	} else if (c->geom.width != c->scratchpad_geom.width ||
-			   c->geom.height != c->scratchpad_geom.height) {
-		c->geom.width = c->scratchpad_geom.width ? c->scratchpad_geom.width
-												 : c->mon->w.width * 0.7;
-		c->geom.height = c->scratchpad_geom.height ? c->scratchpad_geom.height
-												   : c->mon->w.height * 0.8;
-		c->geom = c->animainit_geom = c->animation.current =
+		c->oldgeom = c->geom = c->animainit_geom = c->animation.current =
 			setclient_coordinate_center(c, c->geom, 0, 0);
 		resize(c, c->geom, 0);
 	}
+
 	c->oldtags = selmon->tagset[selmon->seltags];
 	wl_list_remove(&c->link);					  // 从原来位置移除
 	wl_list_insert(clients.prev->next, &c->link); // 插入开头
