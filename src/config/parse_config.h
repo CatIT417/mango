@@ -217,6 +217,7 @@ typedef struct {
 	int border_radius;
 	struct blur_data blur_params;
 	int shadows;
+	int shadow_only_floating;
 	int layer_shadows;
 	unsigned int shadows_size;
 	float shadows_blur;
@@ -940,6 +941,8 @@ void parse_config_line(Config *config, const char *line) {
 		config->blur_params.saturation = atof(value);
 	} else if (strcmp(key, "shadows") == 0) {
 		config->shadows = atoi(value);
+	} else if (strcmp(key, "shadow_only_floating") == 0) {
+		config->shadow_only_floating = atoi(value);
 	} else if (strcmp(key, "layer_shadows") == 0) {
 		config->layer_shadows = atoi(value);
 	} else if (strcmp(key, "shadows_size") == 0) {
@@ -2218,6 +2221,7 @@ void override_config(void) {
 	blur_params.contrast = CLAMP_FLOAT(config.blur_params.contrast, 0, 1);
 	blur_params.saturation = CLAMP_FLOAT(config.blur_params.saturation, 0, 1);
 	shadows = CLAMP_INT(config.shadows, 0, 1);
+	shadow_only_floating = CLAMP_INT(config.shadow_only_floating, 0, 1);
 	layer_shadows = CLAMP_INT(config.layer_shadows, 0, 1);
 	shadows_size = CLAMP_INT(config.shadows_size, 0, 100);
 	shadows_blur = CLAMP_INT(config.shadows_blur, 0, 100);
@@ -2358,6 +2362,7 @@ void set_value_default() {
 	config.blur_params.contrast = blur_params_contrast;
 	config.blur_params.saturation = blur_params_saturation;
 	config.shadows = shadows;
+	config.shadow_only_floating = shadow_only_floating;
 	config.layer_shadows = layer_shadows;
 	config.shadows_size = shadows_size;
 	config.shadows_blur = shadows_blur;

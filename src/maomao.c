@@ -1214,7 +1214,7 @@ void client_draw_shadow(Client *c) {
 	if (c->iskilling || !client_surface(c)->mapped)
 		return;
 
-	if (!shadows || !c->isfloating) {
+	if (!shadows || (!c->isfloating && shadow_only_floating)) {
 		wlr_scene_shadow_set_size(c->shadow, 0, 0);
 		return;
 	}
