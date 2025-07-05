@@ -1214,7 +1214,7 @@ void client_draw_shadow(Client *c) {
 	if (c->iskilling || !client_surface(c)->mapped)
 		return;
 
-	if (!shadows || !c->isfloating) {
+	if (!shadows || (!c->isfloating && shadow_only_floating)) {
 		wlr_scene_shadow_set_size(c->shadow, 0, 0);
 		return;
 	}
@@ -1252,9 +1252,43 @@ void client_draw_shadow(Client *c) {
 		.corners = border_radius_location_default,
 	};
 
-	wlr_scene_node_set_position(&c->shadow->node, shadow_box.x, shadow_box.y);
+	struct wlr_box absolute_shadow_box = {
+		.x = shadow_box.x + c->animation.current.x,
+		.y = shadow_box.y + c->animation.current.y,
+		.width = shadow_box.width,
+		.height = shadow_box.height,
+	};
 
-	wlr_scene_shadow_set_size(c->shadow, shadow_box.width, shadow_box.height);
+	int right_offset, bottom_offset, left_offset, top_offset;
+
+	if (c == grabc) {
+		right_offset = 0;
+		bottom_offset = 0;
+		left_offset = 0;
+		top_offset = 0;
+	} else {
+		right_offset =
+			GEZERO(absolute_shadow_box.x + absolute_shadow_box.width -
+				   c->mon->m.x - c->mon->m.width);
+		bottom_offset =
+			GEZERO(absolute_shadow_box.y + absolute_shadow_box.height -
+				   c->mon->m.y - c->mon->m.height);
+
+		left_offset = GEZERO(c->mon->m.x - absolute_shadow_box.x);
+		top_offset = GEZERO(c->mon->m.y - absolute_shadow_box.y);
+	}
+
+	left_offset = MIN(left_offset, shadow_box.width);
+	right_offset = MIN(right_offset, shadow_box.width);
+	top_offset = MIN(top_offset, shadow_box.height);
+	bottom_offset = MIN(bottom_offset, shadow_box.height);
+
+	wlr_scene_node_set_position(&c->shadow->node, shadow_box.x + left_offset,
+								shadow_box.y + top_offset);
+
+	wlr_scene_shadow_set_size(
+		c->shadow, GEZERO(shadow_box.width - left_offset - right_offset),
+		GEZERO(shadow_box.height - top_offset - bottom_offset));
 	wlr_scene_shadow_set_clipped_region(c->shadow, clipped_region);
 }
 
@@ -1287,15 +1321,24 @@ void apply_border(Client *c) {
 	// 一但在GEZERO如果使用无符号，那么其他数据也会转换为无符号导致没有负数出错
 	int bw = (int)c->bw;
 
-	int right_offset =
-		GEZERO(c->animation.current.x + c->animation.current.width -
-			   c->mon->m.x - c->mon->m.width);
-	int bottom_offset =
-		GEZERO(c->animation.current.y + c->animation.current.height -
-			   c->mon->m.y - c->mon->m.height);
+	int right_offset, bottom_offset, left_offset, top_offset;
 
-	int left_offset = GEZERO(c->mon->m.x - c->animation.current.x);
-	int top_offset = GEZERO(c->mon->m.y - c->animation.current.y);
+	if (c == grabc) {
+		right_offset = 0;
+		bottom_offset = 0;
+		left_offset = 0;
+		top_offset = 0;
+	} else {
+		right_offset =
+			GEZERO(c->animation.current.x + c->animation.current.width -
+				   c->mon->m.x - c->mon->m.width);
+		bottom_offset =
+			GEZERO(c->animation.current.y + c->animation.current.height -
+				   c->mon->m.y - c->mon->m.height);
+
+		left_offset = GEZERO(c->mon->m.x - c->animation.current.x);
+		top_offset = GEZERO(c->mon->m.y - c->animation.current.y);
+	}
 
 	int inner_surface_width = GEZERO(clip_box.width - 2 * bw);
 	int inner_surface_height = GEZERO(clip_box.height - 2 * bw);
@@ -1585,8 +1628,8 @@ bool client_draw_frame(Client *c) {
 	} else {
 		wlr_scene_node_set_position(&c->scene->node, c->pending.x,
 									c->pending.y);
-		c->animainit_geom = c->animation.initial = c->pending = c->current =
-			c->geom;
+		c->animation.current = c->animainit_geom = c->animation.initial =
+			c->pending = c->current = c->geom;
 		client_apply_clip(c);
 		c->need_output_flush = false;
 	}
