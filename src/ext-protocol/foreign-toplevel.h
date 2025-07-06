@@ -24,7 +24,7 @@ void handle_foreign_activate_request(struct wl_listener *listener, void *data) {
 
 	if (c->isminied) {
 		c->is_in_scratchpad = 0;
-		c->isnamedscratchpand = 0;
+		c->isnamedscratchpad = 0;
 		c->is_scratchpad_show = 0;
 		setborder_color(c);
 		show_hide_client(c);

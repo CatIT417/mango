@@ -225,8 +225,8 @@ typedef struct Client Client;
 struct Client {
 	/* Must keep these three elements in this order */
 	unsigned int type; /* XDGShell or X11* */
-	struct wlr_box geom, pending, oldgeom, scratchpad_geom, animainit_geom,
-		overview_backup_geom, current; /* layout-relative, includes border */
+	struct wlr_box geom, pending, oldgeom, animainit_geom, overview_backup_geom,
+		current; /* layout-relative, includes border */
 	Monitor *mon;
 	struct wlr_scene_tree *scene;
 	struct wlr_scene_rect *border; /* top, bottom, left, right */
@@ -284,9 +284,8 @@ struct Client {
 	int isglobal;
 	int isnoborder;
 	int isopensilent;
-	int isopenscratchpad;
 	int iskilling;
-	int isnamedscratchpand;
+	int isnamedscratchpad;
 	struct wlr_box bounds;
 	bool is_open_animation;
 	bool is_restoring_from_ov;
@@ -306,6 +305,7 @@ struct Client {
 	float focused_opacity;
 	float unfocused_opacity;
 	char oldmonname[128];
+	int scratchpad_width, scratchpad_height;
 };
 
 typedef struct {
@@ -1714,7 +1714,7 @@ void restore_minized(const Arg *arg) {
 		selmon->sel->isminied = 0;
 		selmon->sel->is_scratchpad_show = 0;
 		selmon->sel->is_in_scratchpad = 0;
-		selmon->sel->isnamedscratchpand = 0;
+		selmon->sel->isnamedscratchpad = 0;
 		setborder_color(selmon->sel);
 		return;
 	}
@@ -1725,7 +1725,7 @@ void restore_minized(const Arg *arg) {
 			show_hide_client(c);
 			c->is_scratchpad_show = 0;
 			c->is_in_scratchpad = 0;
-			c->isnamedscratchpand = 0;
+			c->isnamedscratchpad = 0;
 			setborder_color(c);
 			break;
 		}
@@ -1743,11 +1743,11 @@ void show_scratchpad(Client *c) {
 	/* return if fullscreen */
 	if (!c->isfloating) {
 		setfloating(c, 1);
-		c->geom.width = c->scratchpad_geom.width
-							? c->scratchpad_geom.width
+		c->geom.width = c->scratchpad_width
+							? c->scratchpad_width
 							: c->mon->w.width * scratchpad_width_ratio;
-		c->geom.height = c->scratchpad_geom.height
-							 ? c->scratchpad_geom.height
+		c->geom.height = c->scratchpad_height
+							 ? c->scratchpad_height
 							 : c->mon->w.height * scratchpad_height_ratio;
 		// 重新计算居中的坐标
 		c->oldgeom = c->geom = c->animainit_geom = c->animation.current =
@@ -1924,9 +1924,9 @@ void toggle_named_scratchpad(const Arg *arg) {
 		return;
 	}
 
-	target_client->isnamedscratchpand = 1;
-	target_client->scratchpad_geom.width = arg->ui;
-	target_client->scratchpad_geom.height = arg->ui2;
+	target_client->isnamedscratchpad = 1;
+	target_client->scratchpad_width = arg->ui;
+	target_client->scratchpad_height = arg->ui2;
 
 	apply_named_scratchpad(target_client);
 }
@@ -1940,12 +1940,12 @@ void toggle_scratchpad(const Arg *arg) {
 			continue;
 		}
 
-		if (single_scratchpad && c->isnamedscratchpand && !c->isminied) {
+		if (single_scratchpad && c->isnamedscratchpad && !c->isminied) {
 			set_minized(c);
 			continue;
 		}
 
-		if (c->isnamedscratchpand)
+		if (c->isnamedscratchpad)
 			continue;
 
 		if (hit)
@@ -2086,30 +2086,21 @@ static void apply_rule_properties(Client *c, const ConfigWinRule *r) {
 	APPLY_INT_PROP(isfullscreen, >= 0);
 	APPLY_INT_PROP(isnoborder, >= 0);
 	APPLY_INT_PROP(isopensilent, >= 0);
-	APPLY_INT_PROP(isopenscratchpad, >= 0);
+	APPLY_INT_PROP(isnamedscratchpad, >= 0);
 	APPLY_INT_PROP(isglobal, >= 0);
 	APPLY_INT_PROP(isoverlay, >= 0);
 	APPLY_INT_PROP(isunglobal, >= 0);
+	APPLY_INT_PROP(scratchpad_width, >= 0);
+	APPLY_INT_PROP(scratchpad_height, >= 0);
 
 	APPLY_FLOAT_PROP(scroller_proportion, > 0.0f);
 	APPLY_FLOAT_PROP(focused_opacity, > 0.0f);
 	APPLY_FLOAT_PROP(unfocused_opacity, > 0.0f);
 
-	if (r->scratchpad_width > 0)
-		c->scratchpad_geom.width = r->scratchpad_width;
-	if (r->scratchpad_height > 0)
-		c->scratchpad_geom.height = r->scratchpad_height;
-
 	if (r->animation_type_open)
 		c->animation_type_open = r->animation_type_open;
 	if (r->animation_type_close)
 		c->animation_type_close = r->animation_type_close;
-
-	if (c->isopenscratchpad == 1) {
-		c->isfloating = 1;
-	} else if (c->isopenscratchpad == 2) {
-		c->isnamedscratchpand = 1;
-	}
 }
 
 int applyrulesgeom(Client *c) {
@@ -2232,7 +2223,12 @@ void applyrules(Client *c) {
 		}
 	}
 
-	// set mon and floating and fullscreen state
+	// set mon and floating, fullscreen and scratchpad state
+
+	if (c->isnamedscratchpad) {
+		c->isfloating = 1;
+	}
+
 	int fullscreen_state_backup = c->isfullscreen;
 	setmon(c, mon, newtags, !c->isopensilent);
 
@@ -2256,7 +2252,7 @@ void applyrules(Client *c) {
 	}
 
 	// apply named scratchpad rule
-	if (c->isopenscratchpad) {
+	if (c->isnamedscratchpad) {
 		apply_named_scratchpad(c);
 	}
 
@@ -5075,7 +5071,7 @@ mapnotify(struct wl_listener *listener, void *data) {
 	c->isoverlay = 0;
 	c->isunglobal = 0;
 	c->is_in_scratchpad = 0;
-	c->isnamedscratchpand = 0;
+	c->isnamedscratchpad = 0;
 	c->is_scratchpad_show = 0;
 	c->need_float_size_reduce = 0;
 	c->is_clip_to_hide = 0;
@@ -5091,6 +5087,8 @@ mapnotify(struct wl_listener *listener, void *data) {
 	c->nofadein = 0;
 	c->nofadeout = 0;
 	c->no_force_center = 0;
+	c->scratchpad_width = 0;
+	c->scratchpad_height = 0;
 
 	if (new_is_master && selmon && !is_scroller_layout(selmon))
 		// tile at the top
@@ -6179,7 +6177,7 @@ setfloating(Client *c, int floating) {
 		c->need_float_size_reduce = 1;
 		c->is_scratchpad_show = 0;
 		c->is_in_scratchpad = 0;
-		c->isnamedscratchpand = 0;
+		c->isnamedscratchpad = 0;
 		// 让当前tag中的全屏窗口退出全屏参与平铺
 		wl_list_for_each(fc, &clients, link) if (fc && fc != c &&
 												 c->tags & fc->tags &&
@@ -7486,7 +7484,7 @@ void togglefullscreen(const Arg *arg) {
 
 	sel->is_scratchpad_show = 0;
 	sel->is_in_scratchpad = 0;
-	sel->isnamedscratchpand = 0;
+	sel->isnamedscratchpad = 0;
 }
 
 void togglemaxmizescreen(const Arg *arg) {
@@ -7504,7 +7502,7 @@ void togglemaxmizescreen(const Arg *arg) {
 
 	sel->is_scratchpad_show = 0;
 	sel->is_in_scratchpad = 0;
-	sel->isnamedscratchpand = 0;
+	sel->isnamedscratchpad = 0;
 }
 
 void togglegaps(const Arg *arg) {
@@ -8266,7 +8264,7 @@ void toggleglobal(const Arg *arg) {
 	if (selmon->sel->is_in_scratchpad) {
 		selmon->sel->is_in_scratchpad = 0;
 		selmon->sel->is_scratchpad_show = 0;
-		selmon->sel->isnamedscratchpand = 0;
+		selmon->sel->isnamedscratchpad = 0;
 	}
 	selmon->sel->isglobal ^= 1;
 	//   selmon->sel->tags =
@@ -8564,7 +8562,7 @@ void activatex11(struct wl_listener *listener, void *data) {
 		c->tags = c->mini_restore_tag;
 		c->is_scratchpad_show = 0;
 		c->is_in_scratchpad = 0;
-		c->isnamedscratchpand = 0;
+		c->isnamedscratchpad = 0;
 		wlr_foreign_toplevel_handle_v1_set_minimized(c->foreign_toplevel,
 													 false);
 		setborder_color(c);
