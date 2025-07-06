@@ -4999,6 +4999,38 @@ static void iter_xdg_scene_buffers(struct wlr_scene_buffer *buffer, int sx,
 	}
 }
 
+void init_client_properties(Client *c) {
+	c->geom.width += 2 * c->bw;
+	c->geom.height += 2 * c->bw;
+	c->ismaxmizescreen = 0;
+	c->isfullscreen = 0;
+	c->need_float_size_reduce = 0;
+	c->iskilling = 0;
+	c->isglobal = 0;
+	c->isminied = 0;
+	c->isoverlay = 0;
+	c->isunglobal = 0;
+	c->is_in_scratchpad = 0;
+	c->isnamedscratchpad = 0;
+	c->is_scratchpad_show = 0;
+	c->need_float_size_reduce = 0;
+	c->is_clip_to_hide = 0;
+	c->is_restoring_from_ov = 0;
+	c->isurgent = 0;
+	c->need_output_flush = 0;
+	c->scroller_proportion = scroller_default_proportion;
+	c->is_open_animation = true;
+	c->drag_to_tile = false;
+	c->fake_no_border = false;
+	c->focused_opacity = focused_opacity;
+	c->unfocused_opacity = unfocused_opacity;
+	c->nofadein = 0;
+	c->nofadeout = 0;
+	c->no_force_center = 0;
+	c->scratchpad_width = 0;
+	c->scratchpad_height = 0;
+}
+
 void // old fix to 0.5
 mapnotify(struct wl_listener *listener, void *data) {
 	/* Called when the surface is mapped, or ready to display on-screen. */
@@ -5060,35 +5092,8 @@ mapnotify(struct wl_listener *listener, void *data) {
 	/* Initialize client geometry with room for border */
 	client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT |
 							WLR_EDGE_RIGHT);
-	c->geom.width += 2 * c->bw;
-	c->geom.height += 2 * c->bw;
-	c->ismaxmizescreen = 0;
-	c->isfullscreen = 0;
-	c->need_float_size_reduce = 0;
-	c->iskilling = 0;
-	c->isglobal = 0;
-	c->isminied = 0;
-	c->isoverlay = 0;
-	c->isunglobal = 0;
-	c->is_in_scratchpad = 0;
-	c->isnamedscratchpad = 0;
-	c->is_scratchpad_show = 0;
-	c->need_float_size_reduce = 0;
-	c->is_clip_to_hide = 0;
-	c->is_restoring_from_ov = 0;
-	c->isurgent = 0;
-	c->need_output_flush = 0;
-	c->scroller_proportion = scroller_default_proportion;
-	c->is_open_animation = true;
-	c->drag_to_tile = false;
-	c->fake_no_border = false;
-	c->focused_opacity = focused_opacity;
-	c->unfocused_opacity = unfocused_opacity;
-	c->nofadein = 0;
-	c->nofadeout = 0;
-	c->no_force_center = 0;
-	c->scratchpad_width = 0;
-	c->scratchpad_height = 0;
+
+	init_client_properties(c);
 
 	if (new_is_master && selmon && !is_scroller_layout(selmon))
 		// tile at the top
