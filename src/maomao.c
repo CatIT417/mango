@@ -1406,13 +1406,8 @@ enum corner_location set_client_corner_location(Client *c) {
 }
 
 struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
-	int offsetx = 0;
-	int offsety = 0;
-	struct ivec2 offset;
-	offset.x = 0;
-	offset.y = 0;
-	offset.width = 0;
-	offset.height = 0;
+	int offsetx = 0, offsety = 0, offsetw = 0, offseth = 0;
+	struct ivec2 offset = {0, 0, 0, 0};
 
 	if (!ISTILED(c) && !c->animation.tagining && !c->animation.tagouted &&
 		!c->animation.tagouting)
@@ -1426,9 +1421,15 @@ struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 			   c->mon->m.x - c->mon->m.width);
 	int left_out_offset = GEZERO(c->mon->m.x - c->animation.current.x);
 	int top_out_offset = GEZERO(c->mon->m.y - c->animation.current.y);
+
+	// 必须转换为int，否计算会没有负数导致判断错误
 	int bw = (int)c->bw;
 
-	// // make tagout tagin animations not visible in other monitors
+	/*
+	  计算窗口表面超出屏幕四个方向的偏差，避免窗口超出屏幕
+	  需要主要border超出屏幕的时候不计算如偏差之内而是
+	  要等窗口表面超出才开始计算偏差
+	*/
 	if (ISTILED(c) || c->animation.tagining || c->animation.tagouted ||
 		c->animation.tagouting) {
 		if (left_out_offset > 0) {
@@ -1436,7 +1437,8 @@ struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 			clip_box->x = clip_box->x + offsetx;
 			clip_box->width = clip_box->width - offsetx;
 		} else if (right_out_offset > 0) {
-			clip_box->width = clip_box->width - right_out_offset;
+			offsetw = GEZERO(right_out_offset - bw);
+			clip_box->width = clip_box->width - offsetw;
 		}
 
 		if (top_out_offset > 0) {
@@ -1444,30 +1446,24 @@ struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 			clip_box->y = clip_box->y + offsety;
 			clip_box->height = clip_box->height - offsety;
 		} else if (bottom_out_offset > 0) {
-			clip_box->height = clip_box->height - bottom_out_offset;
+			offseth = GEZERO(bottom_out_offset - bw);
+			clip_box->height = clip_box->height - offseth;
 		}
 	}
 
+	// 窗口表面超出屏幕四个方向的偏差
 	offset.x = offsetx;
 	offset.y = offsety;
-	offset.width = right_out_offset;
-	offset.height = bottom_out_offset;
+	offset.width = offsetw;
+	offset.height = offseth;
 
-	if ((clip_box->width < 0 || clip_box->height < 0) &&
+	if ((clip_box->width <= 0 || clip_box->height <= 0) &&
 		(ISTILED(c) || c->animation.tagouting || c->animation.tagining)) {
 		c->is_clip_to_hide = true;
 		wlr_scene_node_set_enabled(&c->scene->node, false);
 	} else if (c->is_clip_to_hide && VISIBLEON(c, c->mon)) {
 		c->is_clip_to_hide = false;
 		wlr_scene_node_set_enabled(&c->scene->node, true);
-	}
-
-	if (clip_box->width > c->animation.current.width) {
-		clip_box->width = c->animation.current.width;
-	}
-
-	if (clip_box->height > c->animation.current.height) {
-		clip_box->height = c->animation.current.height;
 	}
 
 	return offset;
@@ -1477,11 +1473,12 @@ void client_apply_clip(Client *c) {
 
 	if (c->iskilling || !client_surface(c)->mapped)
 		return;
+
 	struct wlr_box clip_box;
 	bool should_render_client_surface = false;
 	struct ivec2 offset;
 	animationScale scale_data;
-	struct wlr_box surface_clip;
+
 	enum corner_location current_corner_location =
 		set_client_corner_location(c);
 
@@ -1506,38 +1503,34 @@ void client_apply_clip(Client *c) {
 		offset = clip_to_hide(c, &clip_box);
 
 		apply_border(c);
-
 		client_draw_shadow(c);
-
-		surface_clip = clip_box;
-		surface_clip.width = surface_clip.width - GEZERO(bw - offset.width);
-		surface_clip.height = surface_clip.height - GEZERO(bw - offset.height);
 
 		scale_data.opacity = c->isfullscreen	? 1
 							 : c == selmon->sel ? c->focused_opacity
 												: c->unfocused_opacity;
 
-		if (surface_clip.width <= 0 || surface_clip.height <= 0) {
+		if (clip_box.width <= 0 || clip_box.height <= 0) {
 			return;
 		}
 
-		wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node,
-										   &surface_clip);
+		wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
 		buffer_set_effect(c, (animationScale){0, 0, 0, 0, opacity, opacity,
 											  current_corner_location, false});
 		return;
 	}
 
+	// 获取窗口动画实时位置矩形
 	unsigned int width, height;
 	client_actual_size(c, &width, &height);
 
+	// 计算出除了边框的窗口实际剪切大小
 	struct wlr_box geometry;
 	client_get_geometry(c, &geometry);
 	clip_box = (struct wlr_box){
 		.x = geometry.x,
 		.y = geometry.y,
-		.width = width,
-		.height = height,
+		.width = width - bw,
+		.height = height - bw,
 	};
 
 	if (client_is_x11(c)) {
@@ -1545,15 +1538,15 @@ void client_apply_clip(Client *c) {
 		clip_box.y = 0;
 	}
 
+	// 检测窗口是否需要剪切超出屏幕部分，如果需要就调整实际要剪切的矩形
 	offset = clip_to_hide(c, &clip_box);
 
+	// 应用窗口装饰
 	apply_border(c);
+	client_draw_shadow(c);
 
-	surface_clip = clip_box;
-	surface_clip.width = surface_clip.width - GEZERO(bw - offset.width);
-	surface_clip.height = surface_clip.height - GEZERO(bw - offset.height);
-
-	if (surface_clip.width <= 0 || surface_clip.height <= 0) {
+	// 如果窗口剪切区域已经剪切到0，则不渲染窗口表面
+	if (clip_box.width <= 0 || clip_box.height <= 0) {
 		should_render_client_surface = false;
 		wlr_scene_node_set_enabled(&c->scene_surface->node, false);
 	} else {
@@ -1561,22 +1554,26 @@ void client_apply_clip(Client *c) {
 		wlr_scene_node_set_enabled(&c->scene_surface->node, true);
 	}
 
-	apply_border(c);
-	client_draw_shadow(c);
-
+	// 不用在执行下面的窗口表面剪切和缩放等效果操作
 	if (!should_render_client_surface) {
 		return;
 	}
 
-	wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &surface_clip);
+	// 应用窗口表面剪切
+	wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
+
+	// 获取剪切后的表面的实际大小用于计算缩放
+	int acutal_surface_width = geometry.width - offset.x - offset.width;
+	int acutal_surface_height = geometry.height - offset.y - offset.height;
+
+	if (acutal_surface_width <= 0 || acutal_surface_height <= 0)
+		return;
 
 	scale_data.should_scale = true;
-	scale_data.width = clip_box.width - GEZERO(bw - offset.width);
-	scale_data.height = clip_box.height - GEZERO(bw - offset.height);
-	scale_data.width_scale =
-		(float)scale_data.width / (geometry.width - offset.x);
-	scale_data.height_scale =
-		(float)scale_data.height / (geometry.height - offset.y);
+	scale_data.width = clip_box.width;
+	scale_data.height = clip_box.height;
+	scale_data.width_scale = (float)scale_data.width / acutal_surface_width;
+	scale_data.height_scale = (float)scale_data.height / acutal_surface_height;
 	scale_data.corner_location = current_corner_location;
 	scale_data.percent = percent;
 	scale_data.opacity = opacity;
