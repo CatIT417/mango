@@ -114,6 +114,14 @@
 		wl_signal_add((E), _l);                                                \
 	} while (0)
 
+#define APPLY_INT_PROP(prop, cond)                                             \
+	if (r->prop cond)                                                          \
+	c->prop = r->prop
+
+#define APPLY_FLOAT_PROP(prop, cond)                                           \
+	if (r->prop cond)                                                          \
+	c->prop = r->prop
+
 #define BAKED_POINTS_COUNT 256
 
 /* enums */
@@ -2058,10 +2066,53 @@ setclient_coordinate_center(Client *c, struct wlr_box geom, int offsetx,
 
 	return tempbox;
 }
-/* function implementations */
 
-int // 0.5 custom
-applyrulesgeom(Client *c) {
+/* Helper: Check if rule matches client */
+static bool is_window_rule_matches(const ConfigWinRule *r, const char *appid,
+								   const char *title) {
+	return (r->title && regex_match(r->title, title) && !r->id) ||
+		   (r->id && regex_match(r->id, appid) && !r->title) ||
+		   (r->id && regex_match(r->id, appid) && r->title &&
+			regex_match(r->title, title));
+}
+
+static void apply_rule_properties(Client *c, const ConfigWinRule *r) {
+	APPLY_INT_PROP(isterm, >= 0);
+	APPLY_INT_PROP(noswallow, >= 0);
+	APPLY_INT_PROP(nofadein, >= 0);
+	APPLY_INT_PROP(nofadeout, >= 0);
+	APPLY_INT_PROP(no_force_center, >= 0);
+	APPLY_INT_PROP(isfloating, >= 0);
+	APPLY_INT_PROP(isfullscreen, >= 0);
+	APPLY_INT_PROP(isnoborder, >= 0);
+	APPLY_INT_PROP(isopensilent, >= 0);
+	APPLY_INT_PROP(isopenscratchpad, >= 0);
+	APPLY_INT_PROP(isglobal, >= 0);
+	APPLY_INT_PROP(isoverlay, >= 0);
+	APPLY_INT_PROP(isunglobal, >= 0);
+
+	APPLY_FLOAT_PROP(scroller_proportion, > 0.0f);
+	APPLY_FLOAT_PROP(focused_opacity, > 0.0f);
+	APPLY_FLOAT_PROP(unfocused_opacity, > 0.0f);
+
+	if (r->scratchpad_width > 0)
+		c->scratchpad_geom.width = r->scratchpad_width;
+	if (r->scratchpad_height > 0)
+		c->scratchpad_geom.height = r->scratchpad_height;
+
+	if (r->animation_type_open)
+		c->animation_type_open = r->animation_type_open;
+	if (r->animation_type_close)
+		c->animation_type_close = r->animation_type_close;
+
+	if (c->isopenscratchpad == 1) {
+		c->isfloating = 1;
+	} else if (c->isopenscratchpad == 2) {
+		c->isnamedscratchpand = 1;
+	}
+}
+
+int applyrulesgeom(Client *c) {
 	/* rule matching */
 	const char *appid, *title;
 	ConfigWinRule *r;
@@ -2077,34 +2128,35 @@ applyrulesgeom(Client *c) {
 		if (config.window_rules_count < 1)
 			break;
 		r = &config.window_rules[ji];
-		if ((regex_match(r->title, title) && !r->id) ||
-			(r->id && regex_match(r->id, appid) && !r->title) ||
-			(r->id && regex_match(r->id, appid) && r->title &&
-			 regex_match(r->title, title))) {
-			c->geom.width = r->width > 0 ? r->width : c->geom.width;
-			c->geom.height = r->height > 0 ? r->height : c->geom.height;
-			// 重新计算居中的坐标
-			if (r->offsetx != 0 || r->offsety != 0 || r->width > 0 ||
-				r->height > 0)
-				c->geom = setclient_coordinate_center(c, c->geom, r->offsetx,
-													  r->offsety);
-			hit = r->height > 0 || r->width > 0 || r->offsetx != 0 ||
-						  r->offsety != 0
-					  ? 1
-					  : 0;
+
+		if (!is_window_rule_matches(r, appid, title))
+			continue;
+
+		c->geom.width = r->width > 0 ? r->width : c->geom.width;
+		c->geom.height = r->height > 0 ? r->height : c->geom.height;
+
+		// 重新计算居中的坐标
+		if (r->offsetx != 0 || r->offsety != 0 || r->width > 0 || r->height > 0)
+			c->geom =
+				setclient_coordinate_center(c, c->geom, r->offsetx, r->offsety);
+		if (r->height > 0 || r->width > 0 || r->offsetx != 0 ||
+			r->offsety != 0) {
+			hit = 1;
+		} else {
+			hit = 0;
 		}
 	}
 	return hit;
 }
 
-void // 17
-applyrules(Client *c) {
+void applyrules(Client *c) {
 	/* rule matching */
 	const char *appid, *title;
 	unsigned int i, newtags = 0;
-	int ji;
+	unsigned int mon_idx;
 	const ConfigWinRule *r;
 	Monitor *mon = selmon, *m;
+	Client *fc;
 	bool hit_rule_pos = false;
 
 	c->isfloating = client_is_float_type(c);
@@ -2113,89 +2165,57 @@ applyrules(Client *c) {
 	if (!(title = client_get_title(c)))
 		title = broken;
 
-	c->pid = client_get_pid(c);
+	for (i = 0; i < config.window_rules_count; i++) {
 
-	for (ji = 0; ji < config.window_rules_count; ji++) {
-		if (config.window_rules_count < 1)
-			break;
-		r = &config.window_rules[ji];
+		r = &config.window_rules[i];
 
-		if ((r->title && regex_match(r->title, title) && !r->id) ||
-			(r->id && regex_match(r->id, appid) && !r->title) ||
-			(r->id && regex_match(r->id, appid) && r->title &&
-			 regex_match(r->title, title))) {
-			c->isterm = r->isterm >= 0 ? r->isterm : c->isterm;
-			c->noswallow = r->noswallow >= 0 ? r->noswallow : c->noswallow;
-			c->nofadein = r->nofadein >= 0 ? r->nofadein : c->nofadein;
-			c->nofadeout = r->nofadeout >= 0 ? r->nofadeout : c->nofadeout;
-			c->no_force_center = r->no_force_center >= 0 ? r->no_force_center
-														 : c->no_force_center;
-			c->scratchpad_geom.width = r->scratchpad_width > 0
-										   ? r->scratchpad_width
-										   : c->scratchpad_geom.width;
-			c->scratchpad_geom.height = r->scratchpad_height > 0
-											? r->scratchpad_height
-											: c->scratchpad_geom.height;
-			c->isfloating = r->isfloating >= 0 ? r->isfloating : c->isfloating;
-			c->isfullscreen =
-				r->isfullscreen >= 0 ? r->isfullscreen : c->isfullscreen;
-			c->animation_type_open = r->animation_type_open == NULL
-										 ? c->animation_type_open
-										 : r->animation_type_open;
-			c->animation_type_close = r->animation_type_close == NULL
-										  ? c->animation_type_close
-										  : r->animation_type_close;
-			c->scroller_proportion = r->scroller_proportion > 0
-										 ? r->scroller_proportion
-										 : c->scroller_proportion;
-			c->isnoborder = r->isnoborder >= 0 ? r->isnoborder : c->isnoborder;
-			c->isopensilent =
-				r->isopensilent >= 0 ? r->isopensilent : c->isopensilent;
-			c->isopenscratchpad = r->isopenscratchpad >= 0
-									  ? r->isopenscratchpad
-									  : c->isopenscratchpad;
-			c->isglobal = r->isglobal >= 0 ? r->isglobal : c->isglobal;
-			c->isoverlay = r->isoverlay >= 0 ? r->isoverlay : c->isoverlay;
-			c->isunglobal = r->isunglobal >= 0 ? r->isunglobal : c->isunglobal;
-			c->focused_opacity = r->focused_opacity > 0.0f ? r->focused_opacity
-														   : c->focused_opacity;
-			c->unfocused_opacity = r->unfocused_opacity > 0.0f
-									   ? r->unfocused_opacity
-									   : c->unfocused_opacity;
+		// rule matching
+		if (!is_window_rule_matches(r, appid, title))
+			continue;
 
-			newtags = r->tags > 0 ? r->tags | newtags : newtags;
-			i = 0;
-			wl_list_for_each(m, &mons, link) if (r->monitor == i++) mon = m;
+		// set general properties
+		apply_rule_properties(c, r);
 
-			if (c->isopenscratchpad)
-				c->isfloating = 1;
+		// set tags
+		newtags |= (r->tags > 0) ? r->tags : 0;
 
-			if (c->isopenscratchpad == 2)
-				c->isnamedscratchpand = 1;
+		// set monitor of client
+		mon_idx = 0;
+		wl_list_for_each(m, &mons, link) {
+			if (r->monitor == mon_idx++)
+				mon = m;
+		}
 
-			if (c->isfloating) {
-				c->geom.width = r->width > 0 ? r->width : c->geom.width;
-				c->geom.height = r->height > 0 ? r->height : c->geom.height;
-				// 重新计算居中的坐标
-				if (r->offsetx != 0 || r->offsety != 0 || r->width > 0 ||
-					r->height > 0) {
-					hit_rule_pos = true;
-					c->oldgeom = c->geom = setclient_coordinate_center(
-						c, c->geom, r->offsetx, r->offsety);
-				}
+		// set geometry of floating client
+		if (c->isfloating) {
+			if (r->width > 0)
+				c->geom.width = r->width;
+			if (r->height > 0)
+				c->geom.height = r->height;
+
+			if (r->offsetx || r->offsety || r->width > 0 || r->height > 0) {
+				hit_rule_pos = true;
+				c->oldgeom = c->geom = setclient_coordinate_center(
+					c, c->geom, r->offsetx, r->offsety);
 			}
 		}
 	}
 
-	// if no geom rule hit, use the center pos and record the hit size
+	// if no geom rule hit and is normal winodw, use the center pos and record
+	// the hit size
 	if (!hit_rule_pos &&
 		(!client_is_x11(c) || !client_should_ignore_focus(c))) {
 		c->oldgeom = c->geom = setclient_coordinate_center(c, c->geom, 0, 0);
 	}
 
+	/*-----------------------apply rule action-------------------------*/
+
+	// rule action only apply after map not apply in the init commit
 	if (!client_surface(c)->mapped)
 		return;
 
+	// apply swallow rule
+	c->pid = client_get_pid(c);
 	if (!c->noswallow && !c->isfloating && !client_is_float_type(c) &&
 		!c->surface.xdg->initial_commit) {
 		Client *p = termforwin(c);
@@ -2212,8 +2232,22 @@ applyrules(Client *c) {
 		}
 	}
 
-	Client *fc;
-	// 如果当前的tag中有新创建的非悬浮窗口,就让当前tag中的全屏窗口退出全屏参与平铺
+	// set mon and floating and fullscreen state
+	int fullscreen_state_backup = c->isfullscreen;
+	setmon(c, mon, newtags, !c->isopensilent);
+
+	if (!c->isopensilent && c->mon &&
+		!(c->tags & (1 << (c->mon->pertag->curtag - 1)))) {
+		c->animation.from_rule = true;
+		view(&(Arg){.ui = c->tags}, true);
+	}
+
+	setfullscreen(c, fullscreen_state_backup);
+
+	/*
+	if there is a new non-floating window in the current tag, the fullscreen
+	window in the current tag will exit fullscreen and participate in tiling
+	*/
 	wl_list_for_each(fc, &clients,
 					 link) if (fc && fc != c && c->tags & fc->tags &&
 							   ISFULLSCREEN(fc) && !c->isfloating) {
@@ -2221,26 +2255,18 @@ applyrules(Client *c) {
 		arrange(c->mon, false);
 	}
 
-	int fullscreen_state_backup = c->isfullscreen;
-	setmon(c, mon, newtags, !c->isopensilent);
-
-	if (!c->isopensilent && selmon &&
-		!(c->tags & (1 << (selmon->pertag->curtag - 1)))) {
-		c->animation.from_rule = true;
-		view(&(Arg){.ui = c->tags}, true);
-	}
-
-	setfullscreen(c, fullscreen_state_backup);
-
+	// apply named scratchpad rule
 	if (c->isopenscratchpad) {
 		apply_named_scratchpad(c);
 	}
 
+	// apply overlay rule
 	if (c->isoverlay) {
 		wlr_scene_node_reparent(&selmon->sel->scene->node, layers[LyrOverlay]);
 		wlr_scene_node_raise_to_top(&selmon->sel->scene->node);
 	}
 
+	// update border color
 	setborder_color(c);
 }
 
