@@ -2172,12 +2172,12 @@ void place_drag_tile_client(Client *c) {
 	Client *closest_client = NULL;
 	long min_distant = LONG_MAX;
 	long temp_distant;
-	unsigned int x, y;
+	int x, y;
 
 	wl_list_for_each(tc, &clients, link) {
 		if (tc != c && ISTILED(tc) && VISIBLEON(tc, c->mon)) {
-			x = tc->geom.x + tc->geom.width / 2 - cursor->x;
-			y = tc->geom.y + tc->geom.height / 2 - cursor->y;
+			x = tc->geom.x + (int)(tc->geom.width / 2) - cursor->x;
+			y = tc->geom.y + (int)(tc->geom.height / 2) - cursor->y;
 			temp_distant = x * x + y * y;
 			if (temp_distant < min_distant) {
 				min_distant = temp_distant;
