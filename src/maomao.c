@@ -5702,7 +5702,7 @@ void tagmon(const Arg *arg) {
 
 	m = dirtomon(arg->i);
 
-	if (!m)
+	if (!m || !m->wlr_output->enabled || m == c->mon)
 		return;
 
 	unsigned int newtags = arg->ui ? c->tags : 0;
