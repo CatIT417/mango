@@ -258,17 +258,26 @@ void client_draw_shadow(Client *c) {
 		return;
 	}
 
+	bool hit_no_border = check_hit_no_border(c);
+	enum corner_location current_corner_location =
+		c->isfullscreen || (no_radius_when_single && c->mon &&
+							c->mon->visible_clients == 1)
+			? CORNER_LOCATION_NONE
+			: CORNER_LOCATION_ALL;
+
+	unsigned int bwoffset = c->bw != 0 && hit_no_border ? c->bw : 0;
+
 	uint32_t width, height;
 	client_actual_size(c, &width, &height);
 
-	uint32_t delta = shadows_size + c->bw;
+	uint32_t delta = shadows_size + c->bw - bwoffset;
 
 	/* we calculate where to clip the shadow */
 	struct wlr_box client_box = {
-		.x = 0,
-		.y = 0,
-		.width = width,
-		.height = height,
+		.x = bwoffset,
+		.y = bwoffset,
+		.width = width - 2 * bwoffset,
+		.height = height - 2 * bwoffset,
 	};
 
 	struct wlr_box shadow_box = {
@@ -288,7 +297,7 @@ void client_draw_shadow(Client *c) {
 	struct clipped_region clipped_region = {
 		.area = intersection_box,
 		.corner_radius = border_radius,
-		.corners = border_radius_location_default,
+		.corners = current_corner_location,
 	};
 
 	struct wlr_box absolute_shadow_box = {
@@ -328,6 +337,10 @@ void client_draw_shadow(Client *c) {
 	wlr_scene_shadow_set_size(
 		c->shadow, GEZERO(shadow_box.width - left_offset - right_offset),
 		GEZERO(shadow_box.height - top_offset - bottom_offset));
+
+	clipped_region.area.x = clipped_region.area.x - left_offset;
+	clipped_region.area.y = clipped_region.area.y - top_offset;
+
 	wlr_scene_shadow_set_clipped_region(c->shadow, clipped_region);
 }
 
