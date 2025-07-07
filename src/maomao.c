@@ -2466,8 +2466,10 @@ void closemon(Monitor *m) {
 			} else {
 				client_change_mon(c, selmon);
 			}
-
-			client_update_oldmonname_record(c, m);
+			// record the oldmonname which is used to restore
+			if (c->oldmonname[0] == '\0') {
+				client_update_oldmonname_record(c, m);
+			}
 		}
 	}
 	if (selmon) {
@@ -5684,7 +5686,7 @@ void tagsilent(const Arg *arg) {
 }
 
 void client_update_oldmonname_record(Client *c, Monitor *m) {
-	if (!c || c->iskilling || !client_surface(c)->mapped || c->mon == m)
+	if (!c || c->iskilling || !client_surface(c)->mapped)
 		return;
 	memset(c->oldmonname, 0, sizeof(c->oldmonname));
 	strncpy(c->oldmonname, m->wlr_output->name, sizeof(c->oldmonname) - 1);
