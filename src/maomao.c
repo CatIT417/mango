@@ -5700,12 +5700,16 @@ void tagmon(const Arg *arg) {
 	if (!c)
 		return;
 
+	m = dirtomon(arg->i);
+
+	if (!m)
+		return;
+
 	unsigned int newtags = arg->ui ? c->tags : 0;
 	unsigned int target;
 	if (c == selmon->sel) {
 		selmon->sel = NULL;
 	}
-	m = dirtomon(arg->i);
 
 	setmon(c, m, newtags, true);
 	client_update_oldmonname_record(c, m);
