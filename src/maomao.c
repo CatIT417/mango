@@ -413,6 +413,7 @@ struct Monitor {
 	int gamma_lut_changed;
 	int asleep;
 	unsigned int visible_clients;
+	unsigned int visible_tiling_clients;
 	struct wlr_scene_optimized_blur *blur;
 	char last_surface_ws_name[256];
 };
@@ -1472,6 +1473,7 @@ arrange(Monitor *m, bool want_animation) {
 		return;
 
 	m->visible_clients = 0;
+	m->visible_tiling_clients = 0;
 	wl_list_for_each(c, &clients, link) {
 		if (c->iskilling)
 			continue;
@@ -1487,6 +1489,10 @@ arrange(Monitor *m, bool want_animation) {
 
 				if (!client_is_unmanaged(c) && !client_should_ignore_focus(c)) {
 					m->visible_clients++;
+				}
+
+				if (ISTILED(c)) {
+					m->visible_tiling_clients++;
 				}
 
 				if (!c->is_clip_to_hide || !ISTILED(c) ||
