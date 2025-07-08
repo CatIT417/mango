@@ -3905,7 +3905,7 @@ mapnotify(struct wl_listener *listener, void *data) {
 		c->bw = borderpx;
 	}
 
-	if (client_should_overtop(c) && !client_get_parent(c)) {
+	if (client_should_global(c)) {
 		c->isunglobal = 1;
 	}
 
