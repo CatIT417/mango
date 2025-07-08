@@ -3850,8 +3850,6 @@ static void iter_xdg_scene_buffers(struct wlr_scene_buffer *buffer, int sx,
 }
 
 void init_client_properties(Client *c) {
-	c->geom.width += 2 * c->bw;
-	c->geom.height += 2 * c->bw;
 	c->ismaxmizescreen = 0;
 	c->isfullscreen = 0;
 	c->need_float_size_reduce = 0;
@@ -3897,12 +3895,23 @@ mapnotify(struct wl_listener *listener, void *data) {
 
 	client_get_geometry(c, &c->geom);
 
+	init_client_properties(c);
+
+	// set special window properties
 	if (client_is_unmanaged(c) || client_should_ignore_focus(c)) {
 		c->bw = 0;
 		c->isnoborder = 1;
 	} else {
 		c->bw = borderpx;
 	}
+
+	if (client_should_overtop(c) && !client_get_parent(c)) {
+		c->isunglobal = 1;
+	}
+
+	// init client geom
+	c->geom.width += 2 * c->bw;
+	c->geom.height += 2 * c->bw;
 
 	/* Handle unmanaged clients first so we can return prior create borders */
 	if (client_is_unmanaged(c)) {
@@ -3942,8 +3951,6 @@ mapnotify(struct wl_listener *listener, void *data) {
 	/* Initialize client geometry with room for border */
 	client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT |
 							WLR_EDGE_RIGHT);
-
-	init_client_properties(c);
 
 	if (new_is_master && selmon && !is_scroller_layout(selmon))
 		// tile at the top
