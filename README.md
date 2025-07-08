@@ -71,6 +71,28 @@ yay -S maomaowm-git
 
 ```
 
+## Gentoo Linux
+
+The package is in the community-maintained repository called GURU.
+First, add GURU repository:
+
+```bash
+emerge --ask --verbose eselect-repository
+eselect repository enable guru
+emerge --sync guru
+```
+
+Then, add `gui-libs/scenefx` and `gui-wm/maomaowm` to the `package.accept_keywords`.
+
+Finally, install the package:
+
+```bash
+emerge --ask --verbose gui-wm/maomaowm
+```
+
+Patching wlroots is done by getting the patch with git from [the repository](https://github.com/DreamMaoMao/wlroots.git)
+and then copying it to `/etc/portage/patches/gui-libs/wlroots/`.
+
 ## Other
 
 ```bash
