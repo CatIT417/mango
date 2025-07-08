@@ -138,7 +138,7 @@ enum {
 	LyrFloat,
 	LyrTop,
 	LyrFadeOut,
-	LyrFS,
+	LyrFSorOverTop,
 	LyrOverlay,
 	LyrIMPopup, // text-input layer
 	LyrBlock,
@@ -386,7 +386,6 @@ struct Monitor {
 	struct wl_list link;
 	struct wlr_output *wlr_output;
 	struct wlr_scene_output *scene_output;
-	// struct wlr_scene_rect *fullscreen_bg; /* See createmon() for info */
 	struct wl_listener frame;
 	struct wl_listener destroy;
 	struct wl_listener request_state;
@@ -881,6 +880,9 @@ void toggleoverlay(const Arg *arg) {
 	if (selmon->sel->isoverlay) {
 		wlr_scene_node_reparent(&selmon->sel->scene->node, layers[LyrOverlay]);
 		wlr_scene_node_raise_to_top(&selmon->sel->scene->node);
+	} else if (client_should_overtop(selmon->sel) && selmon->sel->isfloating) {
+		wlr_scene_node_reparent(&selmon->sel->scene->node,
+								layers[LyrFSorOverTop]);
 	} else {
 		wlr_scene_node_reparent(
 			&selmon->sel->scene->node,
@@ -1583,11 +1585,6 @@ arrange(Monitor *m, bool want_animation) {
 			reset_maxmizescreen_size(c);
 		}
 	}
-
-	// 给全屏窗口设置背景为黑色
-	// 好像要跟LyrFS图层一起使用，我不用这个图层，所以注释掉
-	// wlr_scene_node_set_enabled(&m->fullscreen_bg->node,
-	// 		(c = focustop(m)) && c->isfullscreen);
 
 	if (m->isoverview) {
 		overviewlayout.arrange(m);
@@ -2437,7 +2434,6 @@ void cleanupmon(struct wl_listener *listener, void *data) {
 		wlr_scene_node_destroy(&m->blur->node);
 		m->blur = NULL;
 	}
-	// wlr_scene_node_destroy(&m->fullscreen_bg->node);
 	free(m);
 }
 
@@ -2994,9 +2990,6 @@ void createmon(struct wl_listener *listener, void *data) {
 	 * visible below the fullscreened surface.
 	 *
 	 */
-	/* updatemons() will resize and set correct position */
-	// m->fullscreen_bg = wlr_scene_rect_create(layers[LyrFS], 0, 0,
-	// fullscreen_bg); wlr_scene_node_set_enabled(&m->fullscreen_bg->node, 0);
 
 	/* Adds this to the output layout in the order it was configured.
 	 *
@@ -3914,7 +3907,7 @@ mapnotify(struct wl_listener *listener, void *data) {
 	/* Handle unmanaged clients first so we can return prior create borders */
 	if (client_is_unmanaged(c)) {
 		/* Unmanaged clients always are floating */
-		wlr_scene_node_reparent(&c->scene->node, layers[LyrFS]);
+		wlr_scene_node_reparent(&c->scene->node, layers[LyrFSorOverTop]);
 		wlr_scene_node_set_position(&c->scene->node, c->geom.x, c->geom.y);
 		if (client_wants_focus(c)) {
 			focusclient(c, 1);
@@ -4623,6 +4616,8 @@ setfloating(Client *c, int floating) {
 
 	if (c->isoverlay) {
 		wlr_scene_node_reparent(&c->scene->node, layers[LyrOverlay]);
+	} else if (client_should_overtop(c) && c->isfloating) {
+		wlr_scene_node_reparent(&c->scene->node, layers[LyrFSorOverTop]);
 	} else {
 		wlr_scene_node_reparent(&c->scene->node,
 								layers[c->isfloating ? LyrFloat : LyrTile]);
@@ -4750,9 +4745,11 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
 
 	if (c->isoverlay) {
 		wlr_scene_node_reparent(&c->scene->node, layers[LyrOverlay]);
+	} else if (client_should_overtop(c) && c->isfloating) {
+		wlr_scene_node_reparent(&c->scene->node, layers[LyrFSorOverTop]);
 	} else {
 		wlr_scene_node_reparent(&c->scene->node,
-								layers[fullscreen	   ? LyrFS
+								layers[fullscreen	   ? LyrFSorOverTop
 									   : c->isfloating ? LyrFloat
 													   : LyrTile]);
 	}
@@ -6221,9 +6218,6 @@ void updatemons(struct wl_listener *listener, void *data) {
 		 Otherwise, incorrect floating window calculations will occur here.
 		 */
 		wlr_scene_output_set_position(m->scene_output, m->m.x, m->m.y);
-
-		// wlr_scene_node_set_position(&m->fullscreen_bg->node, m->m.x, m->m.y);
-		// wlr_scene_rect_set_size(m->fullscreen_bg, m->m.width, m->m.height);
 
 		if (blur && m->blur) {
 			wlr_scene_node_set_position(&m->blur->node, m->m.x, m->m.y);

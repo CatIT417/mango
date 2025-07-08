@@ -397,6 +397,25 @@ static inline int client_should_ignore_focus(Client *c) {
 	return 0;
 }
 
+static inline int client_should_overtop(Client *c) {
+
+#ifdef XWAYLAND
+	if (client_is_x11(c)) {
+		struct wlr_xwayland_surface *surface = c->surface.xwayland;
+		const uint32_t over_top_types[] = {
+			WLR_XWAYLAND_NET_WM_WINDOW_TYPE_UTILITY};
+		for (size_t i = 0;
+			 i < sizeof(over_top_types) / sizeof(over_top_types[0]); ++i) {
+			if (wlr_xwayland_surface_has_window_type(surface,
+													 over_top_types[i])) {
+				return 1;
+			}
+		}
+	}
+#endif
+	return 0;
+}
+
 static inline int client_wants_focus(Client *c) {
 #ifdef XWAYLAND
 	return client_is_unmanaged(c) &&
