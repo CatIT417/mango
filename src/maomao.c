@@ -3531,13 +3531,7 @@ void incovgaps(const Arg *arg) {
 
 void requestmonstate(struct wl_listener *listener, void *data) {
 	struct wlr_output_event_request_state *event = data;
-	Monitor *m = wl_container_of(listener, m, frame);
-
 	wlr_output_commit_state(event->output, event->state);
-	if (blur) {
-		wlr_scene_node_set_position(&m->blur->node, m->m.x, m->m.y);
-		wlr_scene_optimized_blur_set_size(m->blur, m->m.width, m->m.height);
-	}
 	updatemons(NULL, NULL);
 }
 
