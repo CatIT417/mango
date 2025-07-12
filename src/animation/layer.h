@@ -209,6 +209,14 @@ void layer_scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int sx,
 
 	struct wlr_surface *surface = scene_surface->surface;
 
+	if (scale_data->width_scale >= 0.99f) {
+		scale_data->width_scale = 1.0f;
+	}
+
+	if (scale_data->height_scale >= 0.99f) {
+		scale_data->height_scale = 1.0f;
+	}
+
 	unsigned int surface_width = surface->current.width;
 	unsigned int surface_height = surface->current.height;
 	surface_width = scale_data->width_scale * surface_width;
