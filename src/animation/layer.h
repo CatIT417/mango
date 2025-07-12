@@ -408,10 +408,8 @@ void init_fadeout_layers(LayerSurface *l) {
 		 strcmp(layer_animation_type_close, "zoom") == 0) ||
 		(l->animation_type_close &&
 		 strcmp(l->animation_type_close, "zoom") == 0)) {
-		fadeout_layer->current.width =
-			(float)l->geom.width * zoom_initial_ratio;
-		fadeout_layer->current.height =
-			(float)l->geom.height * zoom_initial_ratio;
+		fadeout_layer->current.width = (float)l->geom.width * zoom_end_ratio;
+		fadeout_layer->current.height = (float)l->geom.height * zoom_end_ratio;
 		fadeout_layer->current.x = usable_area.x + usable_area.width / 2 -
 								   fadeout_layer->current.width / 2;
 		fadeout_layer->current.y = usable_area.y + usable_area.height / 2 -
