@@ -34,6 +34,11 @@ Scroller Layout
 
 https://github.com/user-attachments/assets/c9bf9415-fad1-4400-bcdc-3ad2d76de85a
 
+Layer animaiton
+
+https://github.com/user-attachments/assets/014c893f-115c-4ae9-8342-f9ae3e9a0df0
+
+
 # Supported layouts
 
 - Tile
@@ -115,11 +120,11 @@ sudo ninja -C build install
 
 ## Suggested Tools
 
-- Application launcher (wofi, bemenu, wmenu, fuzzel)
+- Application launcher (rofi-wayland, bemenu, wmenu, fuzzel)
 - Terminal emulator (foot, wezterm, alacritty, kitty, ghostty)
 - Status bar (waybar, eww, quickshell, ags), waybar is preferred
 - Wallpaper setup (swww, swaybg)
-- Notification daemon (swaync, dunst)
+- Notification daemon (swaync, dunst,mako)
 - Desktop portal (xdg-desktop-portal, xdg-desktop-portal-wlr, xdg-desktop-portal-gtk)
 - Clipboard (wl-clipboard, wl-clip-persist, cliphist)
 - Gamma control/night light (wlsunset, gammastep)
