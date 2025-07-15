@@ -498,17 +498,10 @@ void client_apply_clip(Client *c, float factor) {
 	bool should_render_client_surface = false;
 	struct ivec2 offset;
 	animationScale scale_data;
+	float opacity, percent;
 
 	enum corner_location current_corner_location =
 		set_client_corner_location(c);
-
-	float percent =
-		c->animation.action == OPEN && animation_fade_in && !c->nofadein
-			? (double)c->animation.passed_frames / c->animation.total_frames
-			: 1.0;
-	float opacity = c->isfullscreen	   ? 1
-					: c == selmon->sel ? c->focused_opacity
-									   : c->unfocused_opacity;
 
 	int bw = (int)c->bw;
 
@@ -539,6 +532,14 @@ void client_apply_clip(Client *c, float factor) {
 											  current_corner_location, true});
 		return;
 	}
+
+	percent =
+		c->animation.action == OPEN && animation_fade_in && !c->nofadein
+			? (double)c->animation.passed_frames / c->animation.total_frames
+			: 1.0;
+	opacity = c->isfullscreen	 ? 1
+			  : c == selmon->sel ? c->focused_opacity
+								 : c->unfocused_opacity;
 
 	// 获取窗口动画实时位置矩形
 	unsigned int width, height;
