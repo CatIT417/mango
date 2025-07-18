@@ -1104,7 +1104,6 @@ void applyrules(Client *c) {
 	/* rule matching */
 	const char *appid, *title;
 	unsigned int i, newtags = 0;
-	unsigned int mon_idx;
 	const ConfigWinRule *r;
 	Monitor *mon = selmon, *m;
 	Client *fc;
@@ -1131,10 +1130,10 @@ void applyrules(Client *c) {
 		newtags |= (r->tags > 0) ? r->tags : 0;
 
 		// set monitor of client
-		mon_idx = 0;
 		wl_list_for_each(m, &mons, link) {
-			if (r->monitor == mon_idx++)
+			if (regex_match(r->monitor, m->wlr_output->name)) {
 				mon = m;
+			}
 		}
 
 		// set geometry of floating client
@@ -1193,9 +1192,10 @@ void applyrules(Client *c) {
 	setmon(c, mon, newtags, !c->isopensilent);
 
 	if (!c->isopensilent && c->mon &&
-		!(c->tags & (1 << (c->mon->pertag->curtag - 1)))) {
+		((c->mon && c->mon != selmon) ||
+		 !(c->tags & (1 << (c->mon->pertag->curtag - 1))))) {
 		c->animation.tag_from_rule = true;
-		view(&(Arg){.ui = c->tags}, true);
+		view_in_mon(&(Arg){.ui = c->tags}, true, c->mon);
 	}
 
 	setfullscreen(c, fullscreen_state_backup);
