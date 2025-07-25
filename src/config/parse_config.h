@@ -70,15 +70,14 @@ typedef struct {
 } ConfigWinRule;
 
 typedef struct {
-	const char *name;	// 显示器名称
-	float mfact;		// 主区域比例
-	int nmaster;		// 主区域窗口数量
-	const char *layout; // 布局名称（字符串）
-	int rr;				// 旋转和翻转（假设为整数）
-	float scale;		// 显示器缩放比例
-	int x, y;			// 显示器位置
-	int isterm;
-	int noswallow;
+	const char *name;			// 显示器名称
+	float mfact;				// 主区域比例
+	int nmaster;				// 主区域窗口数量
+	const char *layout;			// 布局名称（字符串）
+	int rr;						// 旋转和翻转（假设为整数）
+	float scale;				// 显示器缩放比例
+	int x, y;					// 显示器位置
+	int width, height, refresh; // 显示器分辨率和刷新率
 } ConfigMonitorRule;
 
 // 修改后的宏定义
@@ -1532,16 +1531,18 @@ void parse_config_line(Config *config, const char *line) {
 		// 临时存储每个字段的原始字符串
 		char raw_name[256], raw_layout[256];
 		char raw_mfact[256], raw_nmaster[256], raw_rr[256];
-		char raw_scale[256], raw_x[256], raw_y[256];
+		char raw_scale[256], raw_x[256], raw_y[256], raw_width[256],
+			raw_height[256], raw_refresh[256];
 
 		// 先读取所有字段为字符串
-		int parsed = sscanf(value,
-							"%255[^,],%255[^,],%255[^,],%255[^,],%255[^,],%255["
-							"^,],%255[^,],%255s",
-							raw_name, raw_mfact, raw_nmaster, raw_layout,
-							raw_rr, raw_scale, raw_x, raw_y);
+		int parsed =
+			sscanf(value,
+				   "%255[^,],%255[^,],%255[^,],%255[^,],%255[^,],%255["
+				   "^,],%255[^,],%255[^,],%255[^,],%255[^,],%255s",
+				   raw_name, raw_mfact, raw_nmaster, raw_layout, raw_rr,
+				   raw_scale, raw_x, raw_y, raw_width, raw_height, raw_refresh);
 
-		if (parsed == 8) {
+		if (parsed == 11) {
 			// 修剪每个字段的空格
 			trim_whitespace(raw_name);
 			trim_whitespace(raw_mfact);
@@ -1551,6 +1552,9 @@ void parse_config_line(Config *config, const char *line) {
 			trim_whitespace(raw_scale);
 			trim_whitespace(raw_x);
 			trim_whitespace(raw_y);
+			trim_whitespace(raw_width);
+			trim_whitespace(raw_height);
+			trim_whitespace(raw_refresh);
 
 			// 转换修剪后的字符串为特定类型
 			rule->name = strdup(raw_name);
@@ -1561,6 +1565,9 @@ void parse_config_line(Config *config, const char *line) {
 			rule->scale = atof(raw_scale);
 			rule->x = atoi(raw_x);
 			rule->y = atoi(raw_y);
+			rule->width = atoi(raw_width);
+			rule->height = atoi(raw_height);
+			rule->refresh = atoi(raw_refresh);
 
 			if (!rule->name || !rule->layout) {
 				if (rule->name)
