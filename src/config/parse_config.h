@@ -2566,6 +2566,53 @@ void reset_blur_params(void) {
 	}
 }
 
+void reapply_monitor_rules(void) {
+	ConfigMonitorRule *mr;
+	Monitor *m;
+	int ji, jk;
+	struct wlr_output_state state;
+	wlr_output_state_init(&state);
+
+	wl_list_for_each(m, &mons, link) {
+		if (!m->wlr_output->enabled) {
+			continue;
+		}
+
+		for (ji = 0; ji < config.monitor_rules_count; ji++) {
+			if (config.monitor_rules_count < 1)
+				break;
+
+			mr = &config.monitor_rules[ji];
+			if (!mr->name || regex_match(mr->name, m->wlr_output->name)) {
+				m->mfact = mr->mfact;
+				m->nmaster = mr->nmaster;
+				m->m.x = mr->x;
+				m->m.y = mr->y;
+				if (mr->layout) {
+					for (jk = 0; jk < LENGTH(layouts); jk++) {
+						if (strcmp(layouts[jk].name, mr->layout) == 0) {
+							m->lt = &layouts[jk];
+						}
+					}
+				}
+
+				if (mr->width > 0 && mr->height > 0 && mr->refresh > 0) {
+					wlr_output_state_set_custom_mode(
+						&state, mr->width, mr->height, mr->refresh * 1000);
+				}
+
+				wlr_output_state_set_scale(&state, mr->scale);
+				wlr_output_state_set_transform(&state, mr->rr);
+				wlr_output_layout_add(output_layout, m->wlr_output, mr->x,
+									  mr->y);
+			}
+		}
+
+		wlr_output_commit_state(m->wlr_output, &state);
+		wlr_output_state_finish(&state);
+	}
+}
+
 void reload_config(const Arg *arg) {
 	Client *c;
 	Monitor *m;
@@ -2633,6 +2680,8 @@ void reload_config(const Arg *arg) {
 			}
 		}
 	}
+
+	reapply_monitor_rules();
 
 	arrange(selmon, false);
 }

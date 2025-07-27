@@ -424,16 +424,6 @@ struct Monitor {
 };
 
 typedef struct {
-	const char *name;
-	float mfact;
-	int nmaster;
-	float scale;
-	const Layout *lt;
-	enum wl_output_transform rr;
-	int x, y;
-} MonitorRule;
-
-typedef struct {
 	struct wlr_pointer_constraint_v1 *constraint;
 	struct wl_listener destroy;
 } PointerConstraint;
