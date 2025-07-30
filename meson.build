@@ -1,4 +1,4 @@
-project('maomao', ['c', 'cpp'],
+project('mango', ['c', 'cpp'],
   version : '0.7.3'
 )
 
@@ -68,8 +68,8 @@ if xcb.found() and xlibs.found()
   c_args += '-DXWAYLAND'
 endif
 
-executable('maomao',
-  'src/maomao.c',
+executable('mango',
+  'src/mango.c',
   'src/common/util.c',
   wayland_sources,
   dependencies : [
@@ -89,7 +89,7 @@ executable('maomao',
 )
 
 desktop_install_dir = join_paths(prefix, 'share/wayland-sessions')
-install_data('maomao.desktop', install_dir : desktop_install_dir)
+install_data('mango.desktop', install_dir : desktop_install_dir)
 
 # 安装 config.conf
-install_data('config.conf', install_dir : join_paths(sysconfdir, 'maomao'))
+install_data('config.conf', install_dir : join_paths(sysconfdir, 'mango'))
