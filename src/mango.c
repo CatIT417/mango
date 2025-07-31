@@ -1213,9 +1213,6 @@ void applyrules(Client *c) {
 		wlr_scene_node_reparent(&selmon->sel->scene->node, layers[LyrOverlay]);
 		wlr_scene_node_raise_to_top(&selmon->sel->scene->node);
 	}
-
-	// update border color
-	setborder_color(c);
 }
 
 void // 17
@@ -3302,7 +3299,7 @@ mapnotify(struct wl_listener *listener, void *data) {
 		return;
 	}
 
-	// border
+	// extra node
 	c->border = wlr_scene_rect_create(c->scene, 0, 0,
 									  c->isurgent ? urgentcolor : bordercolor);
 	wlr_scene_node_lower_to_bottom(&c->border->node);
@@ -3310,6 +3307,12 @@ mapnotify(struct wl_listener *listener, void *data) {
 	wlr_scene_rect_set_corner_radius(c->border, border_radius,
 									 border_radius_location_default);
 	wlr_scene_node_set_enabled(&c->border->node, true);
+
+	c->shadow = wlr_scene_shadow_create(c->scene, 0, 0, border_radius,
+										shadows_blur, shadowscolor);
+
+	wlr_scene_node_lower_to_bottom(&c->shadow->node);
+	wlr_scene_node_set_enabled(&c->shadow->node, true);
 
 	/* Initialize client geometry with room for border */
 	client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT |
@@ -3339,15 +3342,12 @@ mapnotify(struct wl_listener *listener, void *data) {
 		applyrules(c);
 	}
 
-	// effects
-	c->shadow = wlr_scene_shadow_create(c->scene, 0, 0, border_radius,
-										shadows_blur, shadowscolor);
-
-	wlr_scene_node_lower_to_bottom(&c->shadow->node);
-	wlr_scene_node_set_enabled(&c->shadow->node, true);
-
+	// apply buffer effects of client
 	wlr_scene_node_for_each_buffer(&c->scene_surface->node,
 								   iter_xdg_scene_buffers, c);
+
+	// set border color
+	setborder_color(c);
 
 	// make sure the animation is open type
 	c->is_pending_open_animation = true;
