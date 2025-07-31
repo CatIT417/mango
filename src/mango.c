@@ -310,6 +310,7 @@ struct Client {
 	float unfocused_opacity;
 	char oldmonname[128];
 	int scratchpad_width, scratchpad_height;
+	int noblur;
 };
 
 typedef struct {
@@ -1044,6 +1045,7 @@ static void apply_rule_properties(Client *c, const ConfigWinRule *r) {
 	APPLY_INT_PROP(c, r, isunglobal);
 	APPLY_INT_PROP(c, r, scratchpad_width);
 	APPLY_INT_PROP(c, r, scratchpad_height);
+	APPLY_INT_PROP(c, r, noblur);
 
 	APPLY_FLOAT_PROP(c, r, scroller_proportion);
 	APPLY_FLOAT_PROP(c, r, focused_opacity);
@@ -3205,7 +3207,7 @@ static void iter_xdg_scene_buffers(struct wlr_scene_buffer *buffer, int sx,
 	if (wlr_subsurface_try_from_wlr_surface(surface) != NULL)
 		return;
 
-	if (blur && c) {
+	if (blur && c && !c->noblur) {
 		wlr_scene_buffer_set_backdrop_blur(buffer, true);
 		wlr_scene_buffer_set_backdrop_blur_ignore_transparent(buffer, true);
 		if (blur_optimized) {
@@ -3300,6 +3302,7 @@ mapnotify(struct wl_listener *listener, void *data) {
 		return;
 	}
 
+	// border
 	c->border = wlr_scene_rect_create(c->scene, 0, 0,
 									  c->isurgent ? urgentcolor : bordercolor);
 	wlr_scene_node_lower_to_bottom(&c->border->node);
@@ -3307,15 +3310,6 @@ mapnotify(struct wl_listener *listener, void *data) {
 	wlr_scene_rect_set_corner_radius(c->border, border_radius,
 									 border_radius_location_default);
 	wlr_scene_node_set_enabled(&c->border->node, true);
-
-	c->shadow = wlr_scene_shadow_create(c->scene, 0, 0, border_radius,
-										shadows_blur, shadowscolor);
-
-	wlr_scene_node_lower_to_bottom(&c->shadow->node);
-	wlr_scene_node_set_enabled(&c->shadow->node, true);
-
-	wlr_scene_node_for_each_buffer(&c->scene_surface->node,
-								   iter_xdg_scene_buffers, c);
 
 	/* Initialize client geometry with room for border */
 	client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT |
@@ -3344,6 +3338,16 @@ mapnotify(struct wl_listener *listener, void *data) {
 	} else {
 		applyrules(c);
 	}
+
+	// effects
+	c->shadow = wlr_scene_shadow_create(c->scene, 0, 0, border_radius,
+										shadows_blur, shadowscolor);
+
+	wlr_scene_node_lower_to_bottom(&c->shadow->node);
+	wlr_scene_node_set_enabled(&c->shadow->node, true);
+
+	wlr_scene_node_for_each_buffer(&c->scene_surface->node,
+								   iter_xdg_scene_buffers, c);
 
 	// make sure the animation is open type
 	c->is_pending_open_animation = true;

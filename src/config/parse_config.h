@@ -60,6 +60,7 @@ typedef struct {
 	int no_force_center;
 	int isterm;
 	int noswallow;
+	int noblur;
 	int scratchpad_width;
 	int scratchpad_height;
 	float focused_opacity;
@@ -1416,6 +1417,7 @@ void parse_config_line(Config *config, const char *line) {
 		rule->isoverlay = -1;
 		rule->isterm = -1;
 		rule->noswallow = -1;
+		rule->noblur = -1;
 		rule->monitor = NULL;
 		rule->offsetx = 0;
 		rule->offsety = 0;
@@ -1499,6 +1501,8 @@ void parse_config_line(Config *config, const char *line) {
 					rule->isterm = atoi(val);
 				} else if (strcmp(key, "noswallow") == 0) {
 					rule->noswallow = atoi(val);
+				} else if (strcmp(key, "noblur") == 0) {
+					rule->noblur = atoi(val);
 				} else if (strcmp(key, "scroller_proportion") == 0) {
 					rule->scroller_proportion = atof(val);
 				} else if (strcmp(key, "isfullscreen") == 0) {
