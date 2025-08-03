@@ -4044,10 +4044,6 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
 
 	c->ismaxmizescreen = maxmizescreen;
 
-	wlr_scene_node_reparent(&c->scene->node, layers[maxmizescreen	? LyrTile
-													: c->isfloating ? LyrFloat
-																	: LyrTile]);
-
 	if (maxmizescreen) {
 
 		if (c->isfullscreen)
@@ -4074,6 +4070,10 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
 			setfloating(c, 1);
 		arrange(c->mon, false);
 	}
+
+	wlr_scene_node_reparent(&c->scene->node, layers[maxmizescreen	? LyrTile
+													: c->isfloating ? LyrFloat
+																	: LyrTile]);
 }
 
 void setfakefullscreen(Client *c, int fakefullscreen) {
@@ -4094,17 +4094,6 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
 		return;
 
 	client_set_fullscreen(c, fullscreen);
-
-	if (c->isoverlay) {
-		wlr_scene_node_reparent(&c->scene->node, layers[LyrOverlay]);
-	} else if (client_should_overtop(c) && c->isfloating) {
-		wlr_scene_node_reparent(&c->scene->node, layers[LyrFSorOverTop]);
-	} else {
-		wlr_scene_node_reparent(&c->scene->node,
-								layers[fullscreen	   ? LyrFSorOverTop
-									   : c->isfloating ? LyrFloat
-													   : LyrTile]);
-	}
 
 	if (fullscreen) {
 		if (c->ismaxmizescreen)
@@ -4129,6 +4118,17 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
 		if (c->isfloating)
 			setfloating(c, 1);
 		arrange(c->mon, false);
+	}
+
+	if (c->isoverlay) {
+		wlr_scene_node_reparent(&c->scene->node, layers[LyrOverlay]);
+	} else if (client_should_overtop(c) && c->isfloating) {
+		wlr_scene_node_reparent(&c->scene->node, layers[LyrFSorOverTop]);
+	} else {
+		wlr_scene_node_reparent(&c->scene->node,
+								layers[fullscreen	   ? LyrFSorOverTop
+									   : c->isfloating ? LyrFloat
+													   : LyrTile]);
 	}
 }
 
