@@ -4155,7 +4155,6 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
 		c->isfakefullscreen = 0;
 		if (c->isfloating)
 			setfloating(c, 1);
-		arrange(c->mon, false);
 	}
 
 	if (c->isoverlay) {
@@ -4168,6 +4167,8 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
 									   : c->isfloating ? LyrFloat
 													   : LyrTile]);
 	}
+
+	arrange(c->mon, false);
 }
 
 void setgaps(int oh, int ov, int ih, int iv) {
