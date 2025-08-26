@@ -5130,7 +5130,7 @@ urgent(struct wl_listener *listener, void *data) {
 	if (!c || !c->foreign_toplevel)
 		return;
 
-	if (focus_on_activate && c != selmon->sel) {
+	if (focus_on_activate && !c->istagsilent && c != selmon->sel) {
 		view(&(Arg){.ui = c->tags}, true);
 		focusclient(c, 1);
 	} else if (c != focustop(selmon)) {
@@ -5252,7 +5252,7 @@ void activatex11(struct wl_listener *listener, void *data) {
 		}
 	}
 
-	if (focus_on_activate && c != selmon->sel) {
+	if (focus_on_activate && !c->istagsilent && c != selmon->sel) {
 		view(&(Arg){.ui = c->tags}, true);
 		wlr_xwayland_surface_activate(c->surface.xwayland, 1);
 		focusclient(c, 1);
