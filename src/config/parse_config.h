@@ -2668,6 +2668,17 @@ void reapply_keyboard(void) {
 	}
 }
 
+void reapply_pointer(void) {
+	struct input_device *id;
+	struct libinput_device *device;
+	wl_list_for_each(id, &pointers, link) {
+		device = id->libinput_device;
+		if (wlr_input_device_is_libinput(id->wlr_device) && device) {
+			configure_pointer(device);
+		}
+	}
+}
+
 void reapply_master(void) {
 
 	int i;
@@ -2726,6 +2737,7 @@ void reload_config(const Arg *arg) {
 
 	reapply_border();
 	reapply_keyboard();
+	reapply_pointer();
 	reapply_master();
 
 	reapply_tagrule();
