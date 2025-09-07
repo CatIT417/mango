@@ -100,7 +100,7 @@
 	 A->geom.x + A->geom.width < A->mon->m.x + A->mon->m.width &&              \
 	 A->geom.y + A->geom.height < A->mon->m.y + A->mon->m.height)
 #define ISTILED(A)                                                             \
-	(!(A)->isfloating && !(A)->isminied && !(A)->iskilling &&                  \
+	(A && !(A)->isfloating && !(A)->isminied && !(A)->iskilling &&             \
 	 !client_should_ignore_focus(A) && !(A)->isunglobal &&                     \
 	 !(A)->animation.tagouting && !(A)->ismaxmizescreen && !(A)->isfullscreen)
 #define VISIBLEON(C, M)                                                        \
@@ -434,7 +434,7 @@ struct Monitor {
 	int gappoh; /* horizontal outer gaps */
 	int gappov; /* vertical outer gaps */
 	Pertag *pertag;
-	Client *sel, *prevsel;
+	Client *sel, *prevtilesel;
 	int isoverview;
 	int is_in_hotarea;
 	int gamma_lut_changed;
@@ -1893,7 +1893,7 @@ buttonpress(struct wl_listener *listener, void *data) {
 			client_update_oldmonname_record(grabc, selmon);
 			setmon(grabc, selmon, 0, true);
 			reset_foreign_tolevel(grabc);
-			selmon->prevsel = selmon->sel;
+			selmon->prevtilesel = ISTILED(selmon->sel) ? selmon->sel : NULL;
 			selmon->sel = grabc;
 			tmpc = grabc;
 			grabc = NULL;
@@ -3059,8 +3059,7 @@ void focusclient(Client *c, int lift) {
 	if (c && !c->iskilling && !client_is_unmanaged(c) && c->mon) {
 
 		selmon = c->mon;
-		selmon->prevsel =
-			selmon->sel && ISTILED(selmon->sel) ? selmon->sel : NULL;
+		selmon->prevtilesel = ISTILED(selmon->sel) ? selmon->sel : NULL;
 		selmon->sel = c;
 
 		// decide whether need to re-arrange
@@ -4496,8 +4495,8 @@ void setmon(Client *c, Monitor *m, unsigned int newtags, bool focus) {
 		oldmon->sel = NULL;
 	}
 
-	if (oldmon && oldmon->prevsel == c) {
-		oldmon->prevsel = NULL;
+	if (oldmon && oldmon->prevtilesel == c) {
+		oldmon->prevtilesel = NULL;
 	}
 
 	c->mon = m;
@@ -5103,8 +5102,8 @@ void unmapnotify(struct wl_listener *listener, void *data) {
 		if (c == m->sel) {
 			m->sel = NULL;
 		}
-		if (c == m->prevsel) {
-			m->prevsel = NULL;
+		if (c == m->prevtilesel) {
+			m->prevtilesel = NULL;
 		}
 	}
 
