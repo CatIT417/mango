@@ -3663,9 +3663,8 @@ minimizenotify(struct wl_listener *listener, void *data) {
 	if (!c || !c->mon || c->iskilling || c->isminied)
 		return;
 
-	if (client_request_minimize(c, data)) {
-		if (!c->ignore_minimize)
-			set_minimized(c);
+	if (client_request_minimize(c, data) && !c->ignore_minimize) {
+		set_minimized(c);
 		client_set_minimized(c, true);
 	} else {
 		client_set_minimized(c, false);
