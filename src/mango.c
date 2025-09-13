@@ -433,7 +433,7 @@ struct Monitor {
 	int gappoh; /* horizontal outer gaps */
 	int gappov; /* vertical outer gaps */
 	Pertag *pertag;
-	Client *sel, *prevtilesel;
+	Client *sel, *prevsel;
 	int isoverview;
 	int is_in_hotarea;
 	int gamma_lut_changed;
@@ -1899,7 +1899,7 @@ buttonpress(struct wl_listener *listener, void *data) {
 			client_update_oldmonname_record(grabc, selmon);
 			setmon(grabc, selmon, 0, true);
 			reset_foreign_tolevel(grabc);
-			selmon->prevtilesel = ISTILED(selmon->sel) ? selmon->sel : NULL;
+			selmon->prevsel = ISTILED(selmon->sel) ? selmon->sel : NULL;
 			selmon->sel = grabc;
 			tmpc = grabc;
 			grabc = NULL;
@@ -3063,12 +3063,15 @@ void focusclient(Client *c, int lift) {
 	if (c && !c->iskilling && !client_is_unmanaged(c) && c->mon) {
 
 		selmon = c->mon;
-		selmon->prevtilesel = ISTILED(selmon->sel) ? selmon->sel : NULL;
+		selmon->prevsel = selmon->sel;
 		selmon->sel = c;
 
 		// decide whether need to re-arrange
 
-		if (c && ISTILED(c) && VISIBLEON(c, selmon) && !INSIDEMON(c) &&
+		if (c && selmon->prevsel &&
+			(selmon->prevsel->tags & selmon->tagset[selmon->seltags]) &&
+			(c->tags & selmon->tagset[selmon->seltags]) && !c->isfloating &&
+			!c->isfullscreen && !c->ismaxmizescreen &&
 			is_scroller_layout(selmon)) {
 			arrange(selmon, false);
 		}
@@ -4524,8 +4527,8 @@ void setmon(Client *c, Monitor *m, unsigned int newtags, bool focus) {
 		oldmon->sel = NULL;
 	}
 
-	if (oldmon && oldmon->prevtilesel == c) {
-		oldmon->prevtilesel = NULL;
+	if (oldmon && oldmon->prevsel == c) {
+		oldmon->prevsel = NULL;
 	}
 
 	c->mon = m;
@@ -5131,8 +5134,8 @@ void unmapnotify(struct wl_listener *listener, void *data) {
 		if (c == m->sel) {
 			m->sel = NULL;
 		}
-		if (c == m->prevtilesel) {
-			m->prevtilesel = NULL;
+		if (c == m->prevsel) {
+			m->prevsel = NULL;
 		}
 	}
 
