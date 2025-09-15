@@ -1360,7 +1360,7 @@ void parse_config_line(Config *config, const char *line) {
 				trim_whitespace(val);
 
 				if (strcmp(key, "id") == 0) {
-					rule->id = CLAMP_INT(atoi(val), 1, LENGTH(tags));
+					rule->id = CLAMP_INT(atoi(val), 0, LENGTH(tags));
 				} else if (strcmp(key, "layout_name") == 0) {
 					rule->layout_name = strdup(val);
 				} else if (strcmp(key, "monitor_name") == 0) {
