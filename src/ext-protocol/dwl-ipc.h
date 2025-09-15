@@ -140,12 +140,10 @@ void dwl_ipc_output_printstatus_to(DwlIpcOutput *ipc_output) {
 	title = focused ? client_get_title(focused) : "";
 	appid = focused ? client_get_appid(focused) : "";
 
-	if (monitor->pertag->curtag) {
-		symbol = monitor->pertag->ltidxs[monitor->pertag->curtag]->symbol;
-	} else if (monitor->isoverview) {
+	if (monitor->isoverview) {
 		symbol = overviewlayout.symbol;
 	} else {
-		symbol = monitor->pertag->ltidxs[monitor->pertag->prevtag]->symbol;
+		symbol = monitor->pertag->ltidxs[monitor->pertag->curtag]->symbol;
 	}
 
 	keyboard = &kb_group->wlr_group->keyboard;
@@ -238,7 +236,6 @@ void dwl_ipc_output_set_layout(struct wl_client *client,
 							   unsigned int index) {
 	DwlIpcOutput *ipc_output;
 	Monitor *monitor;
-	unsigned int target_tag;
 
 	ipc_output = wl_resource_get_user_data(resource);
 	if (!ipc_output)
@@ -248,10 +245,7 @@ void dwl_ipc_output_set_layout(struct wl_client *client,
 	if (index >= LENGTH(layouts))
 		index = 0;
 
-	target_tag = monitor->pertag->curtag ? monitor->pertag->curtag
-										 : monitor->pertag->prevtag;
-
-	monitor->pertag->ltidxs[target_tag] = &layouts[index];
+	monitor->pertag->ltidxs[monitor->pertag->curtag] = &layouts[index];
 	arrange(monitor, false);
 	printstatus();
 }

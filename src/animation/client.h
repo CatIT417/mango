@@ -30,13 +30,6 @@ enum corner_location set_client_corner_location(Client *c) {
 
 bool is_horizontal_stack_layout(Monitor *m) {
 
-	if (!m->pertag->curtag &&
-		(strcmp(m->pertag->ltidxs[m->pertag->prevtag]->name, "tile") == 0 ||
-		 strcmp(m->pertag->ltidxs[m->pertag->prevtag]->name, "spiral") == 0 ||
-		 strcmp(m->pertag->ltidxs[m->pertag->prevtag]->name, "dwindle") == 0 ||
-		 strcmp(m->pertag->ltidxs[m->pertag->prevtag]->name, "deck") == 0))
-		return true;
-
 	if (m->pertag->curtag &&
 		(strcmp(m->pertag->ltidxs[m->pertag->curtag]->name, "tile") == 0 ||
 		 strcmp(m->pertag->ltidxs[m->pertag->curtag]->name, "spiral") == 0 ||

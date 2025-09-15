@@ -17,21 +17,13 @@ Monitor *dirtomon(enum wlr_direction dir) {
 
 bool is_scroller_layout(Monitor *m) {
 
-	if (!m->pertag->curtag &&
-		strcmp(m->pertag->ltidxs[m->pertag->prevtag]->name, "scroller") == 0)
+	if (strcmp(m->pertag->ltidxs[m->pertag->curtag]->name, "scroller") == 0)
 		return true;
 
-	if (!m->pertag->curtag &&
-		strcmp(m->pertag->ltidxs[m->pertag->prevtag]->name,
-			   "vertical_scroller") == 0)
-		return true;
-
-	if (m->pertag->curtag &&
-		strcmp(m->pertag->ltidxs[m->pertag->curtag]->name, "scroller") == 0)
-		return true;
 	if (strcmp(m->pertag->ltidxs[m->pertag->curtag]->name,
 			   "vertical_scroller") == 0)
 		return true;
+
 	return false;
 }
 
