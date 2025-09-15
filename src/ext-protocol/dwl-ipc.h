@@ -238,6 +238,7 @@ void dwl_ipc_output_set_layout(struct wl_client *client,
 							   unsigned int index) {
 	DwlIpcOutput *ipc_output;
 	Monitor *monitor;
+	unsigned int target_tag;
 
 	ipc_output = wl_resource_get_user_data(resource);
 	if (!ipc_output)
@@ -247,7 +248,10 @@ void dwl_ipc_output_set_layout(struct wl_client *client,
 	if (index >= LENGTH(layouts))
 		index = 0;
 
-	monitor->pertag->ltidxs[monitor->pertag->curtag] = &layouts[index];
+	target_tag = monitor->pertag->curtag ? monitor->pertag->curtag
+										 : monitor->pertag->prevtag;
+
+	monitor->pertag->ltidxs[target_tag] = &layouts[index];
 	arrange(monitor, false);
 	printstatus();
 }
