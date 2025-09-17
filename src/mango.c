@@ -641,9 +641,9 @@ static struct wlr_box setclient_coordinate_center(Client *c,
 												  int offsetx, int offsety);
 static unsigned int get_tags_first_tag(unsigned int tags);
 
-static struct wlr_output_mode *get_output_mode(struct wlr_output *output,
-											   int width, int height,
-											   float refresh);
+static struct wlr_output_mode *
+get_nearest_output_mode(struct wlr_output *output, int width, int height,
+						float refresh);
 
 static void client_commit(Client *c);
 static void layer_commit(LayerSurface *l);
@@ -2504,8 +2504,9 @@ void createlocksurface(struct wl_listener *listener, void *data) {
 		client_notify_enter(lock_surface->surface, wlr_seat_get_keyboard(seat));
 }
 
-struct wlr_output_mode *get_output_mode(struct wlr_output *output, int width,
-										int height, float refresh) {
+struct wlr_output_mode *get_nearest_output_mode(struct wlr_output *output,
+												int width, int height,
+												float refresh) {
 	struct wlr_output_mode *mode, *nearest_mode = NULL;
 	float min_diff = 99999.0f;
 
@@ -2586,8 +2587,8 @@ void createmon(struct wl_listener *listener, void *data) {
 			rr = r->rr;
 
 			if (r->width > 0 && r->height > 0 && r->refresh > 0) {
-				internal_mode = get_output_mode(m->wlr_output, r->width,
-												r->height, r->refresh);
+				internal_mode = get_nearest_output_mode(m->wlr_output, r->width,
+														r->height, r->refresh);
 				if (internal_mode) {
 					custom_monitor_mode = true;
 					wlr_output_state_set_mode(&state, internal_mode);
