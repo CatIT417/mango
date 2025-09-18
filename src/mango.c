@@ -2619,10 +2619,6 @@ void createmon(struct wl_listener *listener, void *data) {
 		}
 	}
 
-	if (adaptive_sync) {
-		enable_adaptive_sync(m, &state);
-	}
-
 	/* The mode is a tuple of (width, height, refresh rate), and each
 	 * monitor supports only a specific set of modes. We just pick the
 	 * monitor's preferred mode; a more sophisticated compositor would let
@@ -2630,6 +2626,10 @@ void createmon(struct wl_listener *listener, void *data) {
 	if (!custom_monitor_mode)
 		wlr_output_state_set_mode(&state,
 								  wlr_output_preferred_mode(wlr_output));
+
+	if (adaptive_sync) {
+		enable_adaptive_sync(m, &state);
+	}
 
 	/* Set up event listeners */
 	LISTEN(&wlr_output->events.frame, &m->frame, rendermon);
