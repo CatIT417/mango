@@ -18,9 +18,9 @@ void bind_to_view(const Arg *arg) {
 	}
 
 	if (target == 0 || (int)target == INT_MIN) {
-		view(&(Arg){.ui = ~0 & TAGMASK}, false);
+		view(&(Arg){.ui = ~0 & TAGMASK, .i = arg->i}, false);
 	} else {
-		view(&(Arg){.ui = target}, true);
+		view(&(Arg){.ui = target, .i = arg->i}, true);
 	}
 }
 
@@ -992,7 +992,7 @@ void tagtoleft(const Arg *arg) {
 	if (selmon->sel != NULL &&
 		__builtin_popcount(selmon->tagset[selmon->seltags] & TAGMASK) == 1 &&
 		selmon->tagset[selmon->seltags] > 1) {
-		tag(&(Arg){.ui = selmon->tagset[selmon->seltags] >> 1});
+		tag(&(Arg){.ui = selmon->tagset[selmon->seltags] >> 1, .i = arg->i});
 	}
 }
 
@@ -1000,7 +1000,7 @@ void tagtoright(const Arg *arg) {
 	if (selmon->sel != NULL &&
 		__builtin_popcount(selmon->tagset[selmon->seltags] & TAGMASK) == 1 &&
 		selmon->tagset[selmon->seltags] & (TAGMASK >> 1)) {
-		tag(&(Arg){.ui = selmon->tagset[selmon->seltags] << 1});
+		tag(&(Arg){.ui = selmon->tagset[selmon->seltags] << 1, .i = arg->i});
 	}
 }
 
@@ -1194,7 +1194,7 @@ void viewtoleft(const Arg *arg) {
 	if (!selmon || (target) == selmon->tagset[selmon->seltags])
 		return;
 
-	view(&(Arg){.ui = target & TAGMASK}, true);
+	view(&(Arg){.ui = target & TAGMASK, .i = arg->i}, true);
 }
 void viewtoright(const Arg *arg) {
 	if (selmon->isoverview || selmon->pertag->curtag == 0) {
@@ -1209,7 +1209,7 @@ void viewtoright(const Arg *arg) {
 		return;
 	}
 
-	view(&(Arg){.ui = target & TAGMASK}, true);
+	view(&(Arg){.ui = target & TAGMASK, .i = arg->i}, true);
 }
 
 void viewtoleft_have_client(const Arg *arg) {
@@ -1233,7 +1233,7 @@ void viewtoleft_have_client(const Arg *arg) {
 	}
 
 	if (found)
-		view(&(Arg){.ui = (1 << (n - 1)) & TAGMASK}, true);
+		view(&(Arg){.ui = (1 << (n - 1)) & TAGMASK, .i = arg->i}, true);
 }
 
 void viewtoright_have_client(const Arg *arg) {
@@ -1257,7 +1257,7 @@ void viewtoright_have_client(const Arg *arg) {
 	}
 
 	if (found)
-		view(&(Arg){.ui = (1 << (n - 1)) & TAGMASK}, true);
+		view(&(Arg){.ui = (1 << (n - 1)) & TAGMASK, .i = arg->i}, true);
 }
 
 void zoom(const Arg *arg) {
