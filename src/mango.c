@@ -3425,7 +3425,7 @@ static void iter_xdg_scene_buffers(struct wlr_scene_buffer *buffer, int sx,
 
 	if (blur && c && !c->noblur) {
 		wlr_scene_buffer_set_backdrop_blur(buffer, true);
-		wlr_scene_buffer_set_backdrop_blur_ignore_transparent(buffer, true);
+		wlr_scene_buffer_set_backdrop_blur_ignore_transparent(buffer, false);
 		if (blur_optimized) {
 			wlr_scene_buffer_set_backdrop_blur_optimized(buffer, true);
 		} else {
