@@ -132,6 +132,7 @@ typedef struct {
 	char *layout_name; // 布局名称
 	char *monitor_name;
 	int no_render_border;
+	int no_hide;
 } ConfigTagRule;
 
 typedef struct {
@@ -1387,6 +1388,8 @@ void parse_config_line(Config *config, const char *line) {
 					rule->monitor_name = strdup(val);
 				} else if (strcmp(key, "no_render_border") == 0) {
 					rule->no_render_border = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "no_hide") == 0) {
+					rule->no_hide = CLAMP_INT(atoi(val), 0, 1);
 				}
 			}
 			token = strtok(NULL, ",");
@@ -2869,6 +2872,8 @@ void reapply_tagrule(void) {
 							   config.tag_rules[i - 1].layout_name) == 0) {
 						m->pertag->ltidxs[config.tag_rules[i - 1].id] =
 							&layouts[jk];
+						m->pertag->no_hide[config.tag_rules[i - 1].id] =
+							config.tag_rules[i - 1].no_hide;
 					}
 				}
 			}
