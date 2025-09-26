@@ -51,6 +51,7 @@ https://github.com/user-attachments/assets/014c893f-115c-4ae9-8342-f9ae3e9a0df0
 - dwindle
 - spiral
 - deck
+- center_tile
 
 ## Vertical Layouts
 - vertical_tile
@@ -59,7 +60,6 @@ https://github.com/user-attachments/assets/014c893f-115c-4ae9-8342-f9ae3e9a0df0
 - vertical_grid
 - vertical_dwindle
 - vertical_spiral
-- vertical_deck
 
 # Installation
 
