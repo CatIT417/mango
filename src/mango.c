@@ -4172,6 +4172,9 @@ void exchange_two_client(Client *c1, Client *c2) {
 
 void // 17
 run(char *startup_cmd) {
+
+	set_env();
+
 	char autostart_temp_path[1024];
 	/* Add a Unix socket to the Wayland display. */
 	const char *socket = wl_display_add_socket_auto(dpy);
@@ -4643,6 +4646,8 @@ void setup(void) {
 
 	setenv("XCURSOR_SIZE", "24", 1);
 	setenv("XDG_CURRENT_DESKTOP", "mango", 1);
+	parse_config();
+	init_baked_points();
 
 	int drm_fd, i, sig[] = {SIGCHLD, SIGINT, SIGTERM, SIGPIPE};
 	struct sigaction sa = {.sa_flags = SA_RESTART, .sa_handler = handlesig};
@@ -4920,8 +4925,6 @@ void setup(void) {
 				"failed to setup XWayland X server, continuing without it\n");
 	}
 #endif
-	parse_config();
-	init_baked_points();
 }
 
 void startdrag(struct wl_listener *listener, void *data) {

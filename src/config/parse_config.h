@@ -34,6 +34,11 @@ typedef struct {
 } KeyBinding;
 
 typedef struct {
+	char *type;
+	char *value;
+} ConfigEnv;
+
+typedef struct {
 	const char *id;
 	const char *title;
 	unsigned int tags;
@@ -294,6 +299,9 @@ typedef struct {
 
 	GestureBinding *gesture_bindings;
 	int gesture_bindings_count;
+
+	ConfigEnv **env;
+	int env_count;
 
 	char **exec;
 	int exec_count;
@@ -876,6 +884,12 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
 		return NULL;
 	}
 	return func;
+}
+
+void set_env() {
+	for (int i = 0; i < config.env_count; i++) {
+		setenv(config.env[i]->type, config.env[i]->value, 1);
+	}
 }
 
 void run_exec() {
@@ -1677,7 +1691,23 @@ void parse_config_line(Config *config, const char *line) {
 		}
 		trim_whitespace(env_type);
 		trim_whitespace(env_value);
-		setenv(env_type, env_value, 1);
+
+		ConfigEnv *env = calloc(1, sizeof(ConfigEnv));
+		env->type = strdup(env_type);
+		env->value = strdup(env_value);
+
+		config->env =
+			realloc(config->env, (config->env_count + 1) * sizeof(ConfigEnv));
+		if (!config->env) {
+			free(env->type);
+			free(env->value);
+			free(env);
+			fprintf(stderr, "Error: Failed to allocate memory for env\n");
+			return;
+		}
+
+		config->env[config->env_count] = env;
+		config->env_count++;
 
 	} else if (strncmp(key, "exec", 9) == 0) {
 		char **new_exec =
@@ -2271,6 +2301,22 @@ void free_config(void) {
 		config.layer_rules_count = 0;
 	}
 
+	// 释放 env
+	if (config.env) {
+		for (int i = 0; i < config.env_count; i++) {
+			if (config.env[i]->type) {
+				free((void *)config.env[i]->type);
+			}
+			if (config.env[i]->value) {
+				free((void *)config.env[i]->value);
+			}
+			free(config.env[i]);
+		}
+		free(config.env);
+		config.env = NULL;
+		config.env_count = 0;
+	}
+
 	// 释放 exec
 	if (config.exec) {
 		for (i = 0; i < config.exec_count; i++) {
@@ -2676,6 +2722,8 @@ void parse_config(void) {
 	config.switch_bindings_count = 0;
 	config.gesture_bindings = NULL;
 	config.gesture_bindings_count = 0;
+	config.env = NULL;
+	config.env_count = 0;
 	config.exec = NULL;
 	config.exec_count = 0;
 	config.exec_once = NULL;
@@ -2902,6 +2950,7 @@ void reload_config(const Arg *arg) {
 	handlecursoractivity();
 	reset_keyboard_layout();
 	reset_blur_params();
+	set_env();
 	run_exec();
 
 	reapply_border();
