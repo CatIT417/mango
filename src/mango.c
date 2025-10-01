@@ -2656,7 +2656,7 @@ void createmon(struct wl_listener *listener, void *data) {
 		// wlr_scene_node_set_enabled(&m->blur->node, 1);
 	}
 	m->ext_group = wlr_ext_workspace_group_handle_v1_create(
-		ext_manager, WLR_EXT_WORKSPACE_HANDLE_V1_CAP_ACTIVATE);
+		ext_manager, EXT_WORKSPACE_ENABLE_CAPS);
 	wlr_ext_workspace_group_handle_v1_output_enter(m->ext_group, m->wlr_output);
 
 	for (i = 1; i <= LENGTH(tags); i++) {
