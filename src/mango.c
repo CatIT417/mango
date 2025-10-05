@@ -143,10 +143,8 @@ enum {
 	LyrBlur,
 	LyrBottom,
 	LyrTile,
-	LyrFloat,
 	LyrTop,
 	LyrFadeOut,
-	LyrFSorOverTop,
 	LyrOverlay,
 	LyrIMPopup, // text-input layer
 	LyrBlock,
@@ -2310,6 +2308,9 @@ void commitpopup(struct wl_listener *listener, void *data) {
 	type = toplevel_from_wlr_surface(popup->base->surface, &c, &l);
 	if (!popup->parent || type < 0)
 		return;
+
+	wlr_scene_node_raise_to_top(popup->parent->data);
+
 	popup->base->surface->data =
 		wlr_scene_xdg_surface_create(popup->parent->data, popup->base);
 	if ((l && !l->mon) || (c && !c->mon)) {
@@ -2320,6 +2321,7 @@ void commitpopup(struct wl_listener *listener, void *data) {
 	box.x -= (type == LayerShell ? l->scene->node.x : c->geom.x);
 	box.y -= (type == LayerShell ? l->scene->node.y : c->geom.y);
 	wlr_xdg_popup_unconstrain_from_box(popup, &box);
+
 	wl_list_remove(&listener->link);
 	free(listener);
 }
@@ -4336,10 +4338,10 @@ setfloating(Client *c, int floating) {
 	if (c->isoverlay) {
 		wlr_scene_node_reparent(&c->scene->node, layers[LyrOverlay]);
 	} else if (client_should_overtop(c) && c->isfloating) {
-		wlr_scene_node_reparent(&c->scene->node, layers[LyrFSorOverTop]);
+		wlr_scene_node_reparent(&c->scene->node, layers[LyrTop]);
 	} else {
 		wlr_scene_node_reparent(&c->scene->node,
-								layers[c->isfloating ? LyrFloat : LyrTile]);
+								layers[c->isfloating ? LyrTop : LyrTile]);
 	}
 
 	arrange(c->mon, false);
@@ -4390,7 +4392,7 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
 	}
 
 	wlr_scene_node_reparent(&c->scene->node, layers[maxmizescreen	? LyrTile
-													: c->isfloating ? LyrFloat
+													: c->isfloating ? LyrTop
 																	: LyrTile]);
 }
 
@@ -4440,12 +4442,11 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
 	if (c->isoverlay) {
 		wlr_scene_node_reparent(&c->scene->node, layers[LyrOverlay]);
 	} else if (client_should_overtop(c) && c->isfloating) {
-		wlr_scene_node_reparent(&c->scene->node, layers[LyrFSorOverTop]);
+		wlr_scene_node_reparent(&c->scene->node, layers[LyrTop]);
 	} else {
-		wlr_scene_node_reparent(&c->scene->node,
-								layers[fullscreen	   ? LyrFSorOverTop
-									   : c->isfloating ? LyrFloat
-													   : LyrTile]);
+		wlr_scene_node_reparent(
+			&c->scene->node,
+			layers[fullscreen || c->isfloating ? LyrTop : LyrTile]);
 	}
 
 	arrange(c->mon, false);
