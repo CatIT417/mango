@@ -1411,7 +1411,7 @@ arrange(Monitor *m, bool want_animation) {
 
 void arrangelayer(Monitor *m, struct wl_list *list, struct wlr_box *usable_area,
 				  int exclusive) {
-	LayerSurface *l;
+	LayerSurface *l = NULL;
 	struct wlr_box full_area = m->m;
 
 	wl_list_for_each(l, list, link) {
@@ -1532,7 +1532,7 @@ void apply_window_snap(Client *c) {
 }
 
 void reset_exclusive_layer(Monitor *m) {
-	LayerSurface *l;
+	LayerSurface *l = NULL;
 	int i;
 	unsigned int layers_above_shell[] = {
 		ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY,
@@ -2039,7 +2039,7 @@ cleanupkeyboard(struct wl_listener *listener, void *data) {
 
 void cleanupmon(struct wl_listener *listener, void *data) {
 	Monitor *m = wl_container_of(listener, m, destroy);
-	LayerSurface *l, *tmp;
+	LayerSurface *l = NULL, *tmp = NULL;
 	unsigned int i;
 
 	/* m->layers[i] are intentionally not unlinked */
@@ -2463,7 +2463,7 @@ KeyboardGroup *createkeyboardgroup(void) {
 
 void createlayersurface(struct wl_listener *listener, void *data) {
 	struct wlr_layer_surface_v1 *layer_surface = data;
-	LayerSurface *l;
+	LayerSurface *l = NULL;
 	struct wlr_surface *surface = layer_surface->surface;
 	struct wlr_scene_tree *scene_layer =
 		layers[layermap[layer_surface->pending.layer]];
@@ -4073,7 +4073,7 @@ void rendermon(struct wl_listener *listener, void *data) {
 	Monitor *m = wl_container_of(listener, m, frame);
 	Client *c = NULL, *tmp = NULL;
 	struct wlr_output_state pending = {0};
-	LayerSurface *l, *tmpl;
+	LayerSurface *l = NULL, *tmpl = NULL;
 	int i;
 	struct wl_list *layer_list;
 
