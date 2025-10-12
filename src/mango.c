@@ -1520,6 +1520,8 @@ void reset_exclusive_layer(Monitor *m) {
 			/* Deactivate the focused client. */
 			focusclient(NULL, 0);
 			exclusive_focus = l;
+			dwl_im_relay_set_focus(dwl_input_method_relay,
+								   l->layer_surface->surface);
 			client_notify_enter(l->layer_surface->surface,
 								wlr_seat_get_keyboard(seat));
 			return;
@@ -1823,6 +1825,8 @@ buttonpress(struct wl_listener *listener, void *data) {
 				l->layer_surface->current.keyboard_interactive ==
 					ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_ON_DEMAND) {
 				focusclient(NULL, 0);
+				dwl_im_relay_set_focus(dwl_input_method_relay,
+									   l->layer_surface->surface);
 				client_notify_enter(l->layer_surface->surface,
 									wlr_seat_get_keyboard(seat));
 			}
