@@ -325,7 +325,6 @@ struct Client {
 	struct dwl_animation animation;
 	int isterm, noswallow;
 	int allow_csd;
-	int force_tile_state;
 	pid_t pid;
 	Client *swallowing, *swallowedby;
 	bool is_clip_to_hide;
@@ -1131,7 +1130,6 @@ void toggle_hotarea(int x_root, int y_root) {
 static void apply_rule_properties(Client *c, const ConfigWinRule *r) {
 	APPLY_INT_PROP(c, r, isterm);
 	APPLY_INT_PROP(c, r, allow_csd);
-	APPLY_INT_PROP(c, r, force_tile_state);
 	APPLY_INT_PROP(c, r, noswallow);
 	APPLY_INT_PROP(c, r, nofadein);
 	APPLY_INT_PROP(c, r, nofadeout);
@@ -2260,9 +2258,8 @@ void commitnotify(struct wl_listener *listener, void *data) {
 		setmon(c, NULL, 0,
 			   true); /* Make sure to reapply rules in mapnotify() */
 
-		if (c->force_tile_state)
-			client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT |
-									WLR_EDGE_RIGHT);
+		client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT |
+								WLR_EDGE_RIGHT);
 
 		uint32_t serial = wlr_xdg_surface_schedule_configure(c->surface.xdg);
 		if (serial > 0) {
@@ -3524,7 +3521,6 @@ void init_client_properties(Client *c) {
 	c->stack_innder_per = 0.0f;
 	c->isterm = 0;
 	c->allow_csd = 0;
-	c->force_tile_state = 1;
 }
 
 void // old fix to 0.5
@@ -3632,9 +3628,8 @@ mapnotify(struct wl_listener *listener, void *data) {
 		applyrules(c);
 	}
 
-	if (c->force_tile_state)
-		client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT |
-								WLR_EDGE_RIGHT);
+	client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT |
+							WLR_EDGE_RIGHT);
 
 	// apply buffer effects of client
 	wlr_scene_node_for_each_buffer(&c->scene_surface->node,
@@ -4422,15 +4417,6 @@ setfloating(Client *c, int floating) {
 		set_size_per(c->mon, c);
 	}
 
-	if (!c->force_tile_state) {
-		if (c->isfloating) {
-			client_set_tiled(c, WLR_EDGE_NONE);
-		} else {
-			client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT |
-									WLR_EDGE_RIGHT);
-		}
-	}
-
 	arrange(c->mon, false);
 	setborder_color(c);
 	printstatus();
@@ -4482,14 +4468,6 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
 																	: LyrTile]);
 	if (!c->ismaxmizescreen) {
 		set_size_per(c->mon, c);
-	}
-
-	if (!c->ismaxmizescreen && !c->force_tile_state && c->isfloating) {
-		client_set_tiled(c, WLR_EDGE_NONE);
-
-	} else {
-		client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT |
-								WLR_EDGE_RIGHT);
 	}
 
 	arrange(c->mon, false);
