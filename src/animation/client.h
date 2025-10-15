@@ -38,6 +38,15 @@ bool is_horizontal_stack_layout(Monitor *m) {
 	return false;
 }
 
+bool is_horizontal_right_stack_layout(Monitor *m) {
+
+	if (m->pertag->curtag &&
+		(m->pertag->ltidxs[m->pertag->curtag]->id == RIGHT_TILE))
+		return true;
+
+	return false;
+}
+
 int is_special_animaiton_rule(Client *c) {
 
 	if (is_scroller_layout(c->mon) && !c->isfloating) {
@@ -50,6 +59,12 @@ int is_special_animaiton_rule(Client *c) {
 	} else if (!c->isfloating && new_is_master &&
 			   is_horizontal_stack_layout(c->mon)) {
 		return LEFT;
+	} else if (c->mon->visible_tiling_clients == 2 && !c->isfloating &&
+			   !new_is_master && is_horizontal_right_stack_layout(c->mon)) {
+		return LEFT;
+	} else if (!c->isfloating && new_is_master &&
+			   is_horizontal_right_stack_layout(c->mon)) {
+		return RIGHT;
 	} else {
 		return UNDIR;
 	}
