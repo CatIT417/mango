@@ -4477,6 +4477,15 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
 	if (!c->ismaxmizescreen) {
 		set_size_per(c->mon, c);
 	}
+
+	if (!c->ismaxmizescreen && !c->force_tile_state) {
+		client_set_tiled(c, WLR_EDGE_NONE);
+
+	} else {
+		client_set_tiled(c, WLR_EDGE_TOP | WLR_EDGE_BOTTOM | WLR_EDGE_LEFT |
+								WLR_EDGE_RIGHT);
+	}
+
 	arrange(c->mon, false);
 }
 
