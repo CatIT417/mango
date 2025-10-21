@@ -4451,7 +4451,7 @@ void setmaxmizescreen(Client *c, int maxmizescreen) {
 
 	if (!c->force_maximize && !c->ismaxmizescreen) {
 		client_set_maximized(c, false);
-	} else {
+	} else if (!c->force_maximize && c->ismaxmizescreen) {
 		client_set_maximized(c, true);
 	}
 
