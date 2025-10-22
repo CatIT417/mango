@@ -2377,7 +2377,7 @@ KeyboardGroup *createkeyboardgroup(void) {
 	if (!check_keyboard_rules_validate(&rules)) {
 		wlr_log(WLR_ERROR,
 				"Keyboard rules validation failed, skipping layout reset");
-		rules = xkb_fallback_rules;
+		rules = xkb_default_rules;
 	}
 
 	/* Prepare an XKB keymap and assign it to the keyboard group. */
@@ -4633,7 +4633,7 @@ void reset_keyboard_layout(void) {
 	if (!check_keyboard_rules_validate(&rules)) {
 		wlr_log(WLR_ERROR,
 				"Keyboard rules validation failed, skipping layout reset");
-		rules = xkb_fallback_rules;
+		rules = xkb_default_rules;
 	}
 
 	// Create context
