@@ -3055,7 +3055,7 @@ void reapply_border(void) {
 	// reset border width when config change
 	wl_list_for_each(c, &clients, link) {
 		if (c && !c->iskilling) {
-			if (!c->isnoborder) {
+			if (!c->isnoborder && !c->isfullscreen) {
 				c->bw = borderpx;
 			}
 		}
