@@ -443,6 +443,7 @@ struct Monitor {
 	int asleep;
 	unsigned int visible_clients;
 	unsigned int visible_tiling_clients;
+	bool has_visible_fullscreen_client;
 	struct wlr_scene_optimized_blur *blur;
 	char last_surface_ws_name[256];
 	struct wlr_ext_workspace_group_handle_v1 *ext_group;
@@ -4531,7 +4532,6 @@ void setfullscreen(Client *c, int fullscreen) // 用自定义全屏代理自带�
 		wlr_scene_node_raise_to_top(&c->scene->node); // 将视图提升到顶层
 		resize(c, c->mon->m, 1);
 		c->isfullscreen = 1;
-		// c->isfloating = 0;
 	} else {
 		c->bw = c->isnoborder ? 0 : borderpx;
 		c->isfullscreen = 0;
