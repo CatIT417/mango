@@ -2335,6 +2335,10 @@ void free_baked_points(void) {
 		free(baked_points_tag);
 		baked_points_tag = NULL;
 	}
+	if (baked_points_focus) {
+		free(baked_points_focus);
+		baked_points_focus = NULL;
+	}
 }
 
 void free_config(void) {
