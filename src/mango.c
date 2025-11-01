@@ -104,7 +104,7 @@
 	(A && !(A)->isfloating && !(A)->isminied && !(A)->iskilling &&             \
 	 !(A)->ismaximizescreen && !(A)->isfullscreen)
 #define VISIBLEON(C, M)                                                        \
-	((M) && (C)->mon == (M) && ((C)->tags & (M)->tagset[(M)->seltags]))
+	((C) && (M) && (C)->mon == (M) && ((C)->tags & (M)->tagset[(M)->seltags]))
 #define LENGTH(X) (sizeof X / sizeof X[0])
 #define END(A) ((A) + LENGTH(A))
 #define TAGMASK ((1 << LENGTH(tags)) - 1)
@@ -239,13 +239,23 @@ struct dwl_animation {
 	int action;
 };
 
+struct dwl_opacity_animation {
+	bool running;
+	float current_opacity;
+	float target_opacity;
+	float initial_opacity;
+	unsigned int total_frames;
+	unsigned int passed_frames;
+	float current_border_color[4];
+	float target_border_color[4];
+	float initial_border_color[4];
+};
+
 typedef struct {
 	float width_scale;
 	float height_scale;
 	int width;
 	int height;
-	double percent;
-	float opacity;
 	enum corner_location corner_location;
 	bool should_scale;
 } BufferData;
@@ -324,6 +334,7 @@ struct Client {
 	float scroller_proportion;
 	bool need_output_flush;
 	struct dwl_animation animation;
+	struct dwl_opacity_animation opacity_animation;
 	int isterm, noswallow;
 	int allow_csd;
 	int force_maximize;
@@ -339,12 +350,6 @@ struct Client {
 	int isunglobal;
 	float focused_opacity;
 	float unfocused_opacity;
-	float current_opacity;
-	float target_opacity;
-	unsigned int opacity_animation_frames;
-	unsigned int opacity_animation_passed;
-	float current_border_color[4];
-	float target_border_color[4];
 	char oldmonname[128];
 	int noblur;
 	double master_mfact_per, master_inner_per, stack_innder_per;
@@ -699,6 +704,7 @@ static void resize_tile_client(Client *grabc, bool isdrag, int offsetx,
 static void refresh_monitors_workspaces_status(Monitor *m);
 static void init_client_properties(Client *c);
 static bool check_keyboard_rules_validate(struct xkb_rule_names *rules);
+static float *get_border_color(Client *c);
 
 #include "data/static_keymap.h"
 #include "dispatch/bind_declare.h"
@@ -3091,6 +3097,12 @@ void focusclient(Client *c, int lift) {
 		selmon->prevsel = selmon->sel;
 		selmon->sel = c;
 
+		if (selmon->prevsel && !selmon->prevsel->iskilling) {
+			cleint_set_unfocused_opacity_animation(selmon->prevsel);
+		}
+
+		client_set_focused_opacity_animation(c);
+
 		// decide whether need to re-arrange
 
 		if (c && selmon->prevsel &&
@@ -3107,13 +3119,6 @@ void focusclient(Client *c, int lift) {
 
 		// change border color
 		c->isurgent = 0;
-		// Start border color animation to focused
-		memcpy(c->target_border_color, focuscolor, sizeof(c->target_border_color));
-
-		// Start opacity animation to focused
-		c->target_opacity = c->focused_opacity;
-		c->opacity_animation_frames = (animation_duration_focus * 60) / 1000; // 60fps
-		c->opacity_animation_passed = 0;
 	}
 
 	if (c && !c->iskilling && c->foreign_toplevel)
@@ -3141,24 +3146,17 @@ void focusclient(Client *c, int lift) {
 			 * probably other clients */
 		} else if (w && !client_is_unmanaged(w) &&
 				   (!c || !client_wants_focus(c))) {
-			// Start border color animation to unfocused
-			memcpy(w->target_border_color, bordercolor, sizeof(w->target_border_color));
-
-			// Start opacity animation to unfocused
-			w->target_opacity = w->unfocused_opacity;
-			w->opacity_animation_frames = (animation_duration_focus * 60) / 1000; // 60fps
-			w->opacity_animation_passed = 0;
-
 			client_activate_surface(old_keyboard_focus_surface, 0);
 		}
 	}
 	printstatus();
 
 	if (!c) {
-		/* With no client, all we have left is to clear focus */
-		if (selmon && selmon->sel)
-			selmon->sel =
-				NULL; // 这个很关键,因为很多地方用到当前窗口做计算,不重置成NULL就会到处有野指针
+
+		if (selmon && selmon->sel &&
+			(!VISIBLEON(selmon->sel, selmon) || selmon->sel->iskilling ||
+			 !client_surface(selmon->sel)->mapped))
+			selmon->sel = NULL;
 
 		// clear text input focus state
 		dwl_im_relay_set_focus(dwl_input_method_relay, NULL);
@@ -3531,12 +3529,6 @@ void init_client_properties(Client *c) {
 	c->fake_no_border = false;
 	c->focused_opacity = focused_opacity;
 	c->unfocused_opacity = unfocused_opacity;
-	c->current_opacity = unfocused_opacity;
-	c->target_opacity = unfocused_opacity;
-	c->opacity_animation_frames = 0;
-	c->opacity_animation_passed = 0;
-	memcpy(c->current_border_color, bordercolor, sizeof(c->current_border_color));
-	memcpy(c->target_border_color, bordercolor, sizeof(c->target_border_color));
 	c->nofadein = 0;
 	c->nofadeout = 0;
 	c->no_force_center = 0;
@@ -4161,23 +4153,11 @@ void requeststartdrag(struct wl_listener *listener, void *data) {
 void setborder_color(Client *c) {
 	if (!c || !c->mon)
 		return;
-	if (c->isurgent) {
-		client_set_border_color(c, urgentcolor);
-		return;
-	}
-	if (c->is_in_scratchpad && selmon && c == selmon->sel) {
-		client_set_border_color(c, scratchpadcolor);
-	} else if (c->isglobal && selmon && c == selmon->sel) {
-		client_set_border_color(c, globalcolor);
-	} else if (c->isoverlay && selmon && c == selmon->sel) {
-		client_set_border_color(c, overlaycolor);
-	} else if (c->ismaximizescreen && selmon && c == selmon->sel) {
-		client_set_border_color(c, maximizescreencolor);
-	} else if (selmon && c == selmon->sel) {
-		client_set_border_color(c, focuscolor);
-	} else {
-		client_set_border_color(c, bordercolor);
-	}
+
+	float *border_color = get_border_color(c);
+	memcpy(c->opacity_animation.target_border_color, border_color,
+		   sizeof(c->opacity_animation.target_border_color));
+	client_set_border_color(c, border_color);
 }
 
 void exchange_two_client(Client *c1, Client *c2) {
@@ -5485,9 +5465,9 @@ urgent(struct wl_listener *listener, void *data) {
 			view_in_mon(&(Arg){.ui = c->tags}, true, c->mon, true);
 		focusclient(c, 1);
 	} else if (c != focustop(selmon)) {
-		if (client_surface(c)->mapped)
-			client_set_border_color(c, urgentcolor);
 		c->isurgent = 1;
+		if (client_surface(c)->mapped)
+			setborder_color(c);
 		printstatus();
 	}
 }
@@ -5636,7 +5616,7 @@ void activatex11(struct wl_listener *listener, void *data) {
 	} else if (c != focustop(selmon)) {
 		c->isurgent = 1;
 		if (client_surface(c)->mapped)
-			client_set_border_color(c, urgentcolor);
+			setborder_color(c);
 	}
 
 	if (need_arrange) {
@@ -5718,7 +5698,7 @@ void sethints(struct wl_listener *listener, void *data) {
 	printstatus();
 
 	if (c->isurgent && surface && surface->mapped)
-		client_set_border_color(c, urgentcolor);
+		setborder_color(c);
 }
 
 void xwaylandready(struct wl_listener *listener, void *data) {
