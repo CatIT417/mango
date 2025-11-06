@@ -251,7 +251,7 @@ void buffer_set_effect(Client *c, BufferData data) {
 
 void client_draw_shadow(Client *c) {
 
-	if (c->iskilling || !client_surface(c)->mapped)
+	if (c->iskilling || !client_surface(c)->mapped || c->isnoshadow)
 		return;
 
 	if (!shadows || (!c->isfloating && shadow_only_floating)) {
@@ -884,6 +884,11 @@ void client_set_pending_state(Client *c) {
 	}
 
 	if (start_drag_window) {
+		c->animation.should_animate = false;
+		c->animation.duration = 0;
+	}
+
+	if (c->isnoanimation) {
 		c->animation.should_animate = false;
 		c->animation.duration = 0;
 	}
