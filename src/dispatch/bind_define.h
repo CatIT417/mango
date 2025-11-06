@@ -1447,7 +1447,7 @@ int minimized(const Arg *arg) {
 int toggleoverview(const Arg *arg) {
 	Client *c = NULL;
 
-	if (selmon->isoverview && ov_tab_mode && arg->i != -1 && selmon->sel) {
+	if (selmon->isoverview && ov_tab_mode && arg->i != 1 && selmon->sel) {
 		focusstack(&(Arg){.i = 1});
 		return 0;
 	}
@@ -1497,10 +1497,6 @@ int toggleoverview(const Arg *arg) {
 	}
 
 	view(&(Arg){.ui = target}, false);
-
-	if (ov_tab_mode && selmon->isoverview && selmon->sel) {
-		focusstack(&(Arg){.i = 1});
-	}
 
 	refresh_monitors_workspaces_status(selmon);
 	return 0;
