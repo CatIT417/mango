@@ -1964,7 +1964,9 @@ void cleanuplisteners(void) {
 	wl_list_remove(&request_start_drag.link);
 	wl_list_remove(&start_drag.link);
 	wl_list_remove(&new_session_lock.link);
-	wl_list_remove(&drm_lease_request.link);
+	if (drm_lease_manager) {
+		wl_list_remove(&drm_lease_request.link);
+	}
 	wl_list_remove(&tearing_new_object.link);
 #ifdef XWAYLAND
 	wl_list_remove(&new_xwayland_surface.link);
