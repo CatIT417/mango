@@ -131,7 +131,7 @@ int focuslast(const Arg *arg) {
 	wl_list_for_each(c, &fstack, flink) {
 		if (c->iskilling || c->isminied || c->isunglobal ||
 			!client_surface(c)->mapped || client_is_unmanaged(c) ||
-			client_should_ignore_focus_open(c))
+			client_is_x11_popup(c))
 			continue;
 
 		if (selmon && !selmon->sel) {
@@ -1457,11 +1457,11 @@ int toggleoverview(const Arg *arg) {
 	unsigned int visible_client_number = 0;
 
 	if (selmon->isoverview) {
-		wl_list_for_each(c, &clients,
-						 link) if (c && c->mon == selmon &&
-								   !client_is_unmanaged(c) &&
-								   !client_should_ignore_focus_open(c) &&
-								   !c->isminied && !c->isunglobal) {
+		wl_list_for_each(c, &clients, link) if (c && c->mon == selmon &&
+												!client_is_unmanaged(c) &&
+												!client_is_x11_popup(c) &&
+												!c->isminied &&
+												!c->isunglobal) {
 			visible_client_number++;
 		}
 		if (visible_client_number > 0) {
@@ -1484,15 +1484,14 @@ int toggleoverview(const Arg *arg) {
 	if (selmon->isoverview) {
 		wl_list_for_each(c, &clients, link) {
 			if (c && c->mon == selmon && !client_is_unmanaged(c) &&
-				!client_should_ignore_focus_open(c) && !c->isunglobal)
+				!client_is_x11_popup(c) && !c->isunglobal)
 				overview_backup(c);
 		}
 	} else {
 		wl_list_for_each(c, &clients, link) {
 			if (c && c->mon == selmon && !c->iskilling &&
 				!client_is_unmanaged(c) && !c->isunglobal &&
-				!client_should_ignore_focus_open(c) &&
-				client_surface(c)->mapped)
+				!client_is_x11_popup(c) && client_surface(c)->mapped)
 				overview_restore(c, &(Arg){.ui = target});
 		}
 	}
