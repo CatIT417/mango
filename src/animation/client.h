@@ -255,8 +255,12 @@ void client_draw_shadow(Client *c) {
 		return;
 
 	if (!shadows || (!c->isfloating && shadow_only_floating)) {
-		wlr_scene_shadow_set_size(c->shadow, 0, 0);
+		if (c->shadow->node.enabled)
+			wlr_scene_node_set_enabled(&c->shadow->node, false);
 		return;
+	} else {
+		if (c->scene_surface->node.enabled && !c->shadow->node.enabled)
+			wlr_scene_node_set_enabled(&c->shadow->node, true);
 	}
 
 	bool hit_no_border = check_hit_no_border(c);
