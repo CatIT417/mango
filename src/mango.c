@@ -1368,7 +1368,8 @@ void applyrules(Client *c) {
 
 	int fullscreen_state_backup = c->isfullscreen || client_wants_fullscreen(c);
 	setmon(c, mon, newtags,
-		   !c->isopensilent && !client_should_ignore_focus(c) &&
+		   !c->isopensilent &&
+			   !(client_is_x11_popup(c) && client_should_ignore_focus(c)) &&
 			   (!c->istagsilent || !newtags ||
 				newtags & mon->tagset[mon->seltags]));
 
