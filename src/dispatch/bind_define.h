@@ -80,8 +80,12 @@ int defaultgaps(const Arg *arg) {
 
 int exchange_client(const Arg *arg) {
 	Client *c = selmon->sel;
-	if (!c || c->isfloating || c->isfullscreen || c->ismaximizescreen)
+	if (!c || c->isfloating)
 		return 0;
+
+	if ((c->isfullscreen || c->ismaximizescreen) && !is_scroller_layout(c->mon))
+		return 0;
+
 	exchange_two_client(c, direction_select(arg));
 	return 0;
 }
@@ -497,7 +501,7 @@ int setlayout(const Arg *arg) {
 	for (jk = 0; jk < LENGTH(layouts); jk++) {
 		if (strcmp(layouts[jk].name, arg->v) == 0) {
 			selmon->pertag->ltidxs[selmon->pertag->curtag] = &layouts[jk];
-
+			clear_fullscreen_and_maximized_state(selmon);
 			arrange(selmon, false);
 			printstatus();
 			return 0;
@@ -901,7 +905,7 @@ int switch_layout(const Arg *arg) {
 				break;
 			}
 		}
-
+		clear_fullscreen_and_maximized_state(selmon);
 		arrange(selmon, false);
 		printstatus();
 		return 0;
@@ -912,6 +916,7 @@ int switch_layout(const Arg *arg) {
 				   selmon->pertag->ltidxs[selmon->pertag->curtag]->name) == 0) {
 			selmon->pertag->ltidxs[selmon->pertag->curtag] =
 				jk == LENGTH(layouts) - 1 ? &layouts[0] : &layouts[jk + 1];
+			clear_fullscreen_and_maximized_state(selmon);
 			arrange(selmon, false);
 			printstatus();
 			return 0;
