@@ -446,7 +446,7 @@ struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 	int offsetx = 0, offsety = 0, offsetw = 0, offseth = 0;
 	struct ivec2 offset = {0, 0, 0, 0};
 
-	if (!ISTILED(c) && !c->animation.tagining && !c->animation.tagouted &&
+	if (!ISSCROLLTILED(c) && !c->animation.tagining && !c->animation.tagouted &&
 		!c->animation.tagouting)
 		return offset;
 
@@ -467,7 +467,7 @@ struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 	  需要主要border超出屏幕的时候不计算如偏差之内而是
 	  要等窗口表面超出才开始计算偏差
 	*/
-	if (ISTILED(c) || c->animation.tagining || c->animation.tagouted ||
+	if (ISSCROLLTILED(c) || c->animation.tagining || c->animation.tagouted ||
 		c->animation.tagouting) {
 		if (left_out_offset > 0) {
 			offsetx = GEZERO(left_out_offset - bw);
@@ -495,7 +495,7 @@ struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 	offset.height = offseth;
 
 	if ((clip_box->width + bw <= 0 || clip_box->height + bw <= 0) &&
-		(ISTILED(c) || c->animation.tagouting || c->animation.tagining)) {
+		(ISSCROLLTILED(c) || c->animation.tagouting || c->animation.tagining)) {
 		c->is_clip_to_hide = true;
 		wlr_scene_node_set_enabled(&c->scene->node, false);
 	} else if (c->is_clip_to_hide && VISIBLEON(c, c->mon)) {
