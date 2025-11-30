@@ -1,5 +1,5 @@
 project('mango', ['c', 'cpp'],
-  version : '0.10.4',
+  version : '0.10.6',
 )
 
 subdir('protocols')
@@ -32,10 +32,10 @@ cc = meson.get_compiler('c')
 libm = cc.find_library('m')
 xcb = dependency('xcb', required : get_option('xwayland'))
 xlibs = dependency('xcb-icccm', required : get_option('xwayland'))
-wayland_server_dep = dependency('wayland-server')
+wayland_server_dep = dependency('wayland-server',version: '>=1.23.1')
 wlroots_dep = dependency('wlroots-0.19',version: '>=0.19.0')
 xkbcommon_dep = dependency('xkbcommon')
-libinput_dep = dependency('libinput')
+libinput_dep = dependency('libinput',version: '>=1.27.1')
 libwayland_client_dep = dependency('wayland-client')
 pcre2_dep = dependency('libpcre2-8')
 libscenefx_dep = dependency('scenefx-0.4',version: '>=0.4.1')

@@ -225,12 +225,6 @@ void scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int sx, int sy,
 
 	wlr_scene_buffer_set_corner_radius(buffer, border_radius,
 									   buffer_data->corner_location);
-
-	float target_opacity = buffer_data->percent + fadein_begin_opacity;
-	if (target_opacity > buffer_data->opacity) {
-		target_opacity = buffer_data->opacity;
-	}
-	wlr_scene_buffer_set_opacity(buffer, target_opacity);
 }
 
 void buffer_set_effect(Client *c, BufferData data) {
@@ -257,12 +251,16 @@ void buffer_set_effect(Client *c, BufferData data) {
 
 void client_draw_shadow(Client *c) {
 
-	if (c->iskilling || !client_surface(c)->mapped)
+	if (c->iskilling || !client_surface(c)->mapped || c->isnoshadow)
 		return;
 
 	if (!shadows || (!c->isfloating && shadow_only_floating)) {
-		wlr_scene_shadow_set_size(c->shadow, 0, 0);
+		if (c->shadow->node.enabled)
+			wlr_scene_node_set_enabled(&c->shadow->node, false);
 		return;
+	} else {
+		if (c->scene_surface->node.enabled && !c->shadow->node.enabled)
+			wlr_scene_node_set_enabled(&c->shadow->node, true);
 	}
 
 	bool hit_no_border = check_hit_no_border(c);
@@ -448,7 +446,7 @@ struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 	int offsetx = 0, offsety = 0, offsetw = 0, offseth = 0;
 	struct ivec2 offset = {0, 0, 0, 0};
 
-	if (!ISTILED(c) && !c->animation.tagining && !c->animation.tagouted &&
+	if (!ISSCROLLTILED(c) && !c->animation.tagining && !c->animation.tagouted &&
 		!c->animation.tagouting)
 		return offset;
 
@@ -469,7 +467,7 @@ struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 	  需要主要border超出屏幕的时候不计算如偏差之内而是
 	  要等窗口表面超出才开始计算偏差
 	*/
-	if (ISTILED(c) || c->animation.tagining || c->animation.tagouted ||
+	if (ISSCROLLTILED(c) || c->animation.tagining || c->animation.tagouted ||
 		c->animation.tagouting) {
 		if (left_out_offset > 0) {
 			offsetx = GEZERO(left_out_offset - bw);
@@ -497,7 +495,7 @@ struct ivec2 clip_to_hide(Client *c, struct wlr_box *clip_box) {
 	offset.height = offseth;
 
 	if ((clip_box->width + bw <= 0 || clip_box->height + bw <= 0) &&
-		(ISTILED(c) || c->animation.tagouting || c->animation.tagining)) {
+		(ISSCROLLTILED(c) || c->animation.tagouting || c->animation.tagining)) {
 		c->is_clip_to_hide = true;
 		wlr_scene_node_set_enabled(&c->scene->node, false);
 	} else if (c->is_clip_to_hide && VISIBLEON(c, c->mon)) {
@@ -517,7 +515,6 @@ void client_apply_clip(Client *c, float factor) {
 	bool should_render_client_surface = false;
 	struct ivec2 offset;
 	BufferData buffer_data;
-	float opacity, percent;
 
 	enum corner_location current_corner_location =
 		set_client_corner_location(c);
@@ -537,28 +534,16 @@ void client_apply_clip(Client *c, float factor) {
 		apply_border(c);
 		client_draw_shadow(c);
 
-		opacity = c->isfullscreen	 ? 1
-				  : c == selmon->sel ? c->focused_opacity
-									 : c->unfocused_opacity;
-
 		if (clip_box.width <= 0 || clip_box.height <= 0) {
 			return;
 		}
 
 		wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
 		buffer_set_effect(c, (BufferData){1.0f, 1.0f, clip_box.width,
-										  clip_box.height, opacity, opacity,
+										  clip_box.height,
 										  current_corner_location, true});
 		return;
 	}
-
-	percent =
-		c->animation.action == OPEN && animation_fade_in && !c->nofadein
-			? (double)c->animation.passed_frames / c->animation.total_frames
-			: 1.0;
-	opacity = c->isfullscreen	 ? 1
-			  : c == selmon->sel ? c->focused_opacity
-								 : c->unfocused_opacity;
 
 	// 获取窗口动画实时位置矩形
 	unsigned int width, height;
@@ -614,8 +599,6 @@ void client_apply_clip(Client *c, float factor) {
 	buffer_data.width = clip_box.width;
 	buffer_data.height = clip_box.height;
 	buffer_data.corner_location = current_corner_location;
-	buffer_data.percent = percent;
-	buffer_data.opacity = opacity;
 
 	if (factor == 1.0) {
 		buffer_data.width_scale = 1.0;
@@ -636,10 +619,15 @@ void fadeout_client_animation_next_tick(Client *c) {
 
 	BufferData buffer_data;
 
+	struct timespec now;
+	clock_gettime(CLOCK_MONOTONIC, &now);
+
+	uint32_t passed_time = timespec_to_ms(&now) - c->animation.time_started;
 	double animation_passed =
-		c->animation.total_frames
-			? (double)c->animation.passed_frames / c->animation.total_frames
+		c->animation.duration
+			? (double)passed_time / (double)c->animation.duration
 			: 1.0;
+
 	int type = c->animation.action = c->animation.action;
 	double factor = find_animation_curve_at(animation_passed, type);
 	unsigned int width =
@@ -683,20 +671,22 @@ void fadeout_client_animation_next_tick(Client *c) {
 			&c->scene->node, snap_scene_buffer_apply_effect, &buffer_data);
 	}
 
-	if (animation_passed == 1.0) {
+	if (animation_passed >= 1.0) {
 		wl_list_remove(&c->fadeout_link);
 		wlr_scene_node_destroy(&c->scene->node);
 		free(c);
 		c = NULL;
-	} else {
-		c->animation.passed_frames++;
 	}
 }
 
 void client_animation_next_tick(Client *c) {
+	struct timespec now;
+	clock_gettime(CLOCK_MONOTONIC, &now);
+
+	uint32_t passed_time = timespec_to_ms(&now) - c->animation.time_started;
 	double animation_passed =
-		c->animation.total_frames
-			? (double)c->animation.passed_frames / c->animation.total_frames
+		c->animation.duration
+			? (double)passed_time / (double)c->animation.duration
 			: 1.0;
 
 	int type = c->animation.action == NONE ? MOVE : c->animation.action;
@@ -728,7 +718,7 @@ void client_animation_next_tick(Client *c) {
 
 	c->is_pending_open_animation = false;
 
-	if (animation_passed == 1.0) {
+	if (animation_passed >= 1.0) {
 
 		// clear the open action state
 		// To prevent him from being mistaken that
@@ -756,8 +746,6 @@ void client_animation_next_tick(Client *c) {
 
 		// end flush in next frame, not the current frame
 		c->need_output_flush = false;
-	} else {
-		c->animation.passed_frames++;
 	}
 
 	client_apply_clip(c, factor);
@@ -841,14 +829,12 @@ void init_fadeout_client(Client *c) {
 			fadeout_cient->geom.height * zoom_end_ratio;
 	}
 
-	fadeout_cient->animation.passed_frames = 0;
-	fadeout_cient->animation.total_frames =
-		fadeout_cient->animation.duration / all_output_frame_duration_ms();
+	fadeout_cient->animation.time_started = get_now_in_ms();
 	wlr_scene_node_set_enabled(&fadeout_cient->scene->node, true);
 	wl_list_insert(&fadeout_clients, &fadeout_cient->fadeout_link);
 
 	// 请求刷新屏幕
-	wlr_output_schedule_frame(c->mon->wlr_output);
+	request_fresh_all_monitors();
 }
 
 void client_commit(Client *c) {
@@ -860,29 +846,20 @@ void client_commit(Client *c) {
 		}
 
 		c->animation.initial = c->animainit_geom;
-		// 设置动画速度
-		c->animation.passed_frames = 0;
-		c->animation.total_frames =
-			c->animation.duration / all_output_frame_duration_ms();
+		c->animation.time_started = get_now_in_ms();
 
 		// 标记动画开始
 		c->animation.running = true;
 		c->animation.should_animate = false;
-	} else {
-		// 如果动画没有开始,且被判定为不应该动画，
-		// 则设置总帧数为1,不然其他地方一旦获取动画
-		// 进度，总帧数作为分母会造成除零
-		// 比如动画类型为none的时候
-		if (!c->animation.running) {
-			c->animation.passed_frames = 1;
-			c->animation.total_frames = 1;
-		}
 	}
 	// 请求刷新屏幕
-	wlr_output_schedule_frame(c->mon->wlr_output);
+	request_fresh_all_monitors();
 }
 
 void client_set_pending_state(Client *c) {
+
+	if (!c || c->iskilling)
+		return;
 
 	// 判断是否需要动画
 	if (!animations) {
@@ -911,6 +888,11 @@ void client_set_pending_state(Client *c) {
 	}
 
 	if (start_drag_window) {
+		c->animation.should_animate = false;
+		c->animation.duration = 0;
+	}
+
+	if (c->isnoanimation) {
 		c->animation.should_animate = false;
 		c->animation.duration = 0;
 	}
@@ -1048,21 +1030,158 @@ bool client_draw_fadeout_frame(Client *c) {
 	return true;
 }
 
+void client_set_focused_opacity_animation(Client *c) {
+	float *border_color = get_border_color(c);
+
+	if (!animations) {
+		setborder_color(c);
+		return;
+	}
+
+	c->opacity_animation.duration = animation_duration_focus;
+	memcpy(c->opacity_animation.target_border_color, border_color,
+		   sizeof(c->opacity_animation.target_border_color));
+	c->opacity_animation.target_opacity = c->focused_opacity;
+	c->opacity_animation.time_started = get_now_in_ms();
+	if (c->opacity_animation.running) {
+		memcpy(c->opacity_animation.initial_border_color,
+			   c->opacity_animation.current_border_color,
+			   sizeof(c->opacity_animation.initial_border_color));
+		c->opacity_animation.initial_opacity =
+			c->opacity_animation.current_opacity;
+	} else {
+		memcpy(c->opacity_animation.initial_border_color, border_color,
+			   sizeof(c->opacity_animation.initial_border_color));
+		memcpy(c->opacity_animation.current_border_color, border_color,
+			   sizeof(c->opacity_animation.current_border_color));
+		c->opacity_animation.initial_opacity = c->unfocused_opacity;
+		c->opacity_animation.current_opacity = c->unfocused_opacity;
+	}
+	c->opacity_animation.running = true;
+}
+
+void client_set_unfocused_opacity_animation(Client *c) {
+	// Start border color animation to unfocused
+	float *border_color = get_border_color(c);
+
+	if (!animations) {
+		setborder_color(c);
+		return;
+	}
+
+	c->opacity_animation.duration = animation_duration_focus;
+	memcpy(c->opacity_animation.target_border_color, border_color,
+		   sizeof(c->opacity_animation.target_border_color));
+	// Start opacity animation to unfocused
+	c->opacity_animation.target_opacity = c->unfocused_opacity;
+	c->opacity_animation.time_started = get_now_in_ms();
+
+	if (c->opacity_animation.running) {
+		memcpy(c->opacity_animation.initial_border_color,
+			   c->opacity_animation.current_border_color,
+			   sizeof(c->opacity_animation.initial_border_color));
+		c->opacity_animation.initial_opacity =
+			c->opacity_animation.current_opacity;
+	} else {
+		memcpy(c->opacity_animation.initial_border_color, border_color,
+			   sizeof(c->opacity_animation.initial_border_color));
+		memcpy(c->opacity_animation.current_border_color, border_color,
+			   sizeof(c->opacity_animation.current_border_color));
+		c->opacity_animation.initial_opacity = c->focused_opacity;
+		c->opacity_animation.current_opacity = c->focused_opacity;
+	}
+
+	c->opacity_animation.running = true;
+}
+
+bool client_apply_focus_opacity(Client *c) {
+	// Animate focus transitions (opacity + border color)
+	float *border_color = get_border_color(c);
+	if (c->isfullscreen) {
+		c->opacity_animation.running = false;
+		client_set_opacity(c, 1);
+	} else if (c->animation.running && c->animation.action == OPEN) {
+		c->opacity_animation.running = false;
+		struct timespec now;
+		clock_gettime(CLOCK_MONOTONIC, &now);
+
+		uint32_t passed_time = timespec_to_ms(&now) - c->animation.time_started;
+		double linear_progress =
+			c->animation.duration
+				? (double)passed_time / (double)c->animation.duration
+				: 1.0;
+
+		float percent =
+			animation_fade_in && !c->nofadein ? linear_progress : 1.0;
+		float opacity =
+			c == selmon->sel ? c->focused_opacity : c->unfocused_opacity;
+
+		float target_opacity =
+			percent * (1.0 - fadein_begin_opacity) + fadein_begin_opacity;
+		if (target_opacity > opacity) {
+			target_opacity = opacity;
+		}
+		client_set_opacity(c, target_opacity);
+	} else if (animations && c->opacity_animation.running) {
+
+		struct timespec now;
+		clock_gettime(CLOCK_MONOTONIC, &now);
+
+		uint32_t passed_time =
+			timespec_to_ms(&now) - c->opacity_animation.time_started;
+		double linear_progress =
+			c->opacity_animation.duration
+				? (double)passed_time / (double)c->opacity_animation.duration
+				: 1.0;
+
+		float eased_progress = find_animation_curve_at(linear_progress, FOCUS);
+
+		c->opacity_animation.current_opacity =
+			c->opacity_animation.initial_opacity +
+			(c->opacity_animation.target_opacity -
+			 c->opacity_animation.initial_opacity) *
+				eased_progress;
+		client_set_opacity(c, c->opacity_animation.current_opacity);
+
+		// Animate border color
+		for (int i = 0; i < 4; i++) {
+			c->opacity_animation.current_border_color[i] =
+				c->opacity_animation.initial_border_color[i] +
+				(c->opacity_animation.target_border_color[i] -
+				 c->opacity_animation.initial_border_color[i]) *
+					eased_progress;
+		}
+		client_set_border_color(c, c->opacity_animation.current_border_color);
+		if (linear_progress == 1.0f) {
+			c->opacity_animation.running = false;
+		} else {
+			return true;
+		}
+	} else if (c == selmon->sel) {
+		c->opacity_animation.running = false;
+		c->opacity_animation.current_opacity = c->focused_opacity;
+		memcpy(c->opacity_animation.current_border_color, border_color,
+			   sizeof(c->opacity_animation.current_border_color));
+		client_set_opacity(c, c->focused_opacity);
+	} else {
+		c->opacity_animation.running = false;
+		c->opacity_animation.current_opacity = c->unfocused_opacity;
+		memcpy(c->opacity_animation.current_border_color, border_color,
+			   sizeof(c->opacity_animation.current_border_color));
+		client_set_opacity(c, c->unfocused_opacity);
+	}
+
+	return false;
+}
+
 bool client_draw_frame(Client *c) {
 
 	if (!c || !client_surface(c)->mapped)
 		return false;
 
-	if (c->isfullscreen) {
-		client_set_opacity(c, 1);
-	} else if (c == selmon->sel && !c->animation.running) {
-		client_set_opacity(c, c->focused_opacity);
-	} else if (!c->animation.running) {
-		client_set_opacity(c, c->unfocused_opacity);
+	if (!c->need_output_flush) {
+		return client_apply_focus_opacity(c);
 	}
-
-	if (!c->need_output_flush)
-		return false;
 
 	if (animations && c->animation.running) {
 		client_animation_next_tick(c);
@@ -1074,5 +1193,6 @@ bool client_draw_frame(Client *c) {
 		client_apply_clip(c, 1.0);
 		c->need_output_flush = false;
 	}
+	client_apply_focus_opacity(c);
 	return true;
 }

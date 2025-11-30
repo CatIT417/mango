@@ -153,6 +153,20 @@ static inline void client_get_geometry(Client *c, struct wlr_box *geom) {
 	*geom = c->surface.xdg->geometry;
 }
 
+static inline Client *get_client_from_surface(struct wlr_surface *surface) {
+	if (!surface)
+		return NULL;
+
+	// 从 surface 的 data 指针获取 scene tree
+	struct wlr_scene_tree *scene_tree = surface->data;
+	if (!scene_tree)
+		return NULL;
+
+	// 从 scene tree 的 node data 获取 Client
+	Client *c = scene_tree->node.data;
+	return c;
+}
+
 static inline Client *client_get_parent(Client *c) {
 	Client *p = NULL;
 #ifdef XWAYLAND
@@ -359,7 +373,7 @@ static inline void client_set_maximized(Client *c, bool maximized) {
 static inline void client_set_tiled(Client *c, uint32_t edges) {
 	struct wlr_xdg_toplevel *toplevel;
 #ifdef XWAYLAND
-	if (client_is_x11(c)) {
+	if (client_is_x11(c) && c->force_maximize) {
 		wlr_xwayland_surface_set_maximized(c->surface.xwayland,
 										   edges != WLR_EDGE_NONE,
 										   edges != WLR_EDGE_NONE);
@@ -374,7 +388,7 @@ static inline void client_set_tiled(Client *c, uint32_t edges) {
 		wlr_xdg_toplevel_set_tiled(c->surface.xdg->toplevel, edges);
 	}
 
-	if (!c->ignore_maximize && c->force_maximize) {
+	if (c->force_maximize) {
 		wlr_xdg_toplevel_set_maximized(toplevel, edges != WLR_EDGE_NONE);
 	}
 }
@@ -389,6 +403,21 @@ static inline void client_set_suspended(Client *c, int suspended) {
 }
 
 static inline int client_should_ignore_focus(Client *c) {
+
+#ifdef XWAYLAND
+	if (client_is_x11(c)) {
+		struct wlr_xwayland_surface *surface = c->surface.xwayland;
+
+		if (!surface->hints)
+			return 0;
+
+		return !surface->hints->input;
+	}
+#endif
+	return 0;
+}
+
+static inline int client_is_x11_popup(Client *c) {
 
 #ifdef XWAYLAND
 	if (client_is_x11(c)) {
@@ -471,6 +500,18 @@ static inline bool client_request_minimize(Client *c, void *data) {
 #endif
 
 	return c->surface.xdg->toplevel->requested.minimized;
+}
+
+static inline bool client_request_maximize(Client *c, void *data) {
+
+#ifdef XWAYLAND
+	if (client_is_x11(c)) {
+		struct wlr_xwayland_surface *surface = c->surface.xwayland;
+		return surface->maximized_vert || surface->maximized_horz;
+	}
+#endif
+
+	return c->surface.xdg->toplevel->requested.maximized;
 }
 
 static inline void client_set_size_bound(Client *c) {

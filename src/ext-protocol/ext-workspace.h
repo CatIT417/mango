@@ -47,6 +47,11 @@ static void handle_ext_workspace_activate(struct wl_listener *listener,
 										  void *data) {
 	struct workspace *workspace =
 		wl_container_of(listener, workspace, activate);
+
+	if (workspace->m->isoverview) {
+		return;
+	}
+
 	goto_workspace(workspace);
 	wlr_log(WLR_INFO, "ext activating workspace %d", workspace->tag);
 }
@@ -55,6 +60,11 @@ static void handle_ext_workspace_deactivate(struct wl_listener *listener,
 											void *data) {
 	struct workspace *workspace =
 		wl_container_of(listener, workspace, deactivate);
+
+	if (workspace->m->isoverview) {
+		return;
+	}
+
 	toggle_workspace(workspace);
 	wlr_log(WLR_INFO, "ext deactivating workspace %d", workspace->tag);
 }
@@ -134,6 +144,10 @@ void dwl_ext_workspace_printstatus(Monitor *m) {
 				if (!w->m->pertag->no_hide[w->tag])
 					wlr_ext_workspace_handle_v1_set_hidden(w->ext_workspace,
 														   true);
+				else {
+					wlr_ext_workspace_handle_v1_set_hidden(w->ext_workspace,
+														   false);
+				}
 			}
 
 			if ((m->tagset[m->seltags] & (1 << (w->tag - 1)) & TAGMASK) ||

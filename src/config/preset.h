@@ -25,10 +25,12 @@ uint32_t animation_duration_move = 500;	 // Animation move speed
 uint32_t animation_duration_open = 400;	 // Animation open speed
 uint32_t animation_duration_tag = 300;	 // Animation tag speed
 uint32_t animation_duration_close = 300; // Animation close speed
+uint32_t animation_duration_focus = 0;	 // Animation focus opacity speed
 double animation_curve_move[4] = {0.46, 1.0, 0.29, 0.99};  // 动画曲线
 double animation_curve_open[4] = {0.46, 1.0, 0.29, 0.99};  // 动画曲线
 double animation_curve_tag[4] = {0.46, 1.0, 0.29, 0.99};   // 动画曲线
 double animation_curve_close[4] = {0.46, 1.0, 0.29, 0.99}; // 动画曲线
+double animation_curve_focus[4] = {0.46, 1.0, 0.29, 0.99}; // 动画曲线
 
 /* appearance */
 unsigned int axis_bind_apply_timeout = 100; // 滚轮绑定动作的触发的时间间隔
@@ -58,6 +60,7 @@ float scratchpad_height_ratio = 0.9;
 int scroller_structs = 20;
 float scroller_default_proportion = 0.9;
 float scroller_default_proportion_single = 1.0;
+int scroller_ignore_proportion_single = 0;
 int scroller_focus_center = 0;
 int scroller_prefer_center = 0;
 int focus_cross_monitor = 0;
@@ -100,7 +103,10 @@ int warpcursor = 1;			  /* Warp cursor to focused client */
 int xwayland_persistence = 1; /* xwayland persistence */
 int syncobj_enable = 0;
 int adaptive_sync = 0;
+int allow_lock_transparent = 0;
 double drag_refresh_interval = 30.0;
+int allow_tearing = TEARING_DISABLED;
+int allow_shortcuts_inhibit = SHORTCUTS_INHIBIT_ENABLE;
 
 /* keyboard */
 

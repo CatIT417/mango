@@ -80,8 +80,12 @@ int defaultgaps(const Arg *arg) {
 
 int exchange_client(const Arg *arg) {
 	Client *c = selmon->sel;
-	if (!c || c->isfloating || c->isfullscreen || c->ismaximizescreen)
+	if (!c || c->isfloating)
 		return 0;
+
+	if ((c->isfullscreen || c->ismaximizescreen) && !is_scroller_layout(c->mon))
+		return 0;
+
 	exchange_two_client(c, direction_select(arg));
 	return 0;
 }
@@ -129,9 +133,9 @@ int focuslast(const Arg *arg) {
 	unsigned int target = 0;
 
 	wl_list_for_each(c, &fstack, flink) {
-		if (c->iskilling || c->isminied || c->isunglobal ||
+		if (c->iskilling || c->isminimized || c->isunglobal ||
 			!client_surface(c)->mapped || client_is_unmanaged(c) ||
-			client_should_ignore_focus(c))
+			client_is_x11_popup(c))
 			continue;
 
 		if (selmon && !selmon->sel) {
@@ -185,7 +189,7 @@ int focusmon(const Arg *arg) {
 		return 0;
 	}
 
-	if (!m || !m->wlr_output->enabled)
+	if (!m || !m->wlr_output->enabled || m == selmon)
 		return 0;
 
 	old_selmon_sel = selmon->sel;
@@ -202,7 +206,7 @@ int focusmon(const Arg *arg) {
 		focusclient(c, 1);
 
 	if (old_selmon_sel) {
-		setborder_color(old_selmon_sel);
+		client_set_unfocused_opacity_animation(old_selmon_sel);
 	}
 	return 0;
 }
@@ -278,18 +282,6 @@ int incohgaps(const Arg *arg) {
 int incovgaps(const Arg *arg) {
 	setgaps(selmon->gappoh, selmon->gappov + arg->i, selmon->gappih,
 			selmon->gappiv);
-	return 0;
-}
-
-int increase_proportion(const Arg *arg) {
-	if (selmon->sel) {
-		unsigned int max_client_width =
-			selmon->w.width - 2 * scroller_structs - gappih;
-		selmon->sel->scroller_proportion =
-			MIN(MAX(arg->f + selmon->sel->scroller_proportion, 0.1), 1.0);
-		selmon->sel->geom.width = max_client_width * arg->f;
-		arrange(selmon, false);
-	}
 	return 0;
 }
 
@@ -479,7 +471,7 @@ int restore_minimized(const Arg *arg) {
 
 	if (selmon && selmon->sel && selmon->sel->is_in_scratchpad &&
 		selmon->sel->is_scratchpad_show) {
-		selmon->sel->isminied = 0;
+		selmon->sel->isminimized = 0;
 		selmon->sel->is_scratchpad_show = 0;
 		selmon->sel->is_in_scratchpad = 0;
 		selmon->sel->isnamedscratchpad = 0;
@@ -488,7 +480,7 @@ int restore_minimized(const Arg *arg) {
 	}
 
 	wl_list_for_each(c, &clients, link) {
-		if (c->isminied) {
+		if (c->isminimized && !c->isnamedscratchpad) {
 			c->is_scratchpad_show = 0;
 			c->is_in_scratchpad = 0;
 			c->isnamedscratchpad = 0;
@@ -509,7 +501,7 @@ int setlayout(const Arg *arg) {
 	for (jk = 0; jk < LENGTH(layouts); jk++) {
 		if (strcmp(layouts[jk].name, arg->v) == 0) {
 			selmon->pertag->ltidxs[selmon->pertag->curtag] = &layouts[jk];
-
+			clear_fullscreen_and_maximized_state(selmon);
 			arrange(selmon, false);
 			printstatus();
 			return 0;
@@ -530,6 +522,14 @@ int setkeymode(const Arg *arg) {
 }
 
 int set_proportion(const Arg *arg) {
+
+	if (selmon->isoverview || !is_scroller_layout(selmon))
+		return 0;
+
+	if (selmon->visible_tiling_clients == 1 &&
+		!scroller_ignore_proportion_single)
+		return 0;
+
 	if (selmon->sel) {
 		unsigned int max_client_width =
 			selmon->w.width - 2 * scroller_structs - gappih;
@@ -809,7 +809,7 @@ int spawn_on_empty(const Arg *arg) {
 		return 0;
 	} else {
 		view(arg, true);
-		spawn(arg);
+		spawn_shell(arg);
 	}
 	return 0;
 }
@@ -836,97 +836,35 @@ int switch_keyboard_layout(const Arg *arg) {
 	}
 	xkb_layout_index_t next = (current + 1) % num_layouts;
 
-	// 2. 创建上下文
-	struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-	if (!context) {
-		wlr_log(WLR_ERROR, "Failed to create XKB context");
-		return 0;
-	}
-
-	// 3. 分配并获取布局缩写
-	const char **layout_ids = calloc(num_layouts, sizeof(char *));
-	if (!layout_ids) {
-		wlr_log(WLR_ERROR, "Failed to allocate layout IDs");
-		goto cleanup_context;
-	}
-
-	for (int i = 0; i < num_layouts; i++) {
-		layout_ids[i] =
-			get_layout_abbr(xkb_keymap_layout_get_name(keyboard->keymap, i));
-		if (!layout_ids[i]) {
-			wlr_log(WLR_ERROR, "Failed to get layout abbreviation");
-			goto cleanup_layouts;
-		}
-	}
-
-	// 4. 直接修改 rules.layout（保持原有逻辑）
-	struct xkb_rule_names rules = xkb_rules;
-	// 验证规则是否有效
-	if (!check_keyboard_rules_validate(&rules)) {
-		wlr_log(WLR_ERROR,
-				"Keyboard rules validation failed, skipping layout reset");
-		rules = xkb_default_rules;
-	}
-
-	char *layout_buf = (char *)rules.layout; // 假设这是可修改的
-
-	// 清空原有内容（安全方式）
-	unsigned int layout_buf_size = strlen(layout_buf) + 1;
-	memset(layout_buf, 0, layout_buf_size);
-
-	// 构建新的布局字符串
-	for (int i = 0; i < num_layouts; i++) {
-		const char *layout = layout_ids[(next + i) % num_layouts];
-
-		if (i > 0) {
-			strncat(layout_buf, ",", layout_buf_size - strlen(layout_buf) - 1);
-		}
-
-		if (strchr(layout, ',')) {
-			// 处理包含逗号的布局名
-			char *quoted = malloc(strlen(layout) + 3);
-			if (quoted) {
-				snprintf(quoted, strlen(layout) + 3, "\"%s\"", layout);
-				strncat(layout_buf, quoted,
-						layout_buf_size - strlen(layout_buf) - 1);
-				free(quoted);
-			}
-		} else {
-			strncat(layout_buf, layout,
-					layout_buf_size - strlen(layout_buf) - 1);
-		}
-	}
-
-	// 5. 创建新 keymap
-	struct xkb_keymap *new_keymap =
-		xkb_keymap_new_from_names(context, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
-	if (!new_keymap) {
-		wlr_log(WLR_ERROR, "Failed to create keymap for layouts: %s",
-				rules.layout);
-		goto cleanup_layouts;
-	}
-
 	// 6. 应用新 keymap
 	unsigned int depressed = keyboard->modifiers.depressed;
 	unsigned int latched = keyboard->modifiers.latched;
 	unsigned int locked = keyboard->modifiers.locked;
 
-	wlr_keyboard_set_keymap(keyboard, new_keymap);
-	wlr_keyboard_notify_modifiers(keyboard, depressed, latched, locked, 0);
+	wlr_keyboard_set_keymap(keyboard, keyboard->keymap);
+	wlr_keyboard_notify_modifiers(keyboard, depressed, latched, locked, next);
 	keyboard->modifiers.group = 0;
 
 	// 7. 更新 seat
 	wlr_seat_set_keyboard(seat, keyboard);
 	wlr_seat_keyboard_notify_modifiers(seat, &keyboard->modifiers);
 
-	// 8. 清理资源
-	xkb_keymap_unref(new_keymap);
+	InputDevice *id;
+	wl_list_for_each(id, &inputdevices, link) {
+		if (id->wlr_device->type != WLR_INPUT_DEVICE_KEYBOARD) {
+			continue;
+		}
 
-cleanup_layouts:
-	free(layout_ids);
+		struct wlr_keyboard *tkb = (struct wlr_keyboard *)id->device_data;
 
-cleanup_context:
-	xkb_context_unref(context);
+		wlr_keyboard_set_keymap(tkb, keyboard->keymap);
+		wlr_keyboard_notify_modifiers(tkb, depressed, latched, locked, next);
+		tkb->modifiers.group = 0;
+
+		// 7. 更新 seat
+		wlr_seat_set_keyboard(seat, tkb);
+		wlr_seat_keyboard_notify_modifiers(seat, &tkb->modifiers);
+	}
 
 	printstatus();
 	return 0;
@@ -967,7 +905,7 @@ int switch_layout(const Arg *arg) {
 				break;
 			}
 		}
-
+		clear_fullscreen_and_maximized_state(selmon);
 		arrange(selmon, false);
 		printstatus();
 		return 0;
@@ -978,6 +916,7 @@ int switch_layout(const Arg *arg) {
 				   selmon->pertag->ltidxs[selmon->pertag->curtag]->name) == 0) {
 			selmon->pertag->ltidxs[selmon->pertag->curtag] =
 				jk == LENGTH(layouts) - 1 ? &layouts[0] : &layouts[jk + 1];
+			clear_fullscreen_and_maximized_state(selmon);
 			arrange(selmon, false);
 			printstatus();
 			return 0;
@@ -992,6 +931,13 @@ int switch_proportion_preset(const Arg *arg) {
 	if (config.scroller_proportion_preset_count == 0) {
 		return 0;
 	}
+
+	if (selmon->isoverview || !is_scroller_layout(selmon))
+		return 0;
+
+	if (selmon->visible_tiling_clients == 1 &&
+		!scroller_ignore_proportion_single)
+		return 0;
 
 	if (selmon->sel) {
 
@@ -1030,7 +976,7 @@ int tag(const Arg *arg) {
 }
 
 int tagmon(const Arg *arg) {
-	Monitor *m = NULL;
+	Monitor *m = NULL, *cm = NULL;
 	Client *c = focustop(selmon);
 
 	if (!c)
@@ -1039,11 +985,12 @@ int tagmon(const Arg *arg) {
 	if (arg->i != UNDIR) {
 		m = dirtomon(arg->i);
 	} else if (arg->v) {
-		wl_list_for_each(m, &mons, link) {
-			if (!m->wlr_output->enabled) {
+		wl_list_for_each(cm, &mons, link) {
+			if (!cm->wlr_output->enabled) {
 				continue;
 			}
-			if (regex_match(arg->v, m->wlr_output->name)) {
+			if (regex_match(arg->v, cm->wlr_output->name)) {
+				m = cm;
 				break;
 			}
 		}
@@ -1146,7 +1093,7 @@ int toggle_named_scratchpad(const Arg *arg) {
 
 	if (!target_client && arg->v3) {
 		Arg arg_spawn = {.v = arg->v3};
-		spawn(&arg_spawn);
+		spawn_shell(&arg_spawn);
 		return 0;
 	}
 
@@ -1175,7 +1122,7 @@ int toggle_scratchpad(const Arg *arg) {
 			continue;
 		}
 
-		if (single_scratchpad && c->isnamedscratchpad && !c->isminied) {
+		if (single_scratchpad && c->isnamedscratchpad && !c->isminimized) {
 			set_minimized(c);
 			continue;
 		}
@@ -1423,7 +1370,7 @@ int viewtoright_have_client(const Arg *arg) {
 }
 
 int viewcrossmon(const Arg *arg) {
-	focusmon(arg);
+	focusmon(&(Arg){.v = arg->v, .i = UNDIR});
 	view_in_mon(arg, true, selmon, true);
 	return 0;
 }
@@ -1500,7 +1447,7 @@ int minimized(const Arg *arg) {
 	if (selmon && selmon->isoverview)
 		return 0;
 
-	if (selmon->sel && !selmon->sel->isminied) {
+	if (selmon->sel && !selmon->sel->isminimized) {
 		set_minimized(selmon->sel);
 	}
 	return 0;
@@ -1509,7 +1456,7 @@ int minimized(const Arg *arg) {
 int toggleoverview(const Arg *arg) {
 	Client *c = NULL;
 
-	if (selmon->isoverview && ov_tab_mode && arg->i != -1 && selmon->sel) {
+	if (selmon->isoverview && ov_tab_mode && arg->i != 1 && selmon->sel) {
 		focusstack(&(Arg){.i = 1});
 		return 0;
 	}
@@ -1519,11 +1466,11 @@ int toggleoverview(const Arg *arg) {
 	unsigned int visible_client_number = 0;
 
 	if (selmon->isoverview) {
-		wl_list_for_each(c, &clients,
-						 link) if (c && c->mon == selmon &&
-								   !client_is_unmanaged(c) &&
-								   !client_should_ignore_focus(c) &&
-								   !c->isminied && !c->isunglobal) {
+		wl_list_for_each(c, &clients, link) if (c && c->mon == selmon &&
+												!client_is_unmanaged(c) &&
+												!client_is_x11_popup(c) &&
+												!c->isminimized &&
+												!c->isunglobal) {
 			visible_client_number++;
 		}
 		if (visible_client_number > 0) {
@@ -1546,24 +1493,65 @@ int toggleoverview(const Arg *arg) {
 	if (selmon->isoverview) {
 		wl_list_for_each(c, &clients, link) {
 			if (c && c->mon == selmon && !client_is_unmanaged(c) &&
-				!client_should_ignore_focus(c) && !c->isunglobal)
+				!client_is_x11_popup(c) && !c->isunglobal)
 				overview_backup(c);
 		}
 	} else {
 		wl_list_for_each(c, &clients, link) {
 			if (c && c->mon == selmon && !c->iskilling &&
 				!client_is_unmanaged(c) && !c->isunglobal &&
-				!client_should_ignore_focus(c) && client_surface(c)->mapped)
+				!client_is_x11_popup(c) && client_surface(c)->mapped)
 				overview_restore(c, &(Arg){.ui = target});
 		}
 	}
 
 	view(&(Arg){.ui = target}, false);
 
-	if (ov_tab_mode && selmon->isoverview && selmon->sel) {
-		focusstack(&(Arg){.i = 1});
-	}
-
 	refresh_monitors_workspaces_status(selmon);
+	return 0;
+}
+
+int disable_monitor(const Arg *arg) {
+	Monitor *m = NULL;
+	struct wlr_output_state state = {0};
+	wl_list_for_each(m, &mons, link) {
+		if (regex_match(arg->v, m->wlr_output->name)) {
+			wlr_output_state_set_enabled(&state, false);
+			wlr_output_commit_state(m->wlr_output, &state);
+			m->asleep = 1;
+			updatemons(NULL, NULL);
+			break;
+		}
+	}
+	return 0;
+}
+
+int enable_monitor(const Arg *arg) {
+	Monitor *m = NULL;
+	struct wlr_output_state state = {0};
+	wl_list_for_each(m, &mons, link) {
+		if (regex_match(arg->v, m->wlr_output->name)) {
+			wlr_output_state_set_enabled(&state, true);
+			wlr_output_commit_state(m->wlr_output, &state);
+			m->asleep = 0;
+			updatemons(NULL, NULL);
+			break;
+		}
+	}
+	return 0;
+}
+
+int toggle_monitor(const Arg *arg) {
+	Monitor *m = NULL;
+	struct wlr_output_state state = {0};
+	wl_list_for_each(m, &mons, link) {
+		if (regex_match(arg->v, m->wlr_output->name)) {
+			wlr_output_state_set_enabled(&state, !m->wlr_output->enabled);
+			wlr_output_commit_state(m->wlr_output, &state);
+			m->asleep = !m->wlr_output->enabled;
+			updatemons(NULL, NULL);
+			break;
+		}
+	}
 	return 0;
 }

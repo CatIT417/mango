@@ -374,6 +374,10 @@ void resize_tile_scroller(Client *grabc, bool isdrag, int offsetx, int offsety,
 	float delta_x, delta_y;
 	float new_scroller_proportion;
 
+	if (grabc && grabc->mon->visible_tiling_clients == 1 &&
+		!scroller_ignore_proportion_single)
+		return;
+
 	if (!start_drag_window && isdrag) {
 		drag_begin_cursorx = cursor->x;
 		drag_begin_cursory = cursor->y;
@@ -473,6 +477,9 @@ void resize_tile_client(Client *grabc, bool isdrag, int offsetx, int offsety,
 						unsigned int time) {
 
 	if (!grabc || grabc->isfullscreen || grabc->ismaximizescreen)
+		return;
+
+	if (grabc->mon->isoverview)
 		return;
 
 	const Layout *current_layout =
@@ -592,6 +599,7 @@ arrange(Monitor *m, bool want_animation) {
 		return;
 	m->visible_clients = 0;
 	m->visible_tiling_clients = 0;
+	m->visible_scroll_tiling_clients = 0;
 	m->has_visible_fullscreen_client = false;
 
 	wl_list_for_each(c, &clients, link) {
@@ -603,13 +611,18 @@ arrange(Monitor *m, bool want_animation) {
 		}
 
 		if (VISIBLEON(c, m)) {
-			m->visible_clients++;
+			if (!c->isunglobal)
+				m->visible_clients++;
 
 			if (c->isfullscreen)
 				m->has_visible_fullscreen_client = true;
 
 			if (ISTILED(c)) {
 				m->visible_tiling_clients++;
+			}
+
+			if (ISSCROLLTILED(c)) {
+				m->visible_scroll_tiling_clients++;
 			}
 		}
 	}
