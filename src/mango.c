@@ -536,7 +536,6 @@ arrange(Monitor *m,
 static void arrangelayer(Monitor *m, struct wl_list *list,
 						 struct wlr_box *usable_area, int exclusive);
 static void arrangelayers(Monitor *m);
-static char *get_autostart_path(char *, uint32_t); // 自启动命令执行
 static void handle_print_status(struct wl_listener *listener, void *data);
 static void axisnotify(struct wl_listener *listener,
 					   void *data); // 滚轮事件处理
@@ -4369,7 +4368,6 @@ run(char *startup_cmd) {
 
 	set_env();
 
-	char autostart_temp_path[1024];
 	/* Add a Unix socket to the Wayland display. */
 	const char *socket = wl_display_add_socket_auto(dpy);
 	if (!socket)
@@ -4383,9 +4381,7 @@ run(char *startup_cmd) {
 
 	/* Now that the socket exists and the backend is started, run the
 	 * startup command */
-	if (!startup_cmd)
-		startup_cmd = get_autostart_path(autostart_temp_path,
-										 sizeof(autostart_temp_path));
+
 	if (startup_cmd) {
 		int piperw[2];
 		if (pipe(piperw) < 0)
