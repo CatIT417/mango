@@ -3215,14 +3215,6 @@ void focusclient(Client *c, int lift) {
 			client_set_unfocused_opacity_animation(last_focus_client);
 		}
 
-		wl_list_for_each(um, &mons, link) {
-			if (um->wlr_output->enabled && um != selmon && um->sel &&
-				!um->sel->iskilling && um->sel->isfocusing) {
-				um->sel->isfocusing = false;
-				client_set_unfocused_opacity_animation(um->sel);
-			}
-		}
-
 		client_set_focused_opacity_animation(c);
 
 		// decide whether need to re-arrange
@@ -3240,6 +3232,15 @@ void focusclient(Client *c, int lift) {
 
 		// change border color
 		c->isurgent = 0;
+	}
+
+	// update other monitor focus disappear
+	wl_list_for_each(um, &mons, link) {
+		if (um->wlr_output->enabled && um != selmon && um->sel &&
+			!um->sel->iskilling && um->sel->isfocusing) {
+			um->sel->isfocusing = false;
+			client_set_unfocused_opacity_animation(um->sel);
+		}
 	}
 
 	if (c && !c->iskilling && c->foreign_toplevel)
