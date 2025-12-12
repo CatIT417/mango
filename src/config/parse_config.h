@@ -3316,5 +3316,5 @@ int reload_config(const Arg *arg) {
 	parse_config();
 	reset_option();
 	printstatus();
-	return 0;
+	return 1;
 }
