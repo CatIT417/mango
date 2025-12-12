@@ -194,6 +194,8 @@ typedef struct {
 	double animation_curve_tag[4];
 	double animation_curve_close[4];
 	double animation_curve_focus[4];
+	double animation_curve_opafadein[4];
+	double animation_curve_opafadeout[4];
 
 	int scroller_structs;
 	float scroller_default_proportion;
@@ -1179,6 +1181,22 @@ void parse_option(Config *config, char *key, char *value) {
 		if (num != 4) {
 			fprintf(stderr,
 					"Error: Failed to parse animation_curve_focus: %s\n",
+					value);
+		}
+	} else if (strcmp(key, "animation_curve_opafadein") == 0) {
+		int num =
+			parse_double_array(value, config->animation_curve_opafadein, 4);
+		if (num != 4) {
+			fprintf(stderr,
+					"Error: Failed to parse animation_curve_opafadein: %s\n",
+					value);
+		}
+	} else if (strcmp(key, "animation_curve_opafadeout") == 0) {
+		int num =
+			parse_double_array(value, config->animation_curve_opafadeout, 4);
+		if (num != 4) {
+			fprintf(stderr,
+					"Error: Failed to parse animation_curve_opafadeout: %s\n",
 					value);
 		}
 	} else if (strcmp(key, "scroller_structs") == 0) {
@@ -2398,6 +2416,14 @@ void free_baked_points(void) {
 		free(baked_points_focus);
 		baked_points_focus = NULL;
 	}
+	if (baked_points_opafadein) {
+		free(baked_points_opafadein);
+		baked_points_opafadein = NULL;
+	}
+	if (baked_points_opafadeout) {
+		free(baked_points_opafadeout);
+		baked_points_opafadeout = NULL;
+	}
 }
 
 void free_config(void) {
@@ -2810,6 +2836,10 @@ void override_config(void) {
 		   sizeof(animation_curve_close));
 	memcpy(animation_curve_focus, config.animation_curve_focus,
 		   sizeof(animation_curve_focus));
+	memcpy(animation_curve_opafadein, config.animation_curve_opafadein,
+		   sizeof(animation_curve_opafadein));
+	memcpy(animation_curve_opafadeout, config.animation_curve_opafadeout,
+		   sizeof(animation_curve_opafadeout));
 }
 
 void set_value_default() {
@@ -2958,6 +2988,10 @@ void set_value_default() {
 		   sizeof(animation_curve_close));
 	memcpy(config.animation_curve_focus, animation_curve_focus,
 		   sizeof(animation_curve_focus));
+	memcpy(config.animation_curve_opafadein, animation_curve_opafadein,
+		   sizeof(animation_curve_opafadein));
+	memcpy(config.animation_curve_opafadeout, animation_curve_opafadeout,
+		   sizeof(animation_curve_opafadeout));
 
 	memcpy(config.rootcolor, rootcolor, sizeof(rootcolor));
 	memcpy(config.bordercolor, bordercolor, sizeof(bordercolor));
