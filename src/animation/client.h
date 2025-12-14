@@ -354,11 +354,13 @@ void apply_border(Client *c) {
 		return;
 
 	bool hit_no_border = check_hit_no_border(c);
-	enum corner_location current_corner_location =
-		c->isfullscreen || (no_radius_when_single && c->mon &&
-							c->mon->visible_tiling_clients == 1)
-			? CORNER_LOCATION_NONE
-			: CORNER_LOCATION_ALL;
+	enum corner_location current_corner_location;
+	if (c->isfullscreen || (no_radius_when_single && c->mon &&
+							c->mon->visible_tiling_clients == 1)) {
+		current_corner_location = CORNER_LOCATION_NONE;
+	} else {
+		current_corner_location = set_client_corner_location(c);
+	}
 
 	// Handle no-border cases
 	if (hit_no_border && smartgaps) {
