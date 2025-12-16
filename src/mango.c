@@ -508,7 +508,6 @@ struct Monitor {
 	uint32_t visible_clients;
 	uint32_t visible_tiling_clients;
 	uint32_t visible_scroll_tiling_clients;
-	bool has_visible_fullscreen_client;
 	struct wlr_scene_optimized_blur *blur;
 	char last_surface_ws_name[256];
 	struct wlr_ext_workspace_group_handle_v1 *ext_group;
