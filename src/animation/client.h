@@ -240,8 +240,9 @@ void buffer_set_effect(Client *c, BufferData data) {
 	if (c == grabc)
 		data.should_scale = false;
 
-	if (c->isfullscreen || (no_radius_when_single && c->mon &&
-							c->mon->visible_tiling_clients == 1)) {
+	if (c->isnoradius || c->isfullscreen ||
+		(no_radius_when_single && c->mon &&
+		 c->mon->visible_tiling_clients == 1)) {
 		data.corner_location = CORNER_LOCATION_NONE;
 	}
 

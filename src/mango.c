@@ -364,6 +364,7 @@ struct Client {
 	int isglobal;
 	int isnoborder;
 	int isnoshadow;
+	int isnoradius;
 	int isnoanimation;
 	int isopensilent;
 	int istagsilent;
@@ -1214,6 +1215,7 @@ static void apply_rule_properties(Client *c, const ConfigWinRule *r) {
 	APPLY_INT_PROP(c, r, isfullscreen);
 	APPLY_INT_PROP(c, r, isnoborder);
 	APPLY_INT_PROP(c, r, isnoshadow);
+	APPLY_INT_PROP(c, r, isnoradius);
 	APPLY_INT_PROP(c, r, isnoanimation);
 	APPLY_INT_PROP(c, r, isopensilent);
 	APPLY_INT_PROP(c, r, istagsilent);
@@ -3721,6 +3723,8 @@ void init_client_properties(Client *c) {
 	c->no_force_center = 0;
 	c->isnoborder = 0;
 	c->isnosizehint = 0;
+	c->isnoradius = 0;
+	c->isnoshadow = 0;
 	c->ignore_maximize = 1;
 	c->ignore_minimize = 1;
 	c->iscustomsize = 0;
