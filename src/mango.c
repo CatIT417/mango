@@ -1920,7 +1920,8 @@ buttonpress(struct wl_listener *listener, void *data) {
 
 		xytonode(cursor->x, cursor->y, &surface, NULL, NULL, NULL, NULL);
 		if (toplevel_from_wlr_surface(surface, &c, &l) >= 0) {
-			if (c && (!client_is_unmanaged(c) || client_wants_focus(c)))
+			if (c && c->scene->node.enabled &&
+				(!client_is_unmanaged(c) || client_wants_focus(c)))
 				focusclient(c, 1);
 
 			if (surface != old_pointer_focus_surface) {
@@ -4173,7 +4174,7 @@ void pointerfocus(Client *c, struct wlr_surface *surface, double sx, double sy,
 	struct timespec now;
 
 	if (surface != seat->pointer_state.focused_surface && sloppyfocus && time &&
-		c && !client_is_unmanaged(c))
+		c && c->scene->node.enabled && !client_is_unmanaged(c))
 		focusclient(c, 0);
 
 	/* If surface is NULL, clear pointer focus */
