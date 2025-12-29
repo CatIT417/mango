@@ -1,7 +1,7 @@
 void client_actual_size(Client *c, uint32_t *width, uint32_t *height) {
-	*width = c->animation.current.width - c->bw;
+	*width = c->animation.current.width - 2 * c->bw;
 
-	*height = c->animation.current.height - c->bw;
+	*height = c->animation.current.height - 2 * c->bw;
 }
 
 void set_rect_size(struct wlr_scene_rect *rect, int width, int height) {
@@ -271,7 +271,7 @@ void client_draw_shadow(Client *c) {
 			? CORNER_LOCATION_NONE
 			: CORNER_LOCATION_ALL;
 
-	uint32_t bwoffset = c->bw != 0 && hit_no_border ? c->bw : 0;
+	int bwoffset = c->bw != 0 && hit_no_border ? (int)c->bw : 0;
 
 	uint32_t width, height;
 	client_actual_size(c, &width, &height);
@@ -282,13 +282,13 @@ void client_draw_shadow(Client *c) {
 	struct wlr_box client_box = {
 		.x = bwoffset,
 		.y = bwoffset,
-		.width = width - 2 * bwoffset,
-		.height = height - 2 * bwoffset,
+		.width = width + (int)c->bw - bwoffset,
+		.height = height + (int)c->bw - bwoffset,
 	};
 
 	struct wlr_box shadow_box = {
-		.x = shadows_position_x,
-		.y = shadows_position_y,
+		.x = shadows_position_x + bwoffset,
+		.y = shadows_position_y + bwoffset,
 		.width = width + 2 * delta,
 		.height = height + 2 * delta,
 	};
@@ -297,8 +297,8 @@ void client_draw_shadow(Client *c) {
 	wlr_box_intersection(&intersection_box, &client_box, &shadow_box);
 	/* clipped region takes shadow relative coords, so we translate everything
 	 * by its position */
-	intersection_box.x -= shadows_position_x;
-	intersection_box.y -= shadows_position_y;
+	intersection_box.x -= shadows_position_x + bwoffset;
+	intersection_box.y -= shadows_position_y + bwoffset;
 
 	struct clipped_region clipped_region = {
 		.area = intersection_box,
@@ -522,8 +522,6 @@ void client_apply_clip(Client *c, float factor) {
 	enum corner_location current_corner_location =
 		set_client_corner_location(c);
 
-	int bw = (int)c->bw;
-
 	if (!animations) {
 		c->animation.running = false;
 		c->need_output_flush = false;
@@ -558,8 +556,8 @@ void client_apply_clip(Client *c, float factor) {
 	clip_box = (struct wlr_box){
 		.x = geometry.x,
 		.y = geometry.y,
-		.width = width - bw,
-		.height = height - bw,
+		.width = width,
+		.height = height,
 	};
 
 	if (client_is_x11(c)) {
