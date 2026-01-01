@@ -1287,7 +1287,6 @@ void applyrules(Client *c) {
 	const ConfigWinRule *r;
 	Monitor *m = NULL;
 	Client *fc = NULL;
-	bool hit_rule_pos = false;
 	Client *parent = NULL;
 
 	parent = client_get_parent(c);
@@ -1417,7 +1416,7 @@ void applyrules(Client *c) {
 		arrange(c->mon, false, false);
 	}
 
-	if (c->isfloating && !hit_rule_pos && !c->isnamedscratchpad) {
+	if (c->isfloating && !c->iscustompos && !c->isnamedscratchpad) {
 		wl_list_remove(&c->link);
 		wl_list_insert(clients.prev, &c->link);
 		set_float_malposition(c);
