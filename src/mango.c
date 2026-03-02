@@ -800,6 +800,8 @@ static void monitor_stop_skip_frame_timer(Monitor *m);
 static int monitor_skip_frame_timeout_callback(void *data);
 static Monitor *get_monitor_nearest_to(int32_t lx, int32_t ly);
 static bool match_monitor_spec(char *spec, Monitor *m);
+static void last_cursor_surface_destroy(struct wl_listener *listener,
+										void *data);
 
 #include "data/static_keymap.h"
 #include "dispatch/bind_declare.h"
@@ -914,15 +916,6 @@ static struct {
 	int32_t hotspot_y;
 } last_cursor;
 
-static void last_cursor_surface_destroy(struct wl_listener *listener, void *data) {
-	last_cursor.surface = NULL;
-	wl_list_remove(&listener->link);
-	wl_list_init(&listener->link);
-}
-static struct wl_listener last_cursor_surface_destroy_listener = {
-	.notify = last_cursor_surface_destroy
-};
-
 #include "client/client.h"
 #include "config/preset.h"
 
@@ -973,6 +966,8 @@ static struct wl_listener new_session_lock = {.notify = locksession};
 static struct wl_listener drm_lease_request = {.notify = requestdrmlease};
 static struct wl_listener keyboard_shortcuts_inhibit_new_inhibitor = {
 	.notify = handle_keyboard_shortcuts_inhibit_new_inhibitor};
+static struct wl_listener last_cursor_surface_destroy_listener = {
+	.notify = last_cursor_surface_destroy};
 
 #ifdef XWAYLAND
 static void fix_xwayland_unmanaged_coordinate(Client *c);
@@ -2159,6 +2154,11 @@ void checkidleinhibitor(struct wlr_surface *exclude) {
 	wlr_idle_notifier_v1_set_inhibited(idle_notifier, inhibited);
 }
 
+void last_cursor_surface_destroy(struct wl_listener *listener, void *data) {
+	last_cursor.surface = NULL;
+	wl_list_remove(&listener->link);
+}
+
 void setcursorshape(struct wl_listener *listener, void *data) {
 	struct wlr_cursor_shape_manager_v1_request_set_shape_event *event = data;
 	if (cursor_mode != CurNormal && cursor_mode != CurPressed)
@@ -2168,9 +2168,9 @@ void setcursorshape(struct wl_listener *listener, void *data) {
 	 * use the provided cursor shape. */
 	if (event->seat_client == seat->pointer_state.focused_client) {
 		/* Remove surface destroy listener if active */
-		if (!wl_list_empty(&last_cursor_surface_destroy_listener.link))
+		if (last_cursor.surface &&
+			last_cursor_surface_destroy_listener.link.prev != NULL)
 			wl_list_remove(&last_cursor_surface_destroy_listener.link);
-		wl_list_init(&last_cursor_surface_destroy_listener.link);
 
 		last_cursor.shape = event->shape;
 		last_cursor.surface = NULL;
@@ -4949,9 +4949,9 @@ void setcursor(struct wl_listener *listener, void *data) {
 	 * do so as the cursor moves between outputs. */
 	if (event->seat_client == seat->pointer_state.focused_client) {
 		/* Clear previous surface destroy listener if any */
-		if (!wl_list_empty(&last_cursor_surface_destroy_listener.link))
+		if (last_cursor.surface &&
+			last_cursor_surface_destroy_listener.link.prev != NULL)
 			wl_list_remove(&last_cursor_surface_destroy_listener.link);
-		wl_list_init(&last_cursor_surface_destroy_listener.link);
 
 		last_cursor.shape = 0;
 		last_cursor.surface = event->surface;
@@ -5425,8 +5425,6 @@ void handle_print_status(struct wl_listener *listener, void *data) {
 
 void setup(void) {
 
-	wl_list_init(&last_cursor_surface_destroy_listener.link);
-
 	setenv("XCURSOR_SIZE", "24", 1);
 	setenv("XDG_CURRENT_DESKTOP", "mango", 1);
 
@@ -5662,6 +5660,8 @@ void setup(void) {
 	LISTEN_STATIC(&cursor->events.hold_end, hold_end);
 
 	seat = wlr_seat_create(dpy, "seat0");
+
+	wl_list_init(&last_cursor_surface_destroy_listener.link);
 	wl_signal_add(&seat->events.request_set_cursor, &request_cursor);
 	wl_signal_add(&seat->events.request_set_selection, &request_set_sel);
 	wl_signal_add(&seat->events.request_set_primary_selection,
