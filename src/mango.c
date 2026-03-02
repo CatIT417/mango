@@ -2476,19 +2476,26 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 		return;
 	l->mapped = layer_surface->surface->mapped;
 
-	if (scene_layer != l->scene->node.parent) {
-		wlr_scene_node_reparent(&l->scene->node, scene_layer);
-		wl_list_remove(&l->link);
-		wl_list_insert(&l->mon->layers[layer_surface->current.layer], &l->link);
-		wlr_scene_node_reparent(
-			&l->popups->node,
-			(layer_surface->current.layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP
-				 ? layers[LyrTop]
-				 : scene_layer));
+	if (layer_surface->current.committed & WLR_LAYER_SURFACE_V1_STATE_LAYER) {
+		if (scene_layer != l->scene->node.parent) {
+			wlr_scene_node_reparent(&l->scene->node, scene_layer);
+			wl_list_remove(&l->link);
+			wl_list_insert(&l->mon->layers[layer_surface->current.layer],
+						   &l->link);
+			wlr_scene_node_reparent(
+				&l->popups->node,
+				(layer_surface->current.layer < ZWLR_LAYER_SHELL_V1_LAYER_TOP
+					 ? layers[LyrTop]
+					 : scene_layer));
+		}
+
+		arrangelayers(l->mon);
 	}
 
-	arrangelayers(l->mon);
-	reset_exclusive_layers_focus(l->mon);
+	if (layer_surface->current.committed &
+		WLR_LAYER_SURFACE_V1_STATE_KEYBOARD_INTERACTIVITY) {
+		reset_exclusive_layers_focus(l->mon);
+	}
 }
 
 void commitnotify(struct wl_listener *listener, void *data) {
