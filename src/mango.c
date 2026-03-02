@@ -914,6 +914,15 @@ static struct {
 	int32_t hotspot_y;
 } last_cursor;
 
+static void last_cursor_surface_destroy(struct wl_listener *listener, void *data) {
+	last_cursor.surface = NULL;
+	wl_list_remove(&listener->link);
+	wl_list_init(&listener->link);
+}
+static struct wl_listener last_cursor_surface_destroy_listener = {
+	.notify = last_cursor_surface_destroy
+};
+
 #include "client/client.h"
 #include "config/preset.h"
 
@@ -2158,6 +2167,11 @@ void setcursorshape(struct wl_listener *listener, void *data) {
 	 * actually has pointer focus first. If so, we can tell the cursor to
 	 * use the provided cursor shape. */
 	if (event->seat_client == seat->pointer_state.focused_client) {
+		/* Remove surface destroy listener if active */
+		if (!wl_list_empty(&last_cursor_surface_destroy_listener.link))
+			wl_list_remove(&last_cursor_surface_destroy_listener.link);
+		wl_list_init(&last_cursor_surface_destroy_listener.link);
+
 		last_cursor.shape = event->shape;
 		last_cursor.surface = NULL;
 		if (!cursor_hidden)
@@ -4934,10 +4948,21 @@ void setcursor(struct wl_listener *listener, void *data) {
 	 * hardware cursor on the output that it's currently on and continue to
 	 * do so as the cursor moves between outputs. */
 	if (event->seat_client == seat->pointer_state.focused_client) {
+		/* Clear previous surface destroy listener if any */
+		if (!wl_list_empty(&last_cursor_surface_destroy_listener.link))
+			wl_list_remove(&last_cursor_surface_destroy_listener.link);
+		wl_list_init(&last_cursor_surface_destroy_listener.link);
+
 		last_cursor.shape = 0;
 		last_cursor.surface = event->surface;
 		last_cursor.hotspot_x = event->hotspot_x;
 		last_cursor.hotspot_y = event->hotspot_y;
+
+		/* Track surface destruction to avoid dangling pointer */
+		if (event->surface)
+			wl_signal_add(&event->surface->events.destroy,
+						  &last_cursor_surface_destroy_listener);
+
 		if (!cursor_hidden)
 			wlr_cursor_set_surface(cursor, event->surface, event->hotspot_x,
 								   event->hotspot_y);
@@ -5400,6 +5425,8 @@ void handle_print_status(struct wl_listener *listener, void *data) {
 
 void setup(void) {
 
+	wl_list_init(&last_cursor_surface_destroy_listener.link);
+
 	setenv("XCURSOR_SIZE", "24", 1);
 	setenv("XDG_CURRENT_DESKTOP", "mango", 1);
 
@@ -5834,7 +5861,7 @@ void handlecursoractivity(void) {
 	if (last_cursor.shape)
 		wlr_cursor_set_xcursor(cursor, cursor_mgr,
 							   wlr_cursor_shape_v1_name(last_cursor.shape));
-	else
+	else if (last_cursor.surface)
 		wlr_cursor_set_surface(cursor, last_cursor.surface,
 							   last_cursor.hotspot_x, last_cursor.hotspot_y);
 }
