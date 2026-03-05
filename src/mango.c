@@ -488,7 +488,6 @@ typedef struct {
 
 typedef struct {
 	struct wlr_xdg_popup *wlr_popup;
-	uint32_t type;
 	struct wl_listener destroy;
 	struct wl_listener commit;
 	struct wl_listener reposition;
@@ -2591,6 +2590,9 @@ void destroydecoration(struct wl_listener *listener, void *data) {
 
 static void popup_unconstrain(Popup *popup) {
 	struct wlr_xdg_popup *wlr_popup = popup->wlr_popup;
+	Client *c = NULL;
+	LayerSurface *l = NULL;
+	int32_t type = -1;
 
 	if (!wlr_popup || !wlr_popup->parent) {
 		return;
@@ -2601,16 +2603,17 @@ static void popup_unconstrain(Popup *popup) {
 		wlr_log(WLR_ERROR, "Popup parent has no scene node");
 		return;
 	}
+
+	type = toplevel_from_wlr_surface(wlr_popup->base->surface, &c, &l);
+	if ((l && !l->mon) || (c && !c->mon)) {
+		wlr_xdg_popup_destroy(wlr_popup);
+		return;
+	}
+
 	int parent_lx, parent_ly;
 	wlr_scene_node_coords(parent_node, &parent_lx, &parent_ly);
 
-	struct wlr_box *scheduled = &wlr_popup->scheduled.geometry;
-	int popup_lx = parent_lx + scheduled->x;
-	int popup_ly = parent_ly + scheduled->y;
-
-	Monitor *mon = get_monitor_nearest_to(popup_lx, popup_ly);
-
-	struct wlr_box usable = popup->type == LayerShell ? mon->m : mon->w;
+	struct wlr_box usable = type == LayerShell ? l->mon->m : c->mon->w;
 
 	struct wlr_box constraint_box = {
 		.x = usable.x - parent_lx,
@@ -2633,33 +2636,22 @@ static void commitpopup(struct wl_listener *listener, void *data) {
 	Popup *popup = wl_container_of(listener, popup, commit);
 
 	struct wlr_surface *surface = data;
-	struct wlr_xdg_popup *wkr_popup =
+	struct wlr_xdg_popup *wlr_popup =
 		wlr_xdg_popup_try_from_wlr_surface(surface);
 
-	Client *c = NULL;
-	LayerSurface *l = NULL;
-	int32_t type = -1;
-
-	if (!wkr_popup || !wkr_popup->base->initial_commit)
+	if (!wlr_popup || !wlr_popup->base->initial_commit)
 		goto commitpopup_listen_free;
 
-	type = toplevel_from_wlr_surface(wkr_popup->base->surface, &c, &l);
-	if (!wkr_popup->parent || !wkr_popup->parent->data || type < 0) {
-		wlr_xdg_popup_destroy(wkr_popup);
+	if (!wlr_popup->parent || !wlr_popup->parent->data) {
 		goto commitpopup_listen_free;
 	}
 
-	wlr_scene_node_raise_to_top(wkr_popup->parent->data);
+	wlr_scene_node_raise_to_top(wlr_popup->parent->data);
 
-	wkr_popup->base->surface->data =
-		wlr_scene_xdg_surface_create(wkr_popup->parent->data, wkr_popup->base);
-	if ((l && !l->mon) || (c && !c->mon)) {
-		wlr_xdg_popup_destroy(wkr_popup);
-		goto commitpopup_listen_free;
-	}
+	wlr_popup->base->surface->data =
+		wlr_scene_xdg_surface_create(wlr_popup->parent->data, wlr_popup->base);
 
-	popup->type = type;
-	popup->wlr_popup = wkr_popup;
+	popup->wlr_popup = wlr_popup;
 
 	popup_unconstrain(popup);
 
