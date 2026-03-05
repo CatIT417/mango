@@ -119,8 +119,7 @@ void resize_tile_master_horizontal(Client *grabc, bool isdrag, int32_t offsetx,
 			break;
 		}
 
-		if (!begin_find_nextnext && VISIBLEON(tc, grabc->mon) &&
-			ISTILED(tc)) { // 根据你的实际字段名调整
+		if (!begin_find_nextnext && VISIBLEON(tc, grabc->mon) && ISTILED(tc)) {
 			next = tc;
 			begin_find_nextnext = true;
 			continue;
@@ -136,8 +135,7 @@ void resize_tile_master_horizontal(Client *grabc, bool isdrag, int32_t offsetx,
 			break;
 		}
 
-		if (!begin_find_prevprev && VISIBLEON(tc, grabc->mon) &&
-			ISTILED(tc)) { // 根据你的实际字段名调整
+		if (!begin_find_prevprev && VISIBLEON(tc, grabc->mon) && ISTILED(tc)) {
 			prev = tc;
 			begin_find_prevprev = true;
 			continue;
@@ -305,8 +303,7 @@ void resize_tile_master_vertical(Client *grabc, bool isdrag, int32_t offsetx,
 	for (node = grabc->link.next; node != &clients; node = node->next) {
 		tc = wl_container_of(node, tc, link);
 
-		if (VISIBLEON(tc, grabc->mon) &&
-			ISTILED(tc)) { // 根据你的实际字段名调整
+		if (VISIBLEON(tc, grabc->mon) && ISTILED(tc)) {
 			next = tc;
 			break;
 		}
@@ -316,8 +313,7 @@ void resize_tile_master_vertical(Client *grabc, bool isdrag, int32_t offsetx,
 	for (node = grabc->link.prev; node != &clients; node = node->prev) {
 		tc = wl_container_of(node, tc, link);
 
-		if (VISIBLEON(tc, grabc->mon) &&
-			ISTILED(tc)) { // 根据你的实际字段名调整
+		if (VISIBLEON(tc, grabc->mon) && ISTILED(tc)) {
 			prev = tc;
 			break;
 		}
