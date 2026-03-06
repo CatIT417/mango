@@ -5,6 +5,16 @@ void save_old_size_per(Monitor *m) {
 		if (VISIBLEON(c, m) && ISTILED(c)) {
 			c->old_master_inner_per = c->master_inner_per;
 			c->old_stack_inner_per = c->stack_inner_per;
+		} else {
+			if (c->old_master_inner_per <= 0.0f ||
+				c->old_master_inner_per > 1.0f) {
+				c->old_master_inner_per = 1.0f;
+			}
+
+			if (c->old_stack_inner_per <= 0.0f ||
+				c->old_stack_inner_per > 1.0f) {
+				c->old_stack_inner_per = 1.0f;
+			}
 		}
 	}
 }
@@ -45,14 +55,16 @@ void restore_size_per(Monitor *m, Client *c) {
 	}
 
 	if (!c->ismaster && c->old_stack_inner_per < 1.0 &&
-		c->stack_inner_per < 1.0) {
+		c->old_stack_inner_per > 0.0f && c->stack_inner_per < 1.0 &&
+		c->stack_inner_per > 0.0f) {
 		c->stack_inner_per = (1.0 - c->stack_inner_per) *
 							 c->old_stack_inner_per /
 							 (1.0 - c->old_stack_inner_per);
 	}
 
 	if (c->ismaster && c->old_master_inner_per < 1.0 &&
-		c->master_inner_per < 1.0) {
+		c->old_master_inner_per > 0.0f && c->master_inner_per < 1.0 &&
+		c->master_inner_per > 0.0f) {
 		c->master_inner_per = (1.0 - c->master_inner_per) *
 							  c->old_master_inner_per /
 							  (1.0 - c->old_master_inner_per);
@@ -61,10 +73,12 @@ void restore_size_per(Monitor *m, Client *c) {
 	wl_list_for_each(fc, &clients, link) {
 		if (VISIBLEON(fc, m) && ISTILED(fc) && fc != c && !fc->ismaster &&
 			fc->old_ismaster && fc->old_stack_inner_per < 1.0 &&
-			fc->stack_inner_per < 1.0) {
+			fc->old_stack_inner_per > 0.0f && fc->stack_inner_per < 1.0 &&
+			fc->stack_inner_per > 0.0f) {
 			fc->stack_inner_per = (1.0 - fc->stack_inner_per) *
 								  fc->old_stack_inner_per /
 								  (1.0 - fc->old_stack_inner_per);
+			fc->old_ismaster = false;
 		}
 	}
 }
