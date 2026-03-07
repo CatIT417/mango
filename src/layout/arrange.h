@@ -280,9 +280,11 @@ void resize_tile_master_horizontal(Client *grabc, bool isdrag, int32_t offsetx,
 		wl_list_for_each(tc, &clients, link) {
 			if (VISIBLEON(tc, grabc->mon) && ISTILED(tc)) {
 
-				if (!isdrag && tc != grabc && type != CENTER_TILE) {
+				if (!isdrag && tc != grabc) {
 					if (!tc->ismaster && new_stack_inner_per != 1.0f &&
-						grabc->old_stack_inner_per != 1.0f)
+						grabc->old_stack_inner_per != 1.0f &&
+						(type != CENTER_TILE ||
+						 !(grabc->isleftstack ^ tc->isleftstack)))
 						tc->stack_inner_per = (1 - new_stack_inner_per) /
 											  (1 - grabc->old_stack_inner_per) *
 											  tc->stack_inner_per;
