@@ -276,6 +276,18 @@ void resize_tile_master_horizontal(Client *grabc, bool isdrag, int32_t offsetx,
 		new_master_inner_per = fmaxf(0.1f, fminf(0.9f, new_master_inner_per));
 		new_stack_inner_per = fmaxf(0.1f, fminf(0.9f, new_stack_inner_per));
 
+		if (!isdrag) {
+			new_stack_inner_per =
+				new_stack_inner_per +
+				(new_stack_inner_per - grabc->old_stack_inner_per) /
+					((1 / new_stack_inner_per) - 1);
+
+			new_master_inner_per =
+				new_master_inner_per +
+				(new_master_inner_per - grabc->old_master_inner_per) /
+					((1 / new_master_inner_per) - 1);
+		}
+
 		// 应用到所有平铺窗口
 		wl_list_for_each(tc, &clients, link) {
 			if (VISIBLEON(tc, grabc->mon) && ISTILED(tc)) {
@@ -430,6 +442,18 @@ void resize_tile_master_vertical(Client *grabc, bool isdrag, int32_t offsetx,
 		new_master_mfact_per = fmaxf(0.1f, fminf(0.9f, new_master_mfact_per));
 		new_master_inner_per = fmaxf(0.1f, fminf(0.9f, new_master_inner_per));
 		new_stack_inner_per = fmaxf(0.1f, fminf(0.9f, new_stack_inner_per));
+
+		if (!isdrag) {
+			new_stack_inner_per =
+				new_stack_inner_per +
+				(new_stack_inner_per - grabc->old_stack_inner_per) /
+					((1 / new_stack_inner_per) - 1);
+
+			new_master_inner_per =
+				new_master_inner_per +
+				(new_master_inner_per - grabc->old_master_inner_per) /
+					((1 / new_master_inner_per) - 1);
+		}
 
 		// 应用到所有平铺窗口
 		wl_list_for_each(tc, &clients, link) {
@@ -616,7 +640,14 @@ void resize_tile_scroller(Client *grabc, bool isdrag, int32_t offsetx,
 		// 应用限制，确保比例在合理范围内
 		new_scroller_proportion =
 			fmaxf(0.1f, fminf(1.0f, new_scroller_proportion));
-		new_stack_proportion = fmaxf(0.1f, fminf(1.0f, new_stack_proportion));
+		new_stack_proportion = fmaxf(0.1f, fminf(0.9f, new_stack_proportion));
+
+		if (!isdrag) {
+			new_stack_proportion =
+				new_stack_proportion +
+				(new_stack_proportion - grabc->old_stack_proportion) /
+					((1 / new_stack_proportion) - 1);
+		}
 
 		grabc->stack_proportion = new_stack_proportion;
 
