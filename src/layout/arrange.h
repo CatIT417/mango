@@ -89,7 +89,7 @@ void set_size_per(Monitor *m, Client *c) {
 	wl_list_for_each(fc, &clients, link) {
 		if (VISIBLEON(fc, m) && ISTILED(fc) && fc != c) {
 			if (current_layout->id == CENTER_TILE &&
-				!(fc->isleftstack ^ c->isleftstack))
+				(fc->isleftstack ^ c->isleftstack))
 				continue;
 			c->master_mfact_per = fc->master_mfact_per;
 			c->master_inner_per = fc->master_inner_per;
