@@ -947,6 +947,7 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
 		(*arg).f = atof(arg_value);
 	} else if (strcmp(func_name, "switch_proportion_preset") == 0) {
 		func = switch_proportion_preset;
+		(*arg).i = parse_circle_direction(arg_value);
 	} else if (strcmp(func_name, "viewtoleft") == 0) {
 		func = viewtoleft;
 		(*arg).i = atoi(arg_value);
