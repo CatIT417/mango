@@ -44,6 +44,10 @@ void restore_size_per(Monitor *m, Client *c) {
 		return;
 	}
 
+	// it is possible that the current floating window is moved to another tag,
+	// but the tag has not executed save_old_size_per
+	// so it must be judged whether their old size values are initial values
+
 	if (!c->ismaster && c->old_stack_inner_per < 1.0 &&
 		c->old_stack_inner_per > 0.0f && c->stack_inner_per < 1.0 &&
 		c->stack_inner_per > 0.0f) {
