@@ -5,16 +5,6 @@ void save_old_size_per(Monitor *m) {
 		if (VISIBLEON(c, m) && ISTILED(c)) {
 			c->old_master_inner_per = c->master_inner_per;
 			c->old_stack_inner_per = c->stack_inner_per;
-		} else {
-			if (c->old_master_inner_per <= 0.0f ||
-				c->old_master_inner_per > 1.0f) {
-				c->old_master_inner_per = 1.0f;
-			}
-
-			if (c->old_stack_inner_per <= 0.0f ||
-				c->old_stack_inner_per > 1.0f) {
-				c->old_stack_inner_per = 1.0f;
-			}
 		}
 	}
 }

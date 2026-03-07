@@ -4026,9 +4026,9 @@ void init_client_properties(Client *c) {
 	c->master_mfact_per = 0.0f;
 	c->master_inner_per = 0.0f;
 	c->stack_inner_per = 0.0f;
-	c->old_stack_inner_per = 0.0f;
-	c->old_master_inner_per = 0.0f;
-	c->old_master_mfact_per = 0.0f;
+	c->old_stack_inner_per = 1.0f;
+	c->old_master_inner_per = 1.0f;
+	c->old_master_mfact_per = 1.0f;
 	c->isterm = 0;
 	c->allow_csd = 0;
 	c->force_maximize = 0;
