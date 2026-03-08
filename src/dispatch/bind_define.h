@@ -1436,6 +1436,7 @@ int32_t toggleview(const Arg *arg) {
 
 	uint32_t newtagset;
 	uint32_t target;
+	Client *c = NULL;
 
 	target = arg->ui == 0 ? ~0 & TAGMASK : arg->ui;
 
@@ -1444,6 +1445,11 @@ int32_t toggleview(const Arg *arg) {
 	if (newtagset) {
 		selmon->tagset[selmon->seltags] = newtagset;
 		focusclient(focustop(selmon), 1);
+		wl_list_for_each(c, &clients, link) {
+			if (VISIBLEON(c, selmon) && ISTILED(c)) {
+				set_size_per(selmon, c);
+			}
+		}
 		arrange(selmon, false, false);
 	}
 	printstatus();
