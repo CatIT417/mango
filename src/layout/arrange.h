@@ -655,7 +655,7 @@ void resize_tile_scroller(Client *grabc, bool isdrag, int32_t offsetx,
 		stack_head->scroller_proportion = new_scroller_proportion;
 
 		wl_list_for_each(tc, &clients, link) {
-			if (new_stack_proportion != 1.0f &&
+			if (!isdrag && new_stack_proportion != 1.0f &&
 				grabc->old_stack_proportion != 1.0f && tc != grabc &&
 				ISTILED(tc) && get_scroll_stack_head(tc) == stack_head) {
 				tc->stack_proportion = (1.0f - new_stack_proportion) /
