@@ -2590,41 +2590,49 @@ void destroydecoration(struct wl_listener *listener, void *data) {
 	wl_list_remove(&c->set_decoration_mode.link);
 }
 
-static void popup_unconstrain(Popup *popup) {
+static bool popup_unconstrain(Popup *popup) {
 	struct wlr_xdg_popup *wlr_popup = popup->wlr_popup;
 	Client *c = NULL;
 	LayerSurface *l = NULL;
 	int32_t type = -1;
 
 	if (!wlr_popup || !wlr_popup->parent) {
-		return;
+		return false;
 	}
 
 	struct wlr_scene_node *parent_node = wlr_popup->parent->data;
 	if (!parent_node) {
 		wlr_log(WLR_ERROR, "Popup parent has no scene node");
-		return;
+		return false;
 	}
 
 	type = toplevel_from_wlr_surface(wlr_popup->base->surface, &c, &l);
 	if ((l && !l->mon) || (c && !c->mon)) {
-		wlr_xdg_popup_destroy(wlr_popup);
-		return;
+		return true;
 	}
-
-	int parent_lx, parent_ly;
-	wlr_scene_node_coords(parent_node, &parent_lx, &parent_ly);
 
 	struct wlr_box usable = type == LayerShell ? l->mon->m : c->mon->w;
 
-	struct wlr_box constraint_box = {
-		.x = usable.x - parent_lx,
-		.y = usable.y - parent_ly,
-		.width = usable.width,
-		.height = usable.height,
-	};
+	int lx, ly;
+	struct wlr_box constraint_box;
+
+	if (type == LayerShell) {
+		wlr_scene_node_coords(&l->scene_layer->tree->node, &lx, &ly);
+		constraint_box.x = usable.x - lx;
+		constraint_box.y = usable.y - ly;
+		constraint_box.width = usable.width;
+		constraint_box.height = usable.height;
+	} else {
+		constraint_box.x =
+			usable.x - (c->geom.x + c->bw - c->surface.xdg->current.geometry.x);
+		constraint_box.y =
+			usable.y - (c->geom.y + c->bw - c->surface.xdg->current.geometry.y);
+		constraint_box.width = usable.width;
+		constraint_box.height = usable.height;
+	}
 
 	wlr_xdg_popup_unconstrain_from_box(wlr_popup, &constraint_box);
+	return false;
 }
 
 static void destroypopup(struct wl_listener *listener, void *data) {
@@ -2638,14 +2646,16 @@ static void commitpopup(struct wl_listener *listener, void *data) {
 	Popup *popup = wl_container_of(listener, popup, commit);
 
 	struct wlr_surface *surface = data;
+	bool should_destroy = false;
 	struct wlr_xdg_popup *wlr_popup =
 		wlr_xdg_popup_try_from_wlr_surface(surface);
 
-	if (!wlr_popup || !wlr_popup->base->initial_commit)
-		goto commitpopup_listen_free;
+	if (!wlr_popup->base->initial_commit)
+		return;
 
 	if (!wlr_popup->parent || !wlr_popup->parent->data) {
-		goto commitpopup_listen_free;
+		should_destroy = true;
+		goto cleanup_popup_commit;
 	}
 
 	wlr_scene_node_raise_to_top(wlr_popup->parent->data);
@@ -2655,16 +2665,21 @@ static void commitpopup(struct wl_listener *listener, void *data) {
 
 	popup->wlr_popup = wlr_popup;
 
-	popup_unconstrain(popup);
+	should_destroy = popup_unconstrain(popup);
 
-commitpopup_listen_free:
+cleanup_popup_commit:
+
 	wl_list_remove(&popup->commit.link);
 	popup->commit.notify = NULL;
+
+	if (should_destroy) {
+		wlr_xdg_popup_destroy(wlr_popup);
+	}
 }
 
 static void repositionpopup(struct wl_listener *listener, void *data) {
 	Popup *popup = wl_container_of(listener, popup, reposition);
-	popup_unconstrain(popup);
+	(void)popup_unconstrain(popup);
 }
 
 static void createpopup(struct wl_listener *listener, void *data) {
