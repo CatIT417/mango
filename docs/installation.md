@@ -183,16 +183,12 @@ pikman install mangowc
 If your distribution isn't listed above, or you want the latest unreleased changes, you can build mangowm from source.
 
 > **Info:** Ensure the following dependencies are installed before proceeding:
-> - `glibc`
 > - `wayland`
 > - `wayland-protocols`
 > - `libinput`
 > - `libdrm`
 > - `libxkbcommon`
 > - `pixman`
-> - `git`
-> - `meson`
-> - `ninja`
 > - `libdisplay-info`
 > - `libliftoff`
 > - `hwdata`
