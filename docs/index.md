@@ -36,7 +36,7 @@ Beyond basic window management, mangowm provides a rich set of features designed
 This project is built upon the hard work of several open-source projects:
 
 - **[wlroots](https://gitlab.freedesktop.org/wlroots/wlroots)** — Implementation of the Wayland protocol.
-- **[owl](https://github.com/dqrk0jeste/owl)** — Basal window animation reference.
+- **[mwc](https://github.com/nikoloc/mwc)** — Basal window animation reference.
 - **[dwl](https://codeberg.org/dwl/dwl)** — Basal dwl features.
 - **[sway](https://github.com/swaywm/sway)** — Sample implementation of the Wayland protocol.
 - **[scenefx](https://github.com/wlrfx/scenefx)** — Library to simplify adding window effects.
