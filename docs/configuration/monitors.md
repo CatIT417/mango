@@ -241,7 +241,7 @@ yay -S xwayland-satellite
 
 ```ini
 env=DISPLAY,:2
-exec=xwayland-satellite :2
+exec-once=xwayland-satellite :2
 monitorrule=name:eDP-1,width:1920,height:1080,refresh:60,x:0,y:0,scale:1.4,vrr:0,rr:0
 ```
 
