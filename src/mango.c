@@ -912,8 +912,13 @@ static KeyMode keymode = {
 	.isdefault = true,
 };
 
-static char *env_vars[] = {"DISPLAY", "WAYLAND_DISPLAY", "XDG_CURRENT_DESKTOP",
-						   "XDG_SESSION_TYPE", NULL};
+static char *env_vars[] = {"DISPLAY",
+						   "WAYLAND_DISPLAY",
+						   "XDG_CURRENT_DESKTOP",
+						   "XDG_SESSION_TYPE",
+						   "XCURSOR_THEME",
+						   "XCURSOR_SIZE",
+						   NULL};
 static struct {
 	enum wp_cursor_shape_device_v1_shape shape;
 	struct wlr_surface *surface;
@@ -5463,7 +5468,6 @@ void handle_print_status(struct wl_listener *listener, void *data) {
 
 void setup(void) {
 
-	setenv("XCURSOR_SIZE", "24", 1);
 	setenv("XDG_CURRENT_DESKTOP", "mango", 1);
 
 	parse_config();
@@ -5652,6 +5656,18 @@ void setup(void) {
 	// cursor_mgr = wlr_xcursor_manager_create(cursor_theme, 24);
 	cursor_mgr =
 		wlr_xcursor_manager_create(config.cursor_theme, config.cursor_size);
+
+	if (config.cursor_size > 0) {
+		char size_str[16];
+		snprintf(size_str, sizeof(size_str), "%d", config.cursor_size);
+		setenv("XCURSOR_SIZE", size_str, 1);
+	} else {
+		setenv("XCURSOR_SIZE", "24", 1);
+	}
+
+	if (config.cursor_theme) {
+		setenv("XCURSOR_THEME", config.cursor_theme, 1);
+	}
 
 	/*
 	 * wlr_cursor *only* displays an image on screen. It does not move

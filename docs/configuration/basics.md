@@ -60,8 +60,8 @@ You can define environment variables directly within your config file. These are
 > **Warning:** Environment variables defined here will be **reset** every time you reload the configuration.
 
 ```ini
-env=GTK_THEME,Adwaita:dark
-env=XCURSOR_SIZE,24
+env=QT_IM_MODULES,wayland;fcitx
+env=XMODIFIERS,@im=fcitx
 ```
 
 ## Autostart
