@@ -3604,6 +3604,20 @@ void reapply_monitor_rules(void) {
 	updatemons(NULL, NULL);
 }
 
+void set_xcursor_env() {
+	if (config.cursor_size > 0) {
+		char size_str[16];
+		snprintf(size_str, sizeof(size_str), "%d", config.cursor_size);
+		setenv("XCURSOR_SIZE", size_str, 1);
+	} else {
+		setenv("XCURSOR_SIZE", "24", 1);
+	}
+
+	if (config.cursor_theme) {
+		setenv("XCURSOR_THEME", config.cursor_theme, 1);
+	}
+}
+
 void reapply_cursor_style(void) {
 	if (hide_cursor_source) {
 		wl_event_source_timer_update(hide_cursor_source, 0);
@@ -3620,18 +3634,10 @@ void reapply_cursor_style(void) {
 		cursor_mgr = NULL;
 	}
 
+	set_xcursor_env();
+
 	cursor_mgr =
 		wlr_xcursor_manager_create(config.cursor_theme, config.cursor_size);
-
-	if (config.cursor_size > 0) {
-		char size_str[16];
-		snprintf(size_str, sizeof(size_str), "%d", config.cursor_size);
-		setenv("XCURSOR_SIZE", size_str, 1);
-	}
-
-	if (config.cursor_theme) {
-		setenv("XCURSOR_THEME", config.cursor_theme, 1);
-	}
 
 	Monitor *m = NULL;
 	wl_list_for_each(m, &mons, link) {
