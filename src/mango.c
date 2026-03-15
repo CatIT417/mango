@@ -5469,6 +5469,7 @@ void handle_print_status(struct wl_listener *listener, void *data) {
 void setup(void) {
 
 	setenv("XDG_CURRENT_DESKTOP", "mango", 1);
+	setenv("_JAVA_AWT_WM_NONREPARENTING", "1", 1);
 
 	parse_config();
 	if (cli_debug_log) {
