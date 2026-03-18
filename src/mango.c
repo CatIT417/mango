@@ -933,8 +933,9 @@ struct Pertag {
 	uint32_t curtag, prevtag;			/* current and previous tag */
 	int32_t nmasters[LENGTH(tags) + 1]; /* number of windows in master area */
 	float mfacts[LENGTH(tags) + 1];		/* mfacts per tag */
-	bool no_hide[LENGTH(tags) + 1];		/* no_hide per tag */
-	bool no_render_border[LENGTH(tags) + 1]; /* no_render_border per tag */
+	int32_t no_hide[LENGTH(tags) + 1];	/* no_hide per tag */
+	int32_t no_render_border[LENGTH(tags) + 1]; /* no_render_border per tag */
+	int32_t open_as_floating[LENGTH(tags) + 1]; /* open_as_floating per tag */
 	const Layout
 		*ltidxs[LENGTH(tags) + 1]; /* matrix of tags and layouts indexes  */
 };
@@ -1402,6 +1403,25 @@ void set_float_malposition(Client *tc) {
 	tc->float_geom.y = tc->geom.y = y;
 }
 
+void client_reset_mon_tags(Client *c, Monitor *mon, uint32_t newtags) {
+	if (!newtags && mon && !mon->isoverview) {
+		c->tags = mon->tagset[mon->seltags];
+	} else if (!newtags && mon && mon->isoverview) {
+		c->tags = mon->ovbk_current_tagset;
+	} else if (newtags) {
+		c->tags = newtags;
+	} else {
+		c->tags = mon->tagset[mon->seltags];
+	}
+}
+
+void check_match_tag_floating_rule(Client *c, Monitor *mon) {
+	if (c->tags && !c->isfloating && mon && !c->swallowedby &&
+		mon->pertag->open_as_floating[get_tags_first_tag_num(c->tags) + 1]) {
+		c->isfloating = 1;
+	}
+}
+
 void applyrules(Client *c) {
 	/* rule matching */
 	const char *appid, *title;
@@ -1526,6 +1546,7 @@ void applyrules(Client *c) {
 
 	int32_t fullscreen_state_backup =
 		c->isfullscreen || client_wants_fullscreen(c);
+
 	setmon(c, mon, newtags,
 		   !c->isopensilent &&
 			   !(client_is_x11_popup(c) && client_should_ignore_focus(c)) &&
@@ -5062,7 +5083,8 @@ setfloating(Client *c, int32_t floating) {
 		// 让当前tag中的全屏窗口退出全屏参与平铺
 		wl_list_for_each(fc, &clients,
 						 link) if (fc && fc != c && VISIBLEON(fc, c->mon) &&
-								   c->tags & fc->tags && ISFULLSCREEN(fc)) {
+								   c->tags & fc->tags && ISFULLSCREEN(fc) &&
+								   old_floating_state) {
 			clear_fullscreen_flag(fc);
 		}
 	}
@@ -5375,15 +5397,8 @@ void setmon(Client *c, Monitor *m, uint32_t newtags, bool focus) {
 		/* Make sure window actually overlaps with the monitor */
 		reset_foreign_tolevel(c);
 		resize(c, c->geom, 0);
-		if (!newtags && !m->isoverview) {
-			c->tags = m->tagset[m->seltags];
-		} else if (!newtags && m->isoverview) {
-			c->tags = m->ovbk_current_tagset;
-		} else if (newtags) {
-			c->tags = newtags;
-		} else {
-			c->tags = m->tagset[m->seltags];
-		}
+		client_reset_mon_tags(c, m, newtags);
+		check_match_tag_floating_rule(c, m);
 		setfloating(c, c->isfloating);
 		setfullscreen(c, c->isfullscreen); /* This will call arrange(c->mon) */
 	}
