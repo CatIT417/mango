@@ -5098,7 +5098,8 @@ setfloating(Client *c, int32_t floating) {
 								layers[c->isfloating ? LyrTop : LyrTile]);
 	}
 
-	if (!c->isfloating && old_floating_state && (c->old_stack_inner_per > 0.0f || c->old_master_inner_per > 0.0f)) {
+	if (!c->isfloating && old_floating_state &&
+		(c->old_stack_inner_per > 0.0f || c->old_master_inner_per > 0.0f)) {
 		restore_size_per(c->mon, c);
 	}
 
