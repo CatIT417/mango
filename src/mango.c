@@ -5041,12 +5041,12 @@ setfloating(Client *c, int32_t floating) {
 
 	if (floating == 1 && c != grabc) {
 
-		if (c->isfullscreen || c->ismaximizescreen) {
-			c->isfullscreen = 0; // 清除窗口全屏标志
-			c->ismaximizescreen = 0;
-			c->bw = c->isnoborder ? 0 : config.borderpx;
+		if (c->isfullscreen) {
+			c->isfullscreen = 0;
+			client_set_fullscreen(c, 0);
 		}
 
+		c->ismaximizescreen = 0;
 		exit_scroller_stack(c);
 
 		// 重新计算居中的坐标
@@ -5175,8 +5175,10 @@ void setmaximizescreen(Client *c, int32_t maximizescreen) {
 
 	if (maximizescreen) {
 
-		if (c->isfullscreen)
-			setfullscreen(c, 0);
+		if (c->isfullscreen) {
+			c->isfullscreen = 0;
+			client_set_fullscreen(c, 0);
+		}
 
 		exit_scroller_stack(c);
 
@@ -5243,9 +5245,8 @@ void setfullscreen(Client *c, int32_t fullscreen) // 用自定义全屏代理自
 	client_set_fullscreen(c, fullscreen);
 
 	if (fullscreen) {
-		if (c->ismaximizescreen)
-			setmaximizescreen(c, 0);
 
+		c->ismaximizescreen = 0;
 		exit_scroller_stack(c);
 
 		if (c->isfloating)
