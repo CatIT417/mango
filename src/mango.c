@@ -5182,9 +5182,6 @@ void setmaximizescreen(Client *c, int32_t maximizescreen) {
 
 		exit_scroller_stack(c);
 
-		if (c->isfloating)
-			c->float_geom = c->geom;
-
 		maximizescreen_box.x = c->mon->w.x + config.gappoh;
 		maximizescreen_box.y = c->mon->w.y + config.gappov;
 		maximizescreen_box.width = c->mon->w.width - 2 * config.gappoh;
@@ -5248,9 +5245,6 @@ void setfullscreen(Client *c, int32_t fullscreen) // 用自定义全屏代理自
 
 		c->ismaximizescreen = 0;
 		exit_scroller_stack(c);
-
-		if (c->isfloating)
-			c->float_geom = c->geom;
 
 		c->isfakefullscreen = 0;
 
