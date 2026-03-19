@@ -1554,6 +1554,11 @@ void applyrules(Client *c) {
 			   (!c->istagsilent || !newtags ||
 				newtags & mon->tagset[mon->seltags]));
 
+	if (!c->isfloating) {
+		c->old_stack_inner_per = c->stack_inner_per;
+		c->old_master_inner_per = c->master_inner_per;
+	}
+
 	if (c->mon &&
 		!(c->mon == selmon && c->tags & c->mon->tagset[c->mon->seltags]) &&
 		!c->isopensilent && !c->istagsilent) {
@@ -5118,6 +5123,12 @@ setfloating(Client *c, int32_t floating) {
 	}
 
 	arrange(c->mon, false, false);
+
+	if (!c->isfloating) {
+		c->old_master_inner_per = c->master_inner_per;
+		c->old_stack_inner_per = c->stack_inner_per;
+	}
+
 	setborder_color(c);
 	printstatus();
 }
