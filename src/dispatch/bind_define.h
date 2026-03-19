@@ -1873,8 +1873,16 @@ int32_t toggle_all_floating(const Arg *arg) {
 
 	Client *c = NULL;
 	bool should_floating = !selmon->sel->isfloating;
+
 	wl_list_for_each(c, &clients, link) {
 		if (VISIBLEON(c, selmon)) {
+
+			if (c->isfloating && !should_floating) {
+				c->old_master_inner_per = 0.0f;
+				c->old_stack_inner_per = 0.0f;
+				set_size_per(selmon, c);
+			}
+
 			if (c->isfloating != should_floating) {
 				setfloating(c, should_floating);
 			}
