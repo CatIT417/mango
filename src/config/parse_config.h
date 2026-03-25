@@ -3263,7 +3263,7 @@ void set_value_default() {
 	config.animation_fade_in = 1;
 	config.animation_fade_out = 1;
 	config.tag_animation_direction = HORIZONTAL;
-	config.zoom_initial_ratio = 0.3f;
+	config.zoom_initial_ratio = 0.4f;
 	config.zoom_end_ratio = 0.8f;
 	config.fadein_begin_opacity = 0.5f;
 	config.fadeout_begin_opacity = 0.5f;
