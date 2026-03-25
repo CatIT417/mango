@@ -3213,7 +3213,7 @@ void override_config(void) {
 	config.accel_profile = CLAMP_INT(config.accel_profile, 0, 2);
 	config.accel_speed = CLAMP_FLOAT(config.accel_speed, -1.0f, 1.0f);
 	config.scroll_method = CLAMP_INT(config.scroll_method, 0, 4);
-	config.scroll_button = CLAMP_INT(config.scroll_button, 272, 276);
+	config.scroll_button = CLAMP_INT(config.scroll_button, 272, 279);
 	config.click_method = CLAMP_INT(config.click_method, 0, 2);
 	config.send_events_mode = CLAMP_INT(config.send_events_mode, 0, 2);
 	config.button_map = CLAMP_INT(config.button_map, 0, 1);
