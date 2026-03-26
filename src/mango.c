@@ -391,7 +391,7 @@ struct Client {
 	struct dwl_opacity_animation opacity_animation;
 	int32_t isterm, noswallow;
 	int32_t allow_csd;
-	int32_t force_maximize;
+	int32_t force_fakemaximize;
 	int32_t force_tiled_state;
 	pid_t pid;
 	Client *swallowing, *swallowedby;
@@ -1325,7 +1325,7 @@ void toggle_hotarea(int32_t x_root, int32_t y_root) {
 static void apply_rule_properties(Client *c, const ConfigWinRule *r) {
 	APPLY_INT_PROP(c, r, isterm);
 	APPLY_INT_PROP(c, r, allow_csd);
-	APPLY_INT_PROP(c, r, force_maximize);
+	APPLY_INT_PROP(c, r, force_fakemaximize);
 	APPLY_INT_PROP(c, r, force_tiled_state);
 	APPLY_INT_PROP(c, r, force_tearing);
 	APPLY_INT_PROP(c, r, noswallow);
@@ -4073,7 +4073,7 @@ void init_client_properties(Client *c) {
 	c->old_master_mfact_per = 0.0f;
 	c->isterm = 0;
 	c->allow_csd = 0;
-	c->force_maximize = 0;
+	c->force_fakemaximize = 0;
 	c->force_tiled_state = 1;
 	c->force_tearing = 0;
 	c->allow_shortcuts_inhibit = SHORTCUTS_INHIBIT_ENABLE;
@@ -5112,7 +5112,7 @@ setfloating(Client *c, int32_t floating) {
 		save_old_size_per(c->mon);
 	}
 
-	if (!c->force_maximize)
+	if (!c->force_fakemaximize)
 		client_set_maximized(c, false);
 
 	if (!c->isfloating || c->force_tiled_state) {
@@ -5207,9 +5207,9 @@ void setmaximizescreen(Client *c, int32_t maximizescreen) {
 		save_old_size_per(c->mon);
 	}
 
-	if (!c->force_maximize && !c->ismaximizescreen) {
+	if (!c->force_fakemaximize && !c->ismaximizescreen) {
 		client_set_maximized(c, false);
-	} else if (!c->force_maximize && c->ismaximizescreen) {
+	} else if (!c->force_fakemaximize && c->ismaximizescreen) {
 		client_set_maximized(c, true);
 	}
 
@@ -5243,7 +5243,7 @@ void setfullscreen(Client *c, int32_t fullscreen) // 用自定义全屏代理自
 
 	if (fullscreen) {
 
-		if (c->ismaximizescreen && !c->force_maximize) {
+		if (c->ismaximizescreen && !c->force_fakemaximize) {
 			client_set_maximized(c, false);
 		}
 
