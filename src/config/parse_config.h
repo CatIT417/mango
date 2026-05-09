@@ -3356,7 +3356,7 @@ void set_value_default() {
 	config.dwindle_preserve_split = 0;
 	config.dwindle_smart_split = 0;
 	config.dwindle_smart_resize = 0;
-	config.dwindle_drop_simple_split = 0;
+	config.dwindle_drop_simple_split = 1;
 	config.dwindle_split_ratio = 0.5f;
 
 	config.log_level = WLR_ERROR;
