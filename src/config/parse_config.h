@@ -242,6 +242,15 @@ typedef struct {
 	int32_t center_master_overspread;
 	int32_t center_when_single_stack;
 
+	/* dwindle layout */
+	int32_t dwindle_vsplit;
+	int32_t dwindle_hsplit;
+	int32_t dwindle_preserve_split;
+	int32_t dwindle_smart_split;
+	int32_t dwindle_smart_resize;
+	int32_t dwindle_drop_simple_split;
+	float dwindle_split_ratio;
+
 	uint32_t hotarea_size;
 	uint32_t hotarea_corner;
 	uint32_t enable_hotarea;
@@ -1615,6 +1624,20 @@ bool parse_option(Config *config, char *key, char *value) {
 		config->center_master_overspread = atoi(value);
 	} else if (strcmp(key, "center_when_single_stack") == 0) {
 		config->center_when_single_stack = atoi(value);
+	} else if (strcmp(key, "dwindle_vsplit") == 0) {
+		config->dwindle_vsplit = atoi(value);
+	} else if (strcmp(key, "dwindle_hsplit") == 0) {
+		config->dwindle_hsplit = atoi(value);
+	} else if (strcmp(key, "dwindle_preserve_split") == 0) {
+		config->dwindle_preserve_split = atoi(value);
+	} else if (strcmp(key, "dwindle_smart_split") == 0) {
+		config->dwindle_smart_split = atoi(value);
+	} else if (strcmp(key, "dwindle_smart_resize") == 0) {
+		config->dwindle_smart_resize = atoi(value);
+	} else if (strcmp(key, "dwindle_drop_simple_split") == 0) {
+		config->dwindle_drop_simple_split = atoi(value);
+	} else if (strcmp(key, "dwindle_split_ratio") == 0) {
+		config->dwindle_split_ratio = atof(value);
 	} else if (strcmp(key, "hotarea_size") == 0) {
 		config->hotarea_size = atoi(value);
 	} else if (strcmp(key, "hotarea_corner") == 0) {
@@ -3179,6 +3202,16 @@ void override_config(void) {
 	config.center_when_single_stack =
 		CLAMP_INT(config.center_when_single_stack, 0, 1);
 	config.new_is_master = CLAMP_INT(config.new_is_master, 0, 1);
+	config.dwindle_vsplit = CLAMP_INT(config.dwindle_vsplit, 0, 2);
+	config.dwindle_hsplit = CLAMP_INT(config.dwindle_hsplit, 0, 2);
+	config.dwindle_preserve_split =
+		CLAMP_INT(config.dwindle_preserve_split, 0, 1);
+	config.dwindle_smart_split = CLAMP_INT(config.dwindle_smart_split, 0, 1);
+	config.dwindle_smart_resize = CLAMP_INT(config.dwindle_smart_resize, 0, 1);
+	config.dwindle_drop_simple_split =
+		CLAMP_INT(config.dwindle_drop_simple_split, 0, 1);
+	config.dwindle_split_ratio =
+		CLAMP_FLOAT(config.dwindle_split_ratio, 0.05f, 0.95f);
 	config.hotarea_size = CLAMP_INT(config.hotarea_size, 1, 1000);
 	config.hotarea_corner = CLAMP_INT(config.hotarea_corner, 0, 3);
 	config.enable_hotarea = CLAMP_INT(config.enable_hotarea, 0, 1);
@@ -3317,6 +3350,14 @@ void set_value_default() {
 	config.default_nmaster = 1;
 	config.center_master_overspread = 0;
 	config.center_when_single_stack = 1;
+
+	config.dwindle_vsplit = 0;
+	config.dwindle_hsplit = 0;
+	config.dwindle_preserve_split = 0;
+	config.dwindle_smart_split = 0;
+	config.dwindle_smart_resize = 0;
+	config.dwindle_drop_simple_split = 1;
+	config.dwindle_split_ratio = 0.5f;
 
 	config.log_level = WLR_ERROR;
 	config.numlockon = 0;
@@ -3716,7 +3757,7 @@ void reapply_rootbg(void) {
 	wlr_scene_rect_set_color(root_bg, config.rootcolor);
 }
 
-void reapply_border(void) {
+void reapply_property(void) {
 	Client *c = NULL;
 
 	// reset border width when config change
@@ -3725,6 +3766,8 @@ void reapply_border(void) {
 			if (!c->isnoborder && !c->isfullscreen) {
 				c->bw = config.borderpx;
 			}
+
+			wlr_scene_rect_set_color(c->droparea, config.dropcolor);
 		}
 	}
 }
@@ -3870,7 +3913,7 @@ void reset_option(void) {
 	run_exec();
 
 	reapply_cursor_style();
-	reapply_border();
+	reapply_property();
 	reapply_rootbg();
 	reapply_keyboard();
 	reapply_pointer();
