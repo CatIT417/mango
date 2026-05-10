@@ -1158,6 +1158,7 @@ void swallow(Client *c, Client *w) {
 	c->scroller_proportion = w->scroller_proportion;
 	c->next_in_stack = w->next_in_stack;
 	c->prev_in_stack = w->prev_in_stack;
+	c->isglobal = w->isglobal;
 
 	if (w->next_in_stack)
 		w->next_in_stack->prev_in_stack = c;
