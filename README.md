@@ -325,6 +325,8 @@ If you find this project helpful to you, you can offer sponsorship in the follow
 <img width="650" height="870" alt="image" src="https://github.com/user-attachments/assets/8c860317-90d2-4071-971d-f1a92b674469" />
 
 
-Thanks to the following friends for their sponsorship of this project
+Thanks to the following friends for their sponsorship of this project:
 
-[@tonybanters](https://github.com/tonybanters)
+<p align="center">
+  <a href="https://github.com/tonybanters"><img src="https://unavatar.io/github/tonybanters" width="50" /></a>
+</p>
