@@ -6,6 +6,7 @@ on:
       - 'nix/**-modules.nix'
       - 'nix/generate-options.nix'
       - 'flake.nix'
+      - '.github/scripts/generate-nix-options-docs.py'
   pull_request:
     paths:
       - 'nix/**-modules.nix'
@@ -35,20 +36,10 @@ jobs:
 
       - name: Format to Markdown
         run: |
-          OUTPUT_FILE="docs/nix-options.md"
-          
-          cat << 'EOF' > $OUTPUT_FILE
-          ---
-          title: Nix Module Options
-          description: NixOS and Home Manager configuration options for mangowm.
-          ---
-          
-          > **Note:** This document is automatically generated from the Nix module source code.
-          
-          EOF
-          
-          python3 ./.github/scripts/generate-nix-options-docs.py result-nixos/share/doc/nixos/options.json $OUTPUT_FILE "NixOS Module Options"
-          python3 ./.github/scripts/generate-nix-options-docs.py result-hm/share/doc/nixos/options.json $OUTPUT_FILE "Home Manager Options"
+          python3 ./.github/scripts/generate-nix-options-docs.py \
+            result-nixos/share/doc/nixos/options.json \
+            result-hm/share/doc/nixos/options.json \
+            docs/nix-options.md
 
       - name: Auto-commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
