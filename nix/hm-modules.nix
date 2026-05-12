@@ -22,7 +22,6 @@ in
       enable = mkOption {
         type = types.bool;
         default = false;
-        description = "Whether to enable mangowm, a Wayland compositor based on dwl.";
       };
       package = lib.mkOption {
         type = lib.types.package;
