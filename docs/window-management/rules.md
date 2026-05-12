@@ -40,8 +40,8 @@ windowrule=Parameter:Values,Parameter:Values,appid:Values,title:Values
 
 | Parameter | Type | Values | Description |
 | :--- | :--- | :--- | :--- |
-| `width` | integer | 0-9999 | Window width when it becomes a floating window |
-| `height` | integer | 0-9999 | Window height when it becomes a floating window |
+| `width` | float | 0-9999 | Window width when it becomes a floating window,if the value below 1, it will be the percentage of the screen width,otherwise it will be the pixel value |
+| `height` | float | 0-9999 | Window height when it becomes a floating window,if the value below 1, it will be the percentage of the screen height,otherwise it will be the pixel value |
 | `offsetx` | integer | -999-999 | X offset from center (%), 100 is the edge of screen with outer gap |
 | `offsety` | integer | -999-999 | Y offset from center (%), 100 is the edge of screen with outer gap |
 | `monitor` | string | Any | Assign to monitor by [monitor spec](/docs/configuration/monitors#monitor-spec-format) (name, make, model, or serial) |
