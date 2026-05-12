@@ -1808,14 +1808,24 @@ int32_t scroller_apply_stack(Client *c, Client *target_client,
 
 	Monitor *m = c->mon;
 	uint32_t tag = m->pertag->curtag;
+
+	bool is_horizontal = (m->pertag->ltidxs[tag]->id == SCROLLER);
+
+	if (is_horizontal && (direction == UP || direction == DOWN))
+		return 0;
+	if (!is_horizontal && (direction == LEFT || direction == RIGHT))
+		return 0;
+
 	struct TagScrollerState *st = ensure_scroller_state(m, tag);
 
 	/* 获取当前节点 */
 	struct ScrollerStackNode *cnode = find_scroller_node(st, c);
+
+	if (!cnode)
+		return 0;
+
 	struct ScrollerStackNode *tnode =
 		target_client ? find_scroller_node(st, target_client) : NULL;
-
-	bool is_horizontal = (m->pertag->ltidxs[tag]->id == SCROLLER);
 
 	/* 若方向为 UNDIR 且有目标，直接插入到目标尾部 */
 	if (direction == UNDIR && target_client && target_client->mon == c->mon) {
@@ -1824,39 +1834,25 @@ int32_t scroller_apply_stack(Client *c, Client *target_client,
 	}
 
 	/* 处理从堆叠中移出的情况（方向 LEFT/UP 或 RIGHT/DOWN） */
-	if (cnode && (cnode->prev_in_stack || cnode->next_in_stack)) {
-		bool to_left_or_up = (is_horizontal && direction == LEFT) ||
-							 (!is_horizontal && direction == UP);
-		bool to_right_or_down = (is_horizontal && direction == RIGHT) ||
-								(!is_horizontal && direction == DOWN);
-
-		if (to_left_or_up || to_right_or_down) {
-			/* 找到当前堆叠的头节点，以便移动全局链表位置 */
-			struct ScrollerStackNode *head = cnode;
-			while (head->prev_in_stack)
-				head = head->prev_in_stack;
-			Client *source_stack_head = head->client;
-
-			/* 从 tag 状态中移除该客户端对应的节点 */
-			scroller_node_remove(st, cnode);
-			/* 重新创建一个独立的节点（无堆叠关系） */
-			scroller_node_create(st, c);
-
-			/* 调整全局客户端链表顺序：移到源堆叠头的前面或后面 */
+	if (cnode->prev_in_stack || cnode->next_in_stack) {
+		struct ScrollerStackNode *move_out_refer_node =
+			cnode->prev_in_stack ? cnode->prev_in_stack : cnode->next_in_stack;
+		scroller_node_remove(st, cnode);
+		Client *stack_head =
+			scroll_get_stack_head_client(move_out_refer_node->client);
+		if (direction == LEFT || direction == UP) {
 			wl_list_remove(&c->link);
-			if (to_left_or_up)
-				wl_list_insert(source_stack_head->link.prev, &c->link);
-			else
-				wl_list_insert(&source_stack_head->link, &c->link);
-
-			/* 同步到客户端字段并重排 */
-			sync_scroller_state_to_clients(m, tag);
-			arrange(m, false, false);
-			return 0;
+			wl_list_insert(stack_head->link.prev, &c->link);
+		} else if (direction == RIGHT || direction == DOWN) {
+			wl_list_remove(&c->link);
+			wl_list_insert(&stack_head->link, &c->link);
 		}
+		sync_scroller_state_to_clients(m, tag);
+		arrange(m, false, false);
+		return 0;
 	}
 
-	if (!target_client || target_client->mon != c->mon)
+	if (!tnode || target_client->mon != c->mon)
 		return 0;
 
 	/* 找到目标堆叠的尾部节点 */
@@ -1866,7 +1862,6 @@ int32_t scroller_apply_stack(Client *c, Client *target_client,
 
 	/* 通过封装好的插入函数实现（尾部插入） */
 	scroller_insert_stack(c, tail->client, false);
-
 	return 0;
 }
 
