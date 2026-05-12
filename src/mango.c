@@ -4383,16 +4383,13 @@ mapnotify(struct wl_listener *listener, void *data) {
 
 		if (selmon->sel && ISSCROLLTILED(selmon->sel) &&
 			VISIBLEON(selmon->sel, selmon)) {
-			at_client = scroll_get_stack_head_client(selmon->sel);
+			at_client = scroll_get_stack_tail_client(selmon->sel);
 		} else {
 			at_client = center_tiled_select(selmon);
 		}
 
 		if (at_client) {
-			at_client->link.next->prev = &c->link;
-			c->link.prev = &at_client->link;
-			c->link.next = at_client->link.next;
-			at_client->link.next = &c->link;
+			wl_list_insert(&at_client->link, &c->link);
 		} else {
 			wl_list_insert(clients.prev, &c->link); // 尾部入栈
 		}
