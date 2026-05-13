@@ -3510,17 +3510,33 @@ void createpointerconstraint(struct wl_listener *listener, void *data) {
 	pointer_constraint->constraint = data;
 	LISTEN(&pointer_constraint->constraint->events.destroy,
 		   &pointer_constraint->destroy, destroypointerconstraint);
+
+	if (!selmon || !selmon->sel)
+		return;
+
+	struct wlr_surface *focused_surface = client_surface(selmon->sel);
+	if (focused_surface &&
+		focused_surface == pointer_constraint->constraint->surface) {
+		cursorconstrain(pointer_constraint->constraint);
+	}
 }
 
 void cursorconstrain(struct wlr_pointer_constraint_v1 *constraint) {
 	if (active_constraint == constraint)
 		return;
 
-	if (active_constraint)
+	if (active_constraint) {
+		if (constraint == NULL) {
+			cursorwarptohint();
+		}
 		wlr_pointer_constraint_v1_send_deactivated(active_constraint);
+	}
 
 	active_constraint = constraint;
-	wlr_pointer_constraint_v1_send_activated(constraint);
+
+	if (constraint) {
+		wlr_pointer_constraint_v1_send_activated(constraint);
+	}
 }
 
 void cursorframe(struct wl_listener *listener, void *data) {
@@ -3803,6 +3819,9 @@ void focusclient(Client *c, int32_t lift) {
 		// clear text input focus state
 		dwl_im_relay_set_focus(dwl_input_method_relay, NULL);
 		wlr_seat_keyboard_notify_clear_focus(seat);
+		if (active_constraint) {
+			cursorconstrain(NULL);
+		}
 		return;
 	}
 
@@ -3819,6 +3838,18 @@ void focusclient(Client *c, int32_t lift) {
 
 	/* Activate the new client */
 	client_activate_surface(client_surface(c), 1);
+
+	if (active_constraint && active_constraint->surface != client_surface(c)) {
+		cursorconstrain(NULL);
+	}
+
+	struct wlr_pointer_constraint_v1 *constraint;
+	wl_list_for_each(constraint, &pointer_constraints->constraints, link) {
+		if (constraint->surface == client_surface(c)) {
+			cursorconstrain(constraint);
+			break;
+		}
+	}
 }
 
 void // 0.6
@@ -4554,7 +4585,6 @@ void motionnotify(uint32_t time, struct wlr_input_device *device, double dx,
 	Client *closet_drop_client = NULL;
 	LayerSurface *l = NULL;
 	struct wlr_surface *surface = NULL;
-	struct wlr_pointer_constraint_v1 *constraint;
 	bool should_lock = false;
 
 	/* time is 0 in internal calls meant to restore pointer focus. */
@@ -4562,9 +4592,6 @@ void motionnotify(uint32_t time, struct wlr_input_device *device, double dx,
 		wlr_relative_pointer_manager_v1_send_relative_motion(
 			relative_pointer_mgr, seat, (uint64_t)time * 1000, dx, dy,
 			dx_unaccel, dy_unaccel);
-
-		wl_list_for_each(constraint, &pointer_constraints->constraints, link)
-			cursorconstrain(constraint);
 
 		if (active_constraint && cursor_mode != CurResize &&
 			cursor_mode != CurMove) {
