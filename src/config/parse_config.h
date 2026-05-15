@@ -3368,8 +3368,8 @@ void set_value_default() {
 	config.center_master_overspread = 0;
 	config.center_when_single_stack = 1;
 
-	config.dwindle_vsplit = 0;
-	config.dwindle_hsplit = 0;
+	config.dwindle_vsplit = 1;
+	config.dwindle_hsplit = 1;
 	config.dwindle_preserve_split = 0;
 	config.dwindle_smart_split = 0;
 	config.dwindle_smart_resize = 0;
