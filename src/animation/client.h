@@ -411,24 +411,27 @@ void apply_split_border(Client *c, bool hit_no_border) {
 		top_offset = GEZERO(c->mon->m.y - c->animation.current.y);
 	}
 
-	int32_t border_down_width = GEZERO(fullgeom.width - left_offset -
-									   right_offset - 2 * config.border_radius);
+	int32_t border_down_width =
+		GEZERO(fullgeom.width - 2 * config.border_radius -
+			   GEZERO((left_offset + right_offset) - config.border_radius));
 	int32_t border_down_height =
 		GEZERO(bw - bottom_offset - GEZERO(top_offset + bw - fullgeom.height));
 
 	int32_t border_right_width =
 		GEZERO(bw - right_offset - GEZERO(left_offset + bw - fullgeom.width));
 	int32_t border_right_height =
-		GEZERO(fullgeom.height - top_offset - bottom_offset -
-			   2 * config.border_radius);
+		GEZERO(fullgeom.height - 2 * config.border_radius -
+			   GEZERO((top_offset + bottom_offset) - config.border_radius));
 
-	int32_t border_down_x = GEZERO(config.border_radius - left_offset);
+	int32_t border_down_x = GEZERO(config.border_radius +
+								   GEZERO(left_offset - config.border_radius));
 	int32_t border_down_y = GEZERO(fullgeom.height - bw) +
 							GEZERO(top_offset + bw - fullgeom.height);
 
 	int32_t border_right_x =
 		GEZERO(fullgeom.width - bw) + GEZERO(left_offset + bw - fullgeom.width);
-	int32_t border_right_y = GEZERO(config.border_radius - top_offset);
+	int32_t border_right_y = GEZERO(config.border_radius +
+									GEZERO(top_offset - config.border_radius));
 
 	set_rect_size(c->splitindicator[0], border_down_width, border_down_height);
 	set_rect_size(c->splitindicator[1], border_right_width,
