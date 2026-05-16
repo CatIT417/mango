@@ -645,6 +645,7 @@ void client_set_drop_area(Client *c) {
 	bool should_swap =
 		(cur_layout->id == DECK || cur_layout->id == VERTICAL_DECK ||
 		 cur_layout->id == MONOCLE || cur_layout->id == GRID ||
+		 cur_layout->id == FAIR || cur_layout->id == VERTICAL_FAIR ||
 		 cur_layout->id == VERTICAL_GRID) ||
 		((cur_layout->id == TILE || cur_layout->id == VERTICAL_TILE ||
 		  cur_layout->id == CENTER_TILE || cur_layout->id == RIGHT_TILE) &&

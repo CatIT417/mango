@@ -33,6 +33,7 @@ void restore_size_per(Monitor *m, Client *c) {
 
 	if (current_layout->id == SCROLLER ||
 		current_layout->id == VERTICAL_SCROLLER || current_layout->id == GRID ||
+		current_layout->id == FAIR || current_layout->id == VERTICAL_FAIR ||
 		current_layout->id == VERTICAL_GRID || current_layout->id == DECK ||
 		current_layout->id == VERTICAL_DECK || current_layout->id == MONOCLE) {
 		return;

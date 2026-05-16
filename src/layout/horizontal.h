@@ -675,3 +675,79 @@ monocle(Monitor *m) {
 	if ((c = focustop(m)))
 		wlr_scene_node_raise_to_top(&c->scene->node);
 }
+
+void fair(Monitor *m) {
+	int32_t i, n = 0;
+	Client *c = NULL;
+
+	n = m->visible_tiling_clients;
+	if (n == 0)
+		return;
+
+	// 间隙参数处理
+	int32_t cur_gappiv = enablegaps ? m->gappiv : 0;
+	int32_t cur_gappih = enablegaps ? m->gappih : 0;
+	int32_t cur_gappov = enablegaps ? m->gappov : 0;
+	int32_t cur_gappoh = enablegaps ? m->gappoh : 0;
+
+	// 智能间隙
+	cur_gappiv = config.smartgaps && n == 1 ? 0 : cur_gappiv;
+	cur_gappih = config.smartgaps && n == 1 ? 0 : cur_gappih;
+	cur_gappov = config.smartgaps && n == 1 ? 0 : cur_gappov;
+	cur_gappoh = config.smartgaps && n == 1 ? 0 : cur_gappoh;
+
+	// 计算最佳列数 cols = ceil(sqrt(n))
+	int32_t cols;
+	for (cols = 0; cols <= n; cols++) {
+		if (cols * cols >= n)
+			break;
+	}
+
+	int32_t base_rows = n / cols; // 每列的基础行数
+	int32_t remainder = n % cols; // 多出来的窗口，分配给前 remainder 列
+
+	// 计算标准列宽
+	int32_t col_width =
+		(m->w.width - 2 * cur_gappoh - (cols - 1) * cur_gappih) / cols;
+
+	i = 0;
+	wl_list_for_each(c, &clients, link) {
+		if (!VISIBLEON(c, m) || !ISTILED(c))
+			continue;
+
+		int32_t col_idx, row_idx, rows_in_this_col;
+
+		// 判断当前窗口属于哪一列、哪一行
+		if (i < remainder * (base_rows + 1)) {
+			col_idx = i / (base_rows + 1);
+			row_idx = i % (base_rows + 1);
+			rows_in_this_col = base_rows + 1;
+		} else {
+			int32_t offset = i - remainder * (base_rows + 1);
+			col_idx = remainder + offset / base_rows;
+			row_idx = offset % base_rows;
+			rows_in_this_col = base_rows;
+		}
+
+		// 计算 X 坐标和宽度 (最后一列吃掉剩余像素，防止缝隙)
+		int32_t cx = m->w.x + cur_gappoh + col_idx * (col_width + cur_gappih);
+		int32_t cw = (col_idx == cols - 1)
+						 ? (m->w.width - 2 * cur_gappoh -
+							col_idx * (col_width + cur_gappih))
+						 : col_width;
+
+		// 计算 Y 坐标和高度 (最后一行吃掉剩余像素)
+		int32_t base_ch = (m->w.height - 2 * cur_gappov -
+						   (rows_in_this_col - 1) * cur_gappiv) /
+						  rows_in_this_col;
+		int32_t cy = m->w.y + cur_gappov + row_idx * (base_ch + cur_gappiv);
+		int32_t ch = (row_idx == rows_in_this_col - 1)
+						 ? (m->w.height - 2 * cur_gappov -
+							row_idx * (base_ch + cur_gappiv))
+						 : base_ch;
+
+		resize(c, (struct wlr_box){.x = cx, .y = cy, .width = cw, .height = ch},
+			   0);
+		i++;
+	}
+}
