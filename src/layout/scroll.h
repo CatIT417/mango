@@ -919,3 +919,145 @@ static void update_scroller_state(Monitor *m) {
 		}
 	}
 }
+
+static void scroller_swap_nodes_in_same_stack(struct ScrollerStackNode *n1,
+											  struct ScrollerStackNode *n2) {
+	float tmp_sc = n1->scroller_proportion;
+	float tmp_st = n1->stack_proportion;
+	n1->scroller_proportion = n2->scroller_proportion;
+	n1->stack_proportion = n2->stack_proportion;
+	n2->scroller_proportion = tmp_sc;
+	n2->stack_proportion = tmp_st;
+
+	struct ScrollerStackNode *p1 = n1->prev_in_stack;
+	struct ScrollerStackNode *next1 = n1->next_in_stack;
+	struct ScrollerStackNode *p2 = n2->prev_in_stack;
+	struct ScrollerStackNode *next2 = n2->next_in_stack;
+
+	if (n1->next_in_stack == n2) {
+		n1->next_in_stack = next2;
+		n2->prev_in_stack = p1;
+		n1->prev_in_stack = n2;
+		n2->next_in_stack = n1;
+		if (p1)
+			p1->next_in_stack = n2;
+		if (next2)
+			next2->prev_in_stack = n1;
+	} else if (n2->next_in_stack == n1) {
+		n2->next_in_stack = next1;
+		n1->prev_in_stack = p2;
+		n2->prev_in_stack = n1;
+		n1->next_in_stack = n2;
+		if (p2)
+			p2->next_in_stack = n1;
+		if (next1)
+			next1->prev_in_stack = n2;
+	} else {
+		if (p1)
+			p1->next_in_stack = n2;
+		if (next1)
+			next1->prev_in_stack = n2;
+		if (p2)
+			p2->next_in_stack = n1;
+		if (next2)
+			next2->prev_in_stack = n1;
+		n1->prev_in_stack = p2;
+		n1->next_in_stack = next2;
+		n2->prev_in_stack = p1;
+		n2->next_in_stack = next1;
+	}
+}
+
+static void scroller_swap_different_stacks(struct ScrollerStackNode *head1,
+										   struct ScrollerStackNode *head2) {
+	Client *head1_c = head1->client;
+	Client *head2_c = head2->client;
+	Client *tail1_c = scroll_get_stack_tail_client(head1_c);
+	Client *tail2_c = scroll_get_stack_tail_client(head2_c);
+
+	struct wl_list *p1 = head1_c->link.prev;
+	struct wl_list *n1_next = tail1_c->link.next;
+	struct wl_list *p2 = head2_c->link.prev;
+	struct wl_list *n2_next = tail2_c->link.next;
+
+	if (n1_next == &head2_c->link) {
+		p2->next = n2_next;
+		n2_next->prev = p2;
+		p1->next = &head2_c->link;
+		head2_c->link.prev = p1;
+		tail2_c->link.next = &head1_c->link;
+		head1_c->link.prev = &tail2_c->link;
+	} else if (n2_next == &head1_c->link) {
+		p1->next = n1_next;
+		n1_next->prev = p1;
+		p2->next = &head1_c->link;
+		head1_c->link.prev = p2;
+		tail1_c->link.next = &head2_c->link;
+		head2_c->link.prev = &tail1_c->link;
+	} else {
+		p1->next = &head2_c->link;
+		head2_c->link.prev = p1;
+		tail2_c->link.next = n1_next;
+		n1_next->prev = &tail2_c->link;
+
+		p2->next = &head1_c->link;
+		head1_c->link.prev = p2;
+		tail1_c->link.next = n2_next;
+		n2_next->prev = &tail1_c->link;
+	}
+}
+
+void exchange_two_scroller_clients(Client *c1, Client *c2) {
+
+	if (!c1 || !c2 || !c1->mon || !c2->mon)
+		return;
+
+	struct ScrollerStackNode *n1 = NULL;
+	struct ScrollerStackNode *n2 = NULL;
+	Monitor *m1 = c1->mon;
+	Monitor *m2 = c2->mon;
+	uint32_t tag1 = m1->pertag->curtag;
+	uint32_t tag2 = m2->pertag->curtag;
+
+	struct TagScrollerState *st1 = ensure_scroller_state(m1, tag1);
+	n1 = find_scroller_node(st1, c1);
+
+	struct TagScrollerState *st2 = ensure_scroller_state(m2, tag2);
+	n2 = find_scroller_node(st2, c2);
+
+	if (!n1 && !n2)
+		return;
+
+	if (m1 != m2 && ((n1 && n1->prev_in_stack) || (n2 && n2->prev_in_stack) ||
+					 (n1 && n1->next_in_stack) || (n2 && n2->next_in_stack))) {
+		return;
+	}
+
+	client_swap_layout_properties(c1, c2);
+
+	if (n1 && n2) {
+		struct ScrollerStackNode *head1 = n1;
+		while (head1->prev_in_stack)
+			head1 = head1->prev_in_stack;
+		struct ScrollerStackNode *head2 = n2;
+		while (head2->prev_in_stack)
+			head2 = head2->prev_in_stack;
+
+		if (head1 == head2) {
+			scroller_swap_nodes_in_same_stack(n1, n2);
+			sync_scroller_state_to_clients(m1, tag1);
+			wl_list_swap(&c1->link, &c2->link);
+		} else {
+			scroller_swap_different_stacks(head1, head2);
+		}
+	} else {
+		wl_list_swap(&c1->link, &c2->link);
+	}
+
+	if (m1 != m2) {
+		client_swap_monitors_and_tags(c1, c2);
+	}
+	finish_exchange_arrange_and_focus(c1, c2, m1, m2);
+
+	return;
+}

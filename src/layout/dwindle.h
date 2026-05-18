@@ -294,13 +294,32 @@ static void dwindle_move_client(DwindleNode **root, Client *c, Client *target,
 	dwindle_insert(root, c, target, ratio, as_first, split_h, true);
 }
 
-static void dwindle_swap_clients(DwindleNode **root, Client *a, Client *b) {
-	DwindleNode *la = dwindle_find_leaf(*root, a);
-	DwindleNode *lb = dwindle_find_leaf(*root, b);
-	if (!la || !lb || la == lb)
+static void dwindle_swap_clients(Client *c1, Client *c2) {
+
+	if (!c1 || !c2 || !c1->mon || !c2->mon || c1 == c2)
 		return;
-	la->client = b;
-	lb->client = a;
+
+	Monitor *m1 = c1->mon;
+	Monitor *m2 = c2->mon;
+
+	DwindleNode **c1_root = &m1->pertag->dwindle_root[m1->pertag->curtag];
+	DwindleNode *c1node = dwindle_find_leaf(*c1_root, c1);
+	DwindleNode **c2_root = &m2->pertag->dwindle_root[m2->pertag->curtag];
+	DwindleNode *c2node = dwindle_find_leaf(*c2_root, c2);
+
+	client_swap_layout_properties(c1, c2);
+
+	if (c1node)
+		c1node->client = c2;
+	if (c2node)
+		c2node->client = c1;
+
+	if (m1 != m2) {
+		client_swap_monitors_and_tags(c1, c2);
+	}
+
+	wl_list_swap(&c1->link, &c2->link);
+	finish_exchange_arrange_and_focus(c1, c2, m1, m2);
 }
 
 static void dwindle_resize_client(Monitor *m, Client *c) {
