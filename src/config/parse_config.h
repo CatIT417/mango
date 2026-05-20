@@ -3389,11 +3389,11 @@ void set_value_default() {
 	config.numlockon = 0;
 	config.capslock = 0;
 
-	config.ov_tab_mode = 0;
-	config.ov_no_resize = 0;
+	config.ov_tab_mode = 1;
+	config.ov_no_resize = 1;
 	config.hotarea_size = 10;
 	config.hotarea_corner = BOTTOM_LEFT;
-	config.enable_hotarea = 1;
+	config.enable_hotarea = 0;
 	config.smartgaps = 0;
 	config.sloppyfocus = 1;
 	config.gappih = 5;
