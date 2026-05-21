@@ -1,292 +1,323 @@
+
+typedef struct {
+	float x, y, w, h;
+} OvPlacedRect;
+
+typedef struct {
+	float x, y;
+} OvPoint;
+
+typedef struct {
+	Client *c;
+	float orig_w;
+	float orig_h;
+	float area;
+} OvLayoutItem;
+
+static int compare_layout_items(const void *a, const void *b) {
+	float area_a = ((const OvLayoutItem *)a)->area;
+	float area_b = ((const OvLayoutItem *)b)->area;
+	if (area_a < area_b)
+		return 1;
+	if (area_a > area_b)
+		return -1;
+	return 0;
+}
+
+static bool try_place(OvPlacedRect *placed, int placed_cnt, float w, float h,
+					  float gap, float avail_w, float avail_h,
+					  OvPlacedRect *out, OvPoint *cands, OvPoint *feas) {
+	int cand_cnt = 0;
+	cands[cand_cnt++] = (OvPoint){0.0f, 0.0f};
+
+	for (int i = 0; i < placed_cnt; i++) {
+		OvPlacedRect p = placed[i];
+		cands[cand_cnt++] = (OvPoint){p.x + p.w + gap, p.y};
+		cands[cand_cnt++] = (OvPoint){p.x, p.y + p.h + gap};
+		cands[cand_cnt++] = (OvPoint){p.x + p.w + gap, p.y + p.h + gap};
+	}
+
+	int unique_cnt = 0;
+	for (int i = 0; i < cand_cnt; i++) {
+		bool dup = false;
+		for (int j = 0; j < unique_cnt; j++) {
+			if (fabs(cands[i].x - cands[j].x) < 0.5f &&
+				fabs(cands[i].y - cands[j].y) < 0.5f) {
+				dup = true;
+				break;
+			}
+		}
+		if (!dup)
+			cands[unique_cnt++] = cands[i];
+	}
+	cand_cnt = unique_cnt;
+
+	int feas_cnt = 0;
+	for (int i = 0; i < cand_cnt; i++) {
+		float cx = cands[i].x;
+		float cy = cands[i].y;
+
+		if (cx < 0 || cy < 0 || cx + w > avail_w || cy + h > avail_h)
+			continue;
+
+		bool overlap = false;
+		for (int j = 0; j < placed_cnt; j++) {
+			OvPlacedRect p = placed[j];
+			if (!(cx + w + gap <= p.x || cx >= p.x + p.w + gap ||
+				  cy + h + gap <= p.y || cy >= p.y + p.h + gap)) {
+				overlap = true;
+				break;
+			}
+		}
+		if (!overlap) {
+			feas[feas_cnt++] = (OvPoint){cx, cy};
+		}
+	}
+
+	if (feas_cnt == 0)
+		return false;
+
+	int best = 0;
+	for (int i = 1; i < feas_cnt; i++) {
+		if (feas[i].y < feas[best].y ||
+			(fabs(feas[i].y - feas[best].y) < 0.5f &&
+			 feas[i].x < feas[best].x)) {
+			best = i;
+		}
+	}
+
+	out->x = feas[best].x;
+	out->y = feas[best].y;
+	out->w = w;
+	out->h = h;
+	return true;
+}
+
 void overview_scale(Monitor *m) {
 	int32_t target_gappo = config.overviewgappo;
 	int32_t target_gappi = config.overviewgappi;
 
 	int orig_n = m->visible_clients;
-
 	if (orig_n == 0)
 		return;
 
-	size_t sz_c_arr = orig_n * sizeof(Client *);
-	size_t sz_aspects = orig_n * sizeof(float);
-	size_t sz_suffix_sums = (orig_n + 1) * sizeof(float);
-	size_t sz_best_items = orig_n * sizeof(int);
-	size_t sz_temp_items = orig_n * sizeof(int);
-	size_t sz_items = orig_n * sizeof(int);
-	size_t sz_A_sum = orig_n * sizeof(float);
-
-	size_t total_size = sz_c_arr + sz_aspects + sz_suffix_sums + sz_best_items +
-						sz_temp_items + sz_items + sz_A_sum;
-
-	void *buffer = malloc(total_size);
-	if (!buffer) {
+	OvLayoutItem *items = calloc(orig_n, sizeof(OvLayoutItem));
+	if (!items)
 		return;
-	}
 
-	Client **c_arr = (Client **)buffer;
-	float *aspects = (float *)((char *)buffer + sz_c_arr);
-	float *suffix_sums = (float *)((char *)aspects + sz_aspects);
-	int *best_items_per_row = (int *)((char *)suffix_sums + sz_suffix_sums);
-	int *temp_items_per_row =
-		(int *)((char *)best_items_per_row + sz_best_items);
-	int *items_per_row = (int *)((char *)temp_items_per_row + sz_temp_items);
-	float *A_sum = (float *)((char *)items_per_row + sz_items);
-
-	int actual_n = 0;
-	Client *c = NULL;
-
+	int n = 0;
+	Client *c;
 	wl_list_for_each(c, &clients, link) {
 		if (c->mon != m)
 			continue;
 		if (VISIBLEON(c, m) && !c->isunglobal && !client_is_x11_popup(c)) {
-
-			c_arr[actual_n] = c;
-			float aspect = 1.0f;
-			if (c->overview_backup_geom.height > 0 &&
-				c->overview_backup_geom.width > 0) {
-				aspect = (float)c->overview_backup_geom.width /
-						 c->overview_backup_geom.height;
+			items[n].c = c;
+			float w = c->overview_backup_geom.width;
+			float h = c->overview_backup_geom.height;
+			if (w <= 0 || h <= 0) {
+				w = 100.0f;
+				h = 100.0f;
 			}
-			if (aspect < 0.2f)
-				aspect = 0.2f;
-			if (aspect > 5.0f)
-				aspect = 5.0f;
-
-			aspects[actual_n] = aspect;
-			actual_n++;
+			items[n].orig_w = w;
+			items[n].orig_h = h;
+			items[n].area = w * h;
+			n++;
 		}
 	}
 
-	int n = actual_n;
 	if (n == 0) {
-		free(buffer);
+		free(items);
 		return;
 	}
 
-	suffix_sums[n] = 0.0f;
-	for (int i = n - 1; i >= 0; i--) {
-		suffix_sums[i] = suffix_sums[i + 1] + aspects[i];
+	qsort(items, n, sizeof(OvLayoutItem), compare_layout_items);
+
+	float max_avail_w = fmaxf(1.0f, m->w.width - 2 * target_gappo);
+	float max_avail_h = fmaxf(1.0f, m->w.height - 2 * target_gappo);
+
+	int max_points = 1 + 3 * n;
+	OvPlacedRect *placed = calloc(n, sizeof(OvPlacedRect));
+	OvPoint *cands = calloc(max_points, sizeof(OvPoint));
+	OvPoint *feas = calloc(max_points, sizeof(OvPoint));
+
+	if (!placed || !cands || !feas) {
+		free(items);
+		free(placed);
+		free(cands);
+		free(feas);
+		return;
 	}
 
-	float max_avail_w = m->w.width - 2 * target_gappo;
-	float max_avail_h = m->w.height - 2 * target_gappo;
-	if (max_avail_w < 10)
-		max_avail_w = 10;
-	if (max_avail_h < 10)
-		max_avail_h = 10;
+	float low = 0.0f, high = 1.0f, best_s = 0.0f;
+	for (int iter = 0; iter < 50; iter++) {
+		float mid = (low + high) / 2.0f;
+		bool ok = true;
+		int placed_cnt = 0;
 
-	int best_rows = 1;
-	float best_row_height = 0.0f;
-	best_items_per_row[0] = n;
-
-	for (int R = 1; R <= n; R++) {
-		int start_idx = 0;
-
-		for (int r = 0; r < R; r++) {
-			int rows_left = R - r;
-
-			float S_rem = suffix_sums[start_idx];
-			float target_sum = S_rem / rows_left;
-
-			float current_sum = 0;
-			int count = 0;
-
-			while (start_idx + count < n - (rows_left - 1)) {
-				float next_val = aspects[start_idx + count];
-				if (rows_left == 1) {
-					current_sum += next_val;
-					count++;
-					continue;
-				}
-
-				if (count > 0) {
-					float diff_without = fabs(current_sum - target_sum);
-					float diff_with = fabs(current_sum + next_val - target_sum);
-					if (diff_with > diff_without) {
-						break;
-					}
-				}
-				current_sum += next_val;
-				count++;
+		for (int k = 0; k < n; k++) {
+			float w = items[k].orig_w * mid;
+			float h = items[k].orig_h * mid;
+			OvPlacedRect out;
+			if (!try_place(placed, placed_cnt, w, h, (float)target_gappi,
+						   max_avail_w, max_avail_h, &out, cands, feas)) {
+				ok = false;
+				break;
 			}
-			temp_items_per_row[r] = count;
-			start_idx += count;
+			placed[placed_cnt++] = out;
 		}
 
-		float min_h_max_w = 999999.0f;
-		start_idx = 0;
-		for (int r = 0; r < R; r++) {
-			float row_A_sum = suffix_sums[start_idx] -
-							  suffix_sums[start_idx + temp_items_per_row[r]];
-			start_idx += temp_items_per_row[r];
-
-			float gap_x_total = (temp_items_per_row[r] - 1) * target_gappi;
-			float w_avail = max_avail_w - gap_x_total;
-			if (w_avail < 1)
-				w_avail = 1;
-
-			float h_limit = w_avail / row_A_sum;
-			if (h_limit < min_h_max_w) {
-				min_h_max_w = h_limit;
-			}
-		}
-
-		float gap_y_total_temp = (R - 1) * target_gappi;
-		float h_avail = max_avail_h - gap_y_total_temp;
-		if (h_avail < 1)
-			h_avail = 1;
-
-		float h_max_h = h_avail / R;
-		float final_h = min_h_max_w < h_max_h ? min_h_max_w : h_max_h;
-
-		if (final_h > best_row_height) {
-			best_row_height = final_h;
-			best_rows = R;
-			for (int r = 0; r < R; r++) {
-				best_items_per_row[r] = temp_items_per_row[r];
-			}
+		if (ok) {
+			best_s = mid;
+			low = mid;
+		} else {
+			high = mid;
 		}
 	}
 
-	int rows = best_rows;
-	float row_height = best_row_height;
+	if (best_s > 0.0f) {
+		float box_w = 0, box_h = 0;
+		int placed_cnt = 0;
 
-	int current_render_idx = 0;
-	for (int r = 0; r < rows; r++) {
-		items_per_row[r] = best_items_per_row[r];
-		A_sum[r] = suffix_sums[current_render_idx] -
-				   suffix_sums[current_render_idx + items_per_row[r]];
-		current_render_idx += items_per_row[r];
-	}
+		for (int k = 0; k < n; k++) {
+			float w = items[k].orig_w * best_s;
+			float h = items[k].orig_h * best_s;
+			OvPlacedRect out;
+			try_place(placed, placed_cnt, w, h, (float)target_gappi,
+					  max_avail_w, max_avail_h, &out, cands, feas);
+			placed[placed_cnt++] = out;
 
-	float gap_y_total = (rows - 1) * target_gappi;
-	float total_layout_height = rows * row_height + gap_y_total;
-	float start_y = m->w.y + (m->w.height - total_layout_height) / 2.0f;
-
-	int current_idx = 0;
-	float current_y = start_y;
-
-	for (int r = 0; r < rows; r++) {
-		float row_width =
-			row_height * A_sum[r] + (items_per_row[r] - 1) * target_gappi;
-		float current_x = m->w.x + (m->w.width - row_width) / 2.0f;
-
-		for (int i = 0; i < items_per_row[r]; i++) {
-			Client *client = c_arr[current_idx];
-			float aspect = aspects[current_idx];
-			float client_width = row_height * aspect;
-
-			struct wlr_box client_geom;
-			client_geom.x = (int)(current_x + 0.5f);
-			client_geom.y = (int)(current_y + 0.5f);
-
-			float next_x = current_x + client_width;
-			client_geom.width = (int)(next_x + 0.5f) - client_geom.x;
-
-			float next_y = current_y + row_height;
-			client_geom.height = (int)(next_y + 0.5f) - client_geom.y;
-
-			resize(client, client_geom, 0);
-
-			current_x = next_x + target_gappi;
-			current_idx++;
+			float r = out.x + w;
+			float b = out.y + h;
+			if (r > box_w)
+				box_w = r;
+			if (b > box_h)
+				box_h = b;
 		}
-		current_y += row_height + target_gappi;
+
+		float dx = (max_avail_w - box_w) / 2.0f;
+		float dy = (max_avail_h - box_h) / 2.0f;
+		float base_x = m->w.x + target_gappo + dx;
+		float base_y = m->w.y + target_gappo + dy;
+
+		for (int k = 0; k < n; k++) {
+			Client *cl = items[k].c;
+			struct wlr_box geom;
+			geom.x = (int)(base_x + placed[k].x + 0.5f);
+			geom.y = (int)(base_y + placed[k].y + 0.5f);
+			float w = items[k].orig_w * best_s;
+			float h = items[k].orig_h * best_s;
+			geom.width = (int)(geom.x + w + 0.5f) - geom.x;
+			geom.height = (int)(geom.y + h + 0.5f) - geom.y;
+			resize(cl, geom, 0);
+		}
 	}
 
-	free(buffer);
+	free(items);
+	free(placed);
+	free(cands);
+	free(feas);
 }
 
 void overview_resize(Monitor *m) {
-	int32_t i, n;
-	int32_t cx, cy, cw, ch;
-	int32_t dx;
-	int32_t cols, rows, overcols;
-	Client *c = NULL;
-
 	int32_t target_gappo = config.overviewgappo;
 	int32_t target_gappi = config.overviewgappi;
-	float single_width_ratio = 0.7;
-	float single_height_ratio = 0.8;
+	float single_width_ratio = 0.7f;
+	float single_height_ratio = 0.8f;
 
-	n = m->visible_clients;
-
-	if (n == 0)
+	int orig_n = m->visible_clients;
+	if (orig_n == 0)
 		return;
 
-	if (n == 1) {
-		wl_list_for_each(c, &clients, link) {
-			if (c->mon != m)
-				continue;
-			if (VISIBLEON(c, m) && !c->isunglobal && !client_is_x11_popup(c)) {
-				cw = (m->w.width - 2 * target_gappo) * single_width_ratio;
-				ch = (m->w.height - 2 * target_gappo) * single_height_ratio;
-				c->geom.x = m->w.x + (m->w.width - cw) / 2;
-				c->geom.y = m->w.y + (m->w.height - ch) / 2;
-				c->geom.width = cw;
-				c->geom.height = ch;
-				resize(c, c->geom, 0);
-				return;
-			}
+	Client **c_arr = malloc(orig_n * sizeof(Client *));
+	if (!c_arr)
+		return;
+
+	int n = 0;
+	Client *c;
+	wl_list_for_each(c, &clients, link) {
+		if (c->mon != m)
+			continue;
+		if (VISIBLEON(c, m) && !c->isunglobal && !client_is_x11_popup(c)) {
+			c_arr[n++] = c;
 		}
+	}
+
+	if (n == 0) {
+		free(c_arr);
+		return;
+	}
+
+	if (n == 1) {
+		int32_t cw = (m->w.width - 2 * target_gappo) * single_width_ratio;
+		int32_t ch = (m->w.height - 2 * target_gappo) * single_height_ratio;
+		c_arr[0]->geom.x = m->w.x + (m->w.width - cw) / 2;
+		c_arr[0]->geom.y = m->w.y + (m->w.height - ch) / 2;
+		c_arr[0]->geom.width = cw;
+		c_arr[0]->geom.height = ch;
+		resize(c_arr[0], c_arr[0]->geom, 0);
+		free(c_arr);
+		return;
 	}
 
 	if (n == 2) {
-		cw = (m->w.width - 2 * target_gappo - target_gappi) / 2;
-		ch = (m->w.height - 2 * target_gappo) * 0.65;
-		i = 0;
-		wl_list_for_each(c, &clients, link) {
-			if (c->mon != m)
-				continue;
-			if (VISIBLEON(c, m) && !c->isunglobal && !client_is_x11_popup(c)) {
-				if (i == 0) {
-					c->geom.x = m->w.x + target_gappo;
-					c->geom.y = m->w.y + (m->w.height - ch) / 2 + target_gappo;
-				} else if (i == 1) {
-					c->geom.x = m->w.x + cw + target_gappo + target_gappi;
-					c->geom.y = m->w.y + (m->w.height - ch) / 2 + target_gappo;
-				}
-				c->geom.width = cw;
-				c->geom.height = ch;
-				resize(c, c->geom, 0);
-				i++;
-			}
-		}
+		int32_t cw = (m->w.width - 2 * target_gappo - target_gappi) / 2;
+		int32_t ch = (m->w.height - 2 * target_gappo) * 0.65f;
+
+		c_arr[0]->geom.x = m->w.x + target_gappo;
+		c_arr[0]->geom.y = m->w.y + (m->w.height - ch) / 2 + target_gappo;
+		c_arr[0]->geom.width = cw;
+		c_arr[0]->geom.height = ch;
+		resize(c_arr[0], c_arr[0]->geom, 0);
+
+		c_arr[1]->geom.x = m->w.x + cw + target_gappo + target_gappi;
+		c_arr[1]->geom.y = m->w.y + (m->w.height - ch) / 2 + target_gappo;
+		c_arr[1]->geom.width = cw;
+		c_arr[1]->geom.height = ch;
+		resize(c_arr[1], c_arr[1]->geom, 0);
+
+		free(c_arr);
 		return;
 	}
 
-	for (cols = 0; cols <= n / 2; cols++) {
-		if (cols * cols >= n)
-			break;
+	int32_t cols = 1;
+	while (cols * cols < n) {
+		cols++;
 	}
-	rows = (cols && (cols - 1) * cols >= n) ? cols - 1 : cols;
+	int32_t rows = (n + cols - 1) / cols;
 
-	ch = (m->w.height - 2 * target_gappo - (rows - 1) * target_gappi) / rows;
-	cw = (m->w.width - 2 * target_gappo - (cols - 1) * target_gappi) / cols;
+	int32_t ch =
+		(m->w.height - 2 * target_gappo - (rows - 1) * target_gappi) / rows;
+	int32_t cw =
+		(m->w.width - 2 * target_gappo - (cols - 1) * target_gappi) / cols;
 
-	overcols = n % cols;
+	if (ch < 1)
+		ch = 1;
+	if (cw < 1)
+		cw = 1;
+
+	int32_t overcols = n % cols;
+	int32_t dx = 0;
 	if (overcols) {
 		dx = (m->w.width - overcols * cw - (overcols - 1) * target_gappi) / 2 -
 			 target_gappo;
 	}
 
-	i = 0;
-	wl_list_for_each(c, &clients, link) {
-		if (c->mon != m)
-			continue;
-		if (VISIBLEON(c, m) && !c->isunglobal && !client_is_x11_popup(c)) {
-			cx = m->w.x + (i % cols) * (cw + target_gappi);
-			cy = m->w.y + (i / cols) * (ch + target_gappi);
-			if (overcols && i >= n - overcols)
-				cx += dx;
-			c->geom.x = cx + target_gappo;
-			c->geom.y = cy + target_gappo;
-			c->geom.width = cw;
-			c->geom.height = ch;
-			resize(c, c->geom, 0);
-			i++;
+	for (int i = 0; i < n; i++) {
+		int32_t cx = m->w.x + (i % cols) * (cw + target_gappi);
+		int32_t cy = m->w.y + (i / cols) * (ch + target_gappi);
+
+		if (overcols && i >= n - overcols) {
+			cx += dx;
 		}
+
+		c_arr[i]->geom.x = cx + target_gappo;
+		c_arr[i]->geom.y = cy + target_gappo;
+		c_arr[i]->geom.width = cw;
+		c_arr[i]->geom.height = ch;
+		resize(c_arr[i], c_arr[i]->geom, 0);
 	}
+
+	free(c_arr);
 }
 
 void overview(Monitor *m) {
