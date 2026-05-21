@@ -289,7 +289,7 @@ typedef struct {
 	double mouse_accel_speed;
 	double axis_scroll_factor;
 
-  /* tablet */
+	/* tablet */
 	char *tablet_map_to_mon;
 
 	/* Trackpad */

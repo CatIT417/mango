@@ -131,8 +131,8 @@ void xytonode(double x, double y, struct wlr_surface **psurface, Client **pc,
 			for (pnode = node; pnode && !c; pnode = &pnode->parent->node)
 				c = pnode->data;
 			if (c && c->type == LayerShell) {
+				l = (LayerSurface *)c;
 				c = NULL;
-				l = pnode->data;
 			}
 		}
 
