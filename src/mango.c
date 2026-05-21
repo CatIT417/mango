@@ -72,6 +72,9 @@
 #include <wlr/types/wlr_single_pixel_buffer_v1.h>
 #include <wlr/types/wlr_subcompositor.h>
 #include <wlr/types/wlr_switch.h>
+#include <wlr/types/wlr_tablet_pad.h>
+#include <wlr/types/wlr_tablet_tool.h>
+#include <wlr/types/wlr_tablet_v2.h>
 #include <wlr/types/wlr_viewporter.h>
 #include <wlr/types/wlr_virtual_keyboard_v1.h>
 #include <wlr/types/wlr_virtual_pointer_v1.h>
@@ -618,6 +621,7 @@ static void axisnotify(struct wl_listener *listener,
 					   void *data); // 滚轮事件处理
 static void buttonpress(struct wl_listener *listener,
 						void *data); // 鼠标按键事件处理
+static bool handle_buttonpress(struct wlr_pointer_button_event *event);
 static int32_t ongesture(struct wlr_pointer_swipe_end_event *event);
 static void swipe_begin(struct wl_listener *listener, void *data);
 static void swipe_update(struct wl_listener *listener, void *data);
@@ -2263,6 +2267,13 @@ bool check_trackpad_disabled(struct wlr_pointer *pointer) {
 void // 鼠标按键事件
 buttonpress(struct wl_listener *listener, void *data) {
 	struct wlr_pointer_button_event *event = data;
+
+	if (!handle_buttonpress(event))
+		wlr_seat_pointer_notify_button(seat, event->time_msec, event->button,
+									   event->state);
+}
+
+bool handle_buttonpress(struct wlr_pointer_button_event *event) {
 	struct wlr_keyboard *hard_keyboard, *keyboard;
 	uint32_t hard_mods, mods;
 	Client *c = NULL;
@@ -2277,8 +2288,8 @@ buttonpress(struct wl_listener *listener, void *data) {
 	handlecursoractivity();
 	wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
-	if (check_trackpad_disabled(event->pointer)) {
-		return;
+	if (event->pointer && check_trackpad_disabled(event->pointer)) {
+		return true;
 	}
 
 	switch (event->state) {
@@ -2325,12 +2336,12 @@ buttonpress(struct wl_listener *listener, void *data) {
 
 			if (selmon->isoverview && event->button == BTN_LEFT && c) {
 				toggleoverview(&(Arg){.i = 1});
-				return;
+				return true;
 			}
 
 			if (selmon->isoverview && event->button == BTN_RIGHT && c) {
 				pending_kill_client(c);
-				return;
+				return true;
 			}
 
 			if (CLEANMASK(mods) == CLEANMASK(m->mod) &&
@@ -2338,7 +2349,7 @@ buttonpress(struct wl_listener *listener, void *data) {
 				(CLEANMASK(m->mod) != 0 ||
 				 (event->button != BTN_LEFT && event->button != BTN_RIGHT))) {
 				m->func(&m->arg);
-				return;
+				return true;
 			}
 		}
 		break;
@@ -2376,16 +2387,14 @@ buttonpress(struct wl_listener *listener, void *data) {
 				client_set_drop_area(dropc);
 				dropc = NULL;
 			}
-			return;
+			return true;
 		} else {
 			cursor_mode = CurNormal;
 		}
 		break;
 	}
-	/* If the event wasn't handled by the compositor, notify the client with
-	 * pointer focus that a button press has occurred */
-	wlr_seat_pointer_notify_button(seat, event->time_msec, event->button,
-								   event->state);
+	/* If the event wasn't handled by the compositor, return false */
+	return false;
 }
 
 void checkidleinhibitor(struct wlr_surface *exclude) {
@@ -2451,6 +2460,10 @@ void cleanuplisteners(void) {
 	wl_list_remove(&cursor_frame.link);
 	wl_list_remove(&cursor_motion.link);
 	wl_list_remove(&cursor_motion_absolute.link);
+	wl_list_remove(&tablet_tool_proximity.link);
+	wl_list_remove(&tablet_tool_axis.link);
+	wl_list_remove(&tablet_tool_button.link);
+	wl_list_remove(&tablet_tool_tip.link);
 	wl_list_remove(&gpu_reset.link);
 	wl_list_remove(&new_idle_inhibitor.link);
 	wl_list_remove(&layout_change.link);
@@ -3950,6 +3963,12 @@ void inputdevice(struct wl_listener *listener, void *data) {
 	switch (device->type) {
 	case WLR_INPUT_DEVICE_KEYBOARD:
 		createkeyboard(wlr_keyboard_from_input_device(device));
+		break;
+	case WLR_INPUT_DEVICE_TABLET:
+		createtablet(device);
+		break;
+	case WLR_INPUT_DEVICE_TABLET_PAD:
+		createtabletpad(device);
 		break;
 	case WLR_INPUT_DEVICE_POINTER:
 		createpointer(wlr_pointer_from_input_device(device));
@@ -5742,6 +5761,7 @@ void setup(void) {
 	 * clients from the Unix socket, manging Wayland globals, and so on. */
 	dpy = wl_display_create();
 	event_loop = wl_display_get_event_loop(dpy);
+	tablet_mgr = wlr_tablet_v2_create(dpy);
 	/* The backend is a wlroots feature which abstracts the underlying input
 	 * and output hardware. The autocreate option will choose the most
 	 * suitable backend based on the current environment, such as opening an
@@ -5929,6 +5949,11 @@ void setup(void) {
 	wl_signal_add(&cursor->events.button, &cursor_button);
 	wl_signal_add(&cursor->events.axis, &cursor_axis);
 	wl_signal_add(&cursor->events.frame, &cursor_frame);
+	wl_signal_add(&cursor->events.tablet_tool_proximity,
+				  &tablet_tool_proximity);
+	wl_signal_add(&cursor->events.tablet_tool_axis, &tablet_tool_axis);
+	wl_signal_add(&cursor->events.tablet_tool_button, &tablet_tool_button);
+	wl_signal_add(&cursor->events.tablet_tool_tip, &tablet_tool_tip);
 
 	// 这两句代码会造成obs窗口里的鼠标光标消失,不知道注释有什么影响
 	cursor_shape_mgr = wlr_cursor_shape_manager_v1_create(dpy, 1);
@@ -5943,6 +5968,8 @@ void setup(void) {
 	 * to let us know when new input devices are available on the backend.
 	 */
 	wl_list_init(&inputdevices);
+	wl_list_init(&tablets);
+	wl_list_init(&tablet_pads);
 	wl_list_init(&keyboard_shortcut_inhibitors);
 	wl_signal_add(&backend->events.new_input, &new_input_device);
 	virtual_keyboard_mgr = wlr_virtual_keyboard_manager_v1_create(dpy);
