@@ -116,6 +116,9 @@
 #define ISSCROLLTILED(A)                                                       \
 	(A && !(A)->isfloating && !(A)->isminimized && !(A)->iskilling &&          \
 	 !(A)->isunglobal)
+#define ISFAKETILED(A)                                                         \
+	(A && !(A)->isfloating && !(A)->isminimized && !(A)->iskilling &&          \
+	 !(A)->isunglobal)
 #define VISIBLEON(C, M)                                                        \
 	((C) && (M) && (C)->mon == (M) &&                                          \
 	 (((C)->tags & (M)->tagset[(M)->seltags] || (C)->isglobal ||               \
@@ -552,6 +555,7 @@ struct Monitor {
 	uint32_t visible_clients;
 	uint32_t visible_tiling_clients;
 	uint32_t visible_scroll_tiling_clients;
+	uint32_t visible_fake_tiling_clients;
 	struct wlr_scene_optimized_blur *blur;
 	char last_surface_ws_name[256];
 	struct wlr_ext_workspace_group_handle_v1 *ext_group;
@@ -5373,15 +5377,6 @@ setfloating(Client *c, int32_t floating) {
 								layers[c->isfloating ? LyrTop : LyrTile]);
 	}
 
-	if (!c->isfloating && old_floating_state &&
-		(c->old_stack_inner_per > 0.0f || c->old_master_inner_per > 0.0f)) {
-		restore_size_per(c->mon, c);
-	}
-
-	if (c->isfloating && !old_floating_state) {
-		save_old_size_per(c->mon);
-	}
-
 	if (!c->force_fakemaximize)
 		client_set_maximized(c, false);
 
@@ -5434,7 +5429,6 @@ void setmaximizescreen(Client *c, int32_t maximizescreen) {
 	if (c->mon->isoverview)
 		return;
 
-	int32_t old_maximizescreen_state = c->ismaximizescreen;
 	client_pending_maximized_state(c, maximizescreen);
 
 	if (maximizescreen) {
@@ -5461,13 +5455,6 @@ void setmaximizescreen(Client *c, int32_t maximizescreen) {
 
 	wlr_scene_node_reparent(&c->scene->node,
 							layers[c->isfloating ? LyrTop : LyrTile]);
-	if (!c->ismaximizescreen && old_maximizescreen_state) {
-		restore_size_per(c->mon, c);
-	}
-
-	if (c->ismaximizescreen && !old_maximizescreen_state) {
-		save_old_size_per(c->mon);
-	}
 
 	if (!c->force_fakemaximize && !c->ismaximizescreen) {
 		client_set_maximized(c, false);
@@ -5498,7 +5485,6 @@ void setfullscreen(Client *c, int32_t fullscreen) // 用自定义全屏代理自
 	if (c->mon->isoverview)
 		return;
 
-	int32_t old_fullscreen_state = c->isfullscreen;
 	c->isfullscreen = fullscreen;
 
 	client_set_fullscreen(c, fullscreen);
@@ -5533,14 +5519,6 @@ void setfullscreen(Client *c, int32_t fullscreen) // 用自定义全屏代理自
 		wlr_scene_node_reparent(
 			&c->scene->node,
 			layers[fullscreen || c->isfloating ? LyrTop : LyrTile]);
-	}
-
-	if (!c->isfullscreen && old_fullscreen_state) {
-		restore_size_per(c->mon, c);
-	}
-
-	if (c->isfullscreen && !old_fullscreen_state) {
-		save_old_size_per(c->mon);
 	}
 
 	arrange(c->mon, false, false);
