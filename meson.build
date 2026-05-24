@@ -40,6 +40,7 @@ libwayland_client_dep = dependency('wayland-client')
 pcre2_dep = dependency('libpcre2-8')
 libscenefx_dep = dependency('scenefx-0.4',version: '>=0.4.1')
 pixman_dep = dependency('pixman-1')
+cjson_dep = dependency('libcjson')
 
 
 # 获取版本信息
@@ -112,6 +113,7 @@ executable('mango',
     libwayland_client_dep,
     pcre2_dep,
     pixman_dep,
+    cjson_dep,
   ],
   install : true,
   c_args : c_args,
