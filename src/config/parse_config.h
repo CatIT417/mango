@@ -967,6 +967,8 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
 	} else if (strcmp(func_name, "focusdir") == 0) {
 		func = focusdir;
 		(*arg).i = parse_direction(arg_value);
+	} else if (strcmp(func_name, "focusid") == 0) {
+		func = focusid;
 	} else if (strcmp(func_name, "incnmaster") == 0) {
 		func = incnmaster;
 		(*arg).i = atoi(arg_value);
@@ -2443,6 +2445,7 @@ bool parse_option(Config *config, char *key, char *value) {
 		binding->arg.v = NULL;
 		binding->arg.v2 = NULL;
 		binding->arg.v3 = NULL;
+		binding->arg.tc = NULL;
 		binding->func =
 			parse_func_name(func_name, &binding->arg, arg_value, arg_value2,
 							arg_value3, arg_value4, arg_value5);
@@ -2524,6 +2527,7 @@ bool parse_option(Config *config, char *key, char *value) {
 		binding->arg.v = NULL;
 		binding->arg.v2 = NULL;
 		binding->arg.v3 = NULL;
+		binding->arg.tc = NULL;
 
 		// TODO: remove this in next version
 		if (binding->mod == 0 &&
@@ -2609,6 +2613,7 @@ bool parse_option(Config *config, char *key, char *value) {
 		binding->arg.v = NULL;
 		binding->arg.v2 = NULL;
 		binding->arg.v3 = NULL;
+		binding->arg.tc = NULL;
 		binding->func =
 			parse_func_name(func_name, &binding->arg, arg_value, arg_value2,
 							arg_value3, arg_value4, arg_value5);
@@ -2759,6 +2764,7 @@ bool parse_option(Config *config, char *key, char *value) {
 		binding->arg.v = NULL;
 		binding->arg.v2 = NULL;
 		binding->arg.v3 = NULL;
+		binding->arg.tc = NULL;
 		binding->func =
 			parse_func_name(func_name, &binding->arg, arg_value, arg_value2,
 							arg_value3, arg_value4, arg_value5);
