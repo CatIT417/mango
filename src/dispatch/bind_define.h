@@ -1031,19 +1031,20 @@ int32_t switch_layout(const Arg *arg) {
 	int32_t jk, ji;
 	char *target_layout_name = NULL;
 	uint32_t len;
+	uint32_t target_tag = selmon->pertag->curtag ? selmon->pertag->curtag
+												 : selmon->pertag->prevtag;
 
 	if (!selmon)
 		return 0;
 
 	if (config.circle_layout_count != 0) {
 		for (jk = 0; jk < config.circle_layout_count; jk++) {
-			len = MAX(
-				strlen(config.circle_layout[jk]),
-				strlen(selmon->pertag->ltidxs[selmon->pertag->curtag]->name));
+
+			len = MAX(strlen(config.circle_layout[jk]),
+					  strlen(selmon->pertag->ltidxs[target_tag]->name));
 
 			if (strncmp(config.circle_layout[jk],
-						selmon->pertag->ltidxs[selmon->pertag->curtag]->name,
-						len) == 0) {
+						selmon->pertag->ltidxs[target_tag]->name, len) == 0) {
 				target_layout_name = jk == config.circle_layout_count - 1
 										 ? config.circle_layout[0]
 										 : config.circle_layout[jk + 1];
@@ -1058,20 +1059,16 @@ int32_t switch_layout(const Arg *arg) {
 		for (ji = 0; ji < LENGTH(layouts); ji++) {
 			len = MAX(strlen(layouts[ji].name), strlen(target_layout_name));
 			if (strncmp(layouts[ji].name, target_layout_name, len) == 0) {
-				selmon->pertag->ltidxs[selmon->pertag->curtag] = &layouts[ji];
-				break;
+				selmon->pertag->ltidxs[target_tag] = &layouts[ji];
 			}
 		}
-		clear_fullscreen_and_maximized_state(selmon);
-		arrange(selmon, false, false);
-		printstatus();
 		return 0;
 	}
 
 	for (jk = 0; jk < LENGTH(layouts); jk++) {
 		if (strcmp(layouts[jk].name,
-				   selmon->pertag->ltidxs[selmon->pertag->curtag]->name) == 0) {
-			selmon->pertag->ltidxs[selmon->pertag->curtag] =
+				   selmon->pertag->ltidxs[target_tag]->name) == 0) {
+			selmon->pertag->ltidxs[target_tag] =
 				jk == LENGTH(layouts) - 1 ? &layouts[0] : &layouts[jk + 1];
 			clear_fullscreen_and_maximized_state(selmon);
 			arrange(selmon, false, false);
