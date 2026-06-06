@@ -495,6 +495,7 @@ void apply_border(Client *c) {
 
 	if (c->isfullscreen) {
 		if (c->border->node.enabled) {
+			wlr_scene_node_set_position(&c->scene_surface->node, 0, 0);
 			wlr_scene_node_set_enabled(&c->border->node, false);
 		}
 		return;
