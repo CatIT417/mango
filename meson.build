@@ -37,6 +37,7 @@ pcre2_dep = dependency('libpcre2-8')
 libscenefx_dep = dependency('scenefx-0.4',version: '>=0.4.1')
 pixman_dep = dependency('pixman-1')
 cjson_dep = dependency('libcjson')
+pangocairo_dep = dependency('pangocairo')
 
 # version info
 git = find_program('git', required : false)
@@ -94,6 +95,7 @@ endif
 executable('mango',
   'src/mango.c',
   'src/common/util.c',
+  'src/draw/text-node.c',
   'src/ext-protocol/wlr_ext_workspace_v1.c',
   wayland_sources,
   dependencies : [
@@ -109,6 +111,7 @@ executable('mango',
     pcre2_dep,
     pixman_dep,
     cjson_dep,
+    pangocairo_dep,
   ],
   install : true,
   c_args : c_args,
