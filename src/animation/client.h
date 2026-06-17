@@ -380,10 +380,10 @@ void client_draw_shadow(Client *c) {
 		top_offset = GEZERO(c->mon->m.y - absolute_shadow_box.y);
 	}
 
-	left_offset = MIN(left_offset, shadow_box.width);
-	right_offset = MIN(right_offset, shadow_box.width);
-	top_offset = MIN(top_offset, shadow_box.height);
-	bottom_offset = MIN(bottom_offset, shadow_box.height);
+	left_offset = MANGO_MIN(left_offset, shadow_box.width);
+	right_offset = MANGO_MIN(right_offset, shadow_box.width);
+	top_offset = MANGO_MIN(top_offset, shadow_box.height);
+	bottom_offset = MANGO_MIN(bottom_offset, shadow_box.height);
 
 	wlr_scene_node_set_position(&c->shadow->node, shadow_box.x + left_offset,
 								shadow_box.y + top_offset);
@@ -577,12 +577,12 @@ void apply_border(Client *c) {
 
 	if (right_offset > 0) {
 		inner_surface_width =
-			MIN(clip_box.width, inner_surface_width + right_offset);
+			MANGO_MIN(clip_box.width, inner_surface_width + right_offset);
 	}
 
 	if (bottom_offset > 0) {
 		inner_surface_height =
-			MIN(clip_box.height, inner_surface_height + bottom_offset);
+			MANGO_MIN(clip_box.height, inner_surface_height + bottom_offset);
 	}
 
 	struct clipped_region clipped_region = {
@@ -1010,7 +1010,7 @@ void fadeout_client_animation_next_tick(Client *c) {
 	double percent = config.fadeout_begin_opacity -
 					 (opacity_eased_progress * config.fadeout_begin_opacity);
 
-	double opacity = MAX(percent, 0);
+	double opacity = MANGO_MAX(percent, 0);
 
 	if (config.animation_fade_out && !c->nofadeout)
 		wlr_scene_node_for_each_buffer(&c->scene->node,
@@ -1285,8 +1285,8 @@ void resize(Client *c, struct wlr_box geo, int32_t interact) {
 
 	if (is_scroller_layout(c->mon) && (!c->isfloating || c == grabc)) {
 		c->geom = geo;
-		c->geom.width = MAX(1 + 2 * (int32_t)c->bw, c->geom.width);
-		c->geom.height = MAX(1 + 2 * (int32_t)c->bw, c->geom.height);
+		c->geom.width = MANGO_MAX(1 + 2 * (int32_t)c->bw, c->geom.width);
+		c->geom.height = MANGO_MAX(1 + 2 * (int32_t)c->bw, c->geom.height);
 	} else { // 这里会限制不允许窗口划出屏幕
 		c->geom = geo;
 		applybounds(
