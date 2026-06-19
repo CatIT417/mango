@@ -11,7 +11,6 @@
 #include <scenefx/render/fx_renderer/fx_renderer.h>
 #include <scenefx/types/fx/blur_data.h>
 #include <scenefx/types/fx/clipped_region.h>
-#include <scenefx/types/fx/corner_location.h>
 #include <scenefx/types/wlr_scene.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -41,8 +40,10 @@
 #include <wlr/types/wlr_drm_lease_v1.h>
 #include <wlr/types/wlr_export_dmabuf_v1.h>
 #include <wlr/types/wlr_ext_data_control_v1.h>
+#include <wlr/types/wlr_ext_foreign_toplevel_list_v1.h>
 #include <wlr/types/wlr_ext_image_capture_source_v1.h>
 #include <wlr/types/wlr_ext_image_copy_capture_v1.h>
+#include <wlr/types/wlr_fixes.h>
 #include <wlr/types/wlr_fractional_scale_v1.h>
 #include <wlr/types/wlr_gamma_control_v1.h>
 #include <wlr/types/wlr_idle_inhibit_v1.h>
@@ -319,7 +320,7 @@ typedef struct {
 	float height_scale;
 	int32_t width;
 	int32_t height;
-	enum corner_location corner_location;
+	struct fx_corner_radii corner_location;
 	bool should_scale;
 } BufferData;
 
@@ -335,7 +336,13 @@ struct Client {
 	struct wlr_scene_rect *droparea;
 	struct wlr_scene_rect *splitindicator[4];
 	struct wlr_scene_shadow *shadow;
+	struct wlr_scene_rect *shield;
+	struct wlr_scene_blur *blur;
 	struct wlr_scene_tree *scene_surface;
+	struct wlr_scene_tree *image_capture_tree;
+	struct wlr_scene *image_capture_scene;
+	struct wlr_ext_image_capture_source_v1 *image_capture_source;
+	struct wlr_scene_surface *image_capture_scene_surface;
 	struct wlr_scene_tree *overview_scene_surface;
 	struct mango_jump_label_node *jump_label_node;
 	struct mango_tab_bar_node *tab_bar_node;
@@ -406,6 +413,7 @@ struct Client {
 	int32_t iskilling;
 	int32_t istagswitching;
 	int32_t isnamedscratchpad;
+	int32_t shield_when_capture;
 	bool is_monocle_hide;
 	bool is_pending_open_animation;
 	bool is_restoring_from_ov;
@@ -434,6 +442,7 @@ struct Client {
 	float unfocused_opacity;
 	char oldmonname[128];
 	int32_t noblur;
+	struct wlr_ext_foreign_toplevel_handle_v1 *ext_foreign_toplevel;
 	double master_mfact_per, master_inner_per, stack_inner_per;
 	double old_master_mfact_per, old_master_inner_per, old_stack_inner_per;
 	double old_scroller_pproportion;
@@ -502,6 +511,7 @@ typedef struct {
 	struct wlr_scene_tree *scene;
 	struct wlr_scene_tree *popups;
 	struct wlr_scene_shadow *shadow;
+	struct wlr_scene_blur *blur;
 	struct wlr_scene_layer_surface_v1 *scene_layer;
 	struct wl_list link;
 	struct wl_list fadeout_link;
@@ -595,6 +605,11 @@ typedef struct {
 	struct wl_listener unlock;
 	struct wl_listener destroy;
 } SessionLock;
+
+struct capture_session_tracker {
+	struct wl_listener session_destroy;
+	struct wlr_ext_image_copy_capture_session_v1 *session;
+};
 
 typedef struct DwindleNode DwindleNode;
 struct DwindleNode {
@@ -780,6 +795,9 @@ static void virtualkeyboard(struct wl_listener *listener, void *data);
 static void virtualpointer(struct wl_listener *listener, void *data);
 static void warp_cursor(const Client *c);
 static Monitor *xytomon(double x, double y);
+static Monitor *get_monitor_nearest_to(int32_t x, int32_t y);
+static void handle_iamge_copy_capture_new_session(struct wl_listener *listener,
+												  void *data);
 static void xytonode(double x, double y, struct wlr_surface **psurface,
 					 Client **pc, LayerSurface **pl, double *nx, double *ny);
 static void clear_fullscreen_flag(Client *c);
@@ -846,7 +864,7 @@ static double find_animation_curve_at(double t, int32_t type);
 
 static void apply_opacity_to_rect_nodes(Client *c, struct wlr_scene_node *node,
 										double animation_passed);
-static enum corner_location set_client_corner_location(Client *c);
+static struct fx_corner_radii set_client_corner_location(Client *c);
 static double all_output_frame_duration_ms();
 static struct wlr_scene_tree *
 wlr_scene_tree_snapshot(struct wlr_scene_node *node,
@@ -955,6 +973,7 @@ static struct wlr_keyboard_shortcuts_inhibit_manager_v1
 	*keyboard_shortcuts_inhibit;
 static struct wlr_virtual_pointer_manager_v1 *virtual_pointer_mgr;
 static struct wlr_output_power_manager_v1 *power_mgr;
+static struct wlr_ext_image_copy_capture_manager_v1 *ext_image_copy_capture_mgr;
 static struct wlr_pointer_gestures_v1 *pointer_gestures;
 static struct wlr_drm_lease_v1_manager *drm_lease_manager;
 struct mango_print_status_manager *print_status_manager;
@@ -981,7 +1000,13 @@ static struct wl_list keyboard_shortcut_inhibitors;
 static uint32_t cursor_mode;
 static Client *grabc, *dropc;
 static int32_t rzcorner;
-static int32_t grabcx, grabcy;						   /* client-relative */
+static int32_t grabcx, grabcy; /* client-relative */
+
+static struct wlr_ext_foreign_toplevel_image_capture_source_manager_v1
+	*ext_foreign_toplevel_image_capture_source_manager_v1;
+static struct wl_listener new_foreign_toplevel_capture_request;
+static struct wlr_ext_foreign_toplevel_list_v1 *foreign_toplevel_list;
+
 static int32_t drag_begin_cursorx, drag_begin_cursory; /* client-relative */
 static bool start_drag_window = false;
 static int32_t last_apply_drap_time = 0;
@@ -1019,6 +1044,7 @@ static struct wl_event_source *keep_idle_inhibit_source;
 static bool cursor_hidden = false;
 static bool tag_combo = false;
 static const char *cli_config_path = NULL;
+static int active_capture_count = 0;
 static bool cli_debug_log = false;
 static KeyMode keymode = {
 	.mode = {'d', 'e', 'f', 'a', 'u', 'l', 't', '\0'},
@@ -1084,6 +1110,8 @@ static struct wl_listener output_mgr_apply = {.notify = outputmgrapply};
 static struct wl_listener output_mgr_test = {.notify = outputmgrtest};
 static struct wl_listener output_power_mgr_set_mode = {.notify =
 														   powermgrsetmode};
+static struct wl_listener ext_image_copy_capture_mgr_new_session = {
+	.notify = handle_iamge_copy_capture_new_session};
 static struct wl_listener request_activate = {.notify = urgent};
 static struct wl_listener request_cursor = {.notify = setcursor};
 static struct wl_listener request_set_psel = {.notify = setpsel};
@@ -1548,6 +1576,7 @@ static void apply_rule_properties(Client *c, const ConfigWinRule *r) {
 	APPLY_INT_PROP(c, r, isnamedscratchpad);
 	APPLY_INT_PROP(c, r, isglobal);
 	APPLY_INT_PROP(c, r, isoverlay);
+	APPLY_INT_PROP(c, r, shield_when_capture);
 	APPLY_INT_PROP(c, r, ignore_maximize);
 	APPLY_INT_PROP(c, r, ignore_minimize);
 	APPLY_INT_PROP(c, r, isnosizehint);
@@ -2560,6 +2589,7 @@ void cleanuplisteners(void) {
 	wl_list_remove(&request_start_drag.link);
 	wl_list_remove(&start_drag.link);
 	wl_list_remove(&new_session_lock.link);
+	wl_list_remove(&new_foreign_toplevel_capture_request.link);
 	wl_list_remove(&tearing_new_object.link);
 	wl_list_remove(&keyboard_shortcuts_inhibit_new_inhibitor.link);
 	if (drm_lease_manager) {
@@ -2700,12 +2730,16 @@ static void iter_layer_scene_buffers(struct wlr_scene_buffer *buffer,
 		return;
 	}
 
-	wlr_scene_buffer_set_backdrop_blur(buffer, true);
-	wlr_scene_buffer_set_backdrop_blur_ignore_transparent(buffer, true);
+	LayerSurface *l = (LayerSurface *)user_data;
+
+	wlr_scene_node_set_enabled(&l->blur->node, true);
+	wlr_scene_blur_set_transparency_mask_source(l->blur, buffer);
+	wlr_scene_blur_set_size(l->blur, l->geom.width, l->geom.height);
+
 	if (config.blur_optimized) {
-		wlr_scene_buffer_set_backdrop_blur_optimized(buffer, true);
+		wlr_scene_blur_set_should_only_blur_bottom_layer(l->blur, true);
 	} else {
-		wlr_scene_buffer_set_backdrop_blur_optimized(buffer, false);
+		wlr_scene_blur_set_should_only_blur_bottom_layer(l->blur, false);
 	}
 }
 
@@ -2763,14 +2797,18 @@ void maplayersurfacenotify(struct wl_listener *listener, void *data) {
 	}
 
 	// 初始化阴影
-	if (layer_surface->current.exclusive_zone == 0 &&
-		layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
+	if (layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
 		layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
-		l->shadow =
-			wlr_scene_shadow_create(l->scene, 0, 0, config.border_radius,
-									config.shadows_blur, config.shadowscolor);
-		wlr_scene_node_lower_to_bottom(&l->shadow->node);
-		wlr_scene_node_set_enabled(&l->shadow->node, true);
+		if (layer_surface->current.exclusive_zone == 0) {
+			l->shadow = wlr_scene_shadow_create(
+				l->scene, 0, 0, config.border_radius, config.shadows_blur,
+				config.shadowscolor);
+			wlr_scene_node_lower_to_bottom(&l->shadow->node);
+			wlr_scene_node_set_enabled(&l->shadow->node, true);
+		}
+
+		l->blur = wlr_scene_blur_create(l->scene, 0, 0);
+		wlr_scene_node_lower_to_bottom(&l->blur->node);
 	}
 
 	// 初始化动画
@@ -2842,7 +2880,8 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 		if (!l->noblur &&
 			layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
 			layer_surface->current.layer !=
-				ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
+				ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND &&
+			l->blur) {
 
 			wlr_scene_node_for_each_buffer(&l->scene->node,
 										   iter_layer_scene_buffers, l);
@@ -4408,15 +4447,11 @@ static void iter_xdg_scene_buffers(struct wlr_scene_buffer *buffer, int32_t sx,
 		return;
 
 	if (config.blur && c && !c->noblur) {
-		wlr_scene_buffer_set_backdrop_blur(buffer, true);
-		wlr_scene_buffer_set_backdrop_blur_ignore_transparent(buffer, false);
 		if (config.blur_optimized) {
-			wlr_scene_buffer_set_backdrop_blur_optimized(buffer, true);
+			wlr_scene_blur_set_should_only_blur_bottom_layer(c->blur, true);
 		} else {
-			wlr_scene_buffer_set_backdrop_blur_optimized(buffer, false);
+			wlr_scene_blur_set_should_only_blur_bottom_layer(c->blur, false);
 		}
-	} else {
-		wlr_scene_buffer_set_backdrop_blur(buffer, false);
 	}
 }
 
@@ -4512,6 +4547,11 @@ void init_client_properties(Client *c) {
 		   sizeof(c->opacity_animation.current_border_color));
 	c->opacity_animation.initial_opacity = c->unfocused_opacity;
 	c->opacity_animation.current_opacity = c->unfocused_opacity;
+	c->animation.tagining = false;
+	c->animation.running = false;
+	c->animation.overining = false;
+	c->animation.tagouting = false;
+	c->animation.tagouted = false;
 }
 
 void // old fix to 0.5
@@ -4554,6 +4594,18 @@ mapnotify(struct wl_listener *listener, void *data) {
 	c->geom.height += 2 * c->bw;
 	c->overview_backup_geom = c->geom;
 
+	struct wlr_ext_foreign_toplevel_handle_v1_state foreign_toplevel_state = {
+		.app_id = client_get_appid(c),
+		.title = client_get_title(c),
+	};
+
+	c->image_capture_scene = wlr_scene_create();
+	c->ext_foreign_toplevel = wlr_ext_foreign_toplevel_handle_v1_create(
+		foreign_toplevel_list, &foreign_toplevel_state);
+	c->ext_foreign_toplevel->data = c;
+	c->image_capture_scene_surface = wlr_scene_surface_create(
+		&c->image_capture_scene->tree, client_surface(c));
+
 	/* Handle unmanaged clients first so we can return prior create borders
 	 */
 #ifdef XWAYLAND
@@ -4594,16 +4646,25 @@ mapnotify(struct wl_listener *listener, void *data) {
 		c->scene, 0, 0, c->isurgent ? config.urgentcolor : config.bordercolor);
 	wlr_scene_node_lower_to_bottom(&c->border->node);
 	wlr_scene_node_set_position(&c->border->node, 0, 0);
-	wlr_scene_rect_set_corner_radius(c->border, config.border_radius,
-									 config.border_radius_location_default);
+	wlr_scene_rect_set_corner_radii(c->border,
+									corner_radii_all(config.border_radius));
 	wlr_scene_node_set_enabled(&c->border->node, true);
 
 	c->shadow =
 		wlr_scene_shadow_create(c->scene, 0, 0, config.border_radius,
 								config.shadows_blur, config.shadowscolor);
 
+	c->blur = wlr_scene_blur_create(c->scene_surface, 0, 0);
+	wlr_scene_node_lower_to_bottom(&c->blur->node);
+
 	wlr_scene_node_lower_to_bottom(&c->shadow->node);
 	wlr_scene_node_set_enabled(&c->shadow->node, true);
+
+	c->shield = wlr_scene_rect_create(c->scene_surface, 0, 0,
+									  (float[4]){0, 0, 0, 0xff});
+	c->shield->node.data = c;
+	wlr_scene_node_lower_to_bottom(&c->shield->node);
+	wlr_scene_node_set_enabled(&c->shield->node, false);
 
 	if (config.new_is_master && selmon && !is_scroller_layout(selmon))
 		// tile at the top
@@ -4950,6 +5011,29 @@ void outputmgrapply(struct wl_listener *listener, void *data) {
 	outputmgrapplyortest(config, 0);
 }
 
+static void
+handle_new_foreign_toplevel_capture_request(struct wl_listener *listener,
+											void *data) {
+	struct wlr_ext_foreign_toplevel_image_capture_source_manager_v1_request
+		*request = data;
+	Client *c = request->toplevel_handle->data;
+
+	if (c->shield_when_capture)
+		return;
+
+	if (c->image_capture_source == NULL) {
+		c->image_capture_source =
+			wlr_ext_image_capture_source_v1_create_with_scene_node(
+				&c->image_capture_scene->tree.node, event_loop, alloc, drw);
+		if (c->image_capture_source == NULL) {
+			return;
+		}
+	}
+
+	wlr_ext_foreign_toplevel_image_capture_source_manager_v1_request_accept(
+		request, c->image_capture_source);
+}
+
 void // 0.7 custom
 outputmgrapplyortest(struct wlr_output_configuration_v1 *config, int32_t test) {
 	/*
@@ -5056,6 +5140,53 @@ void pointerfocus(Client *c, struct wlr_surface *surface, double sx, double sy,
 // 修改printstatus函数，接受掩码参数
 void printstatus(enum ipc_watch_type type) {
 	wl_signal_emit(&mango_print_status, &type);
+}
+
+// 会话销毁时的回调
+void handle_session_destroy(struct wl_listener *listener, void *data) {
+	struct capture_session_tracker *tracker =
+		wl_container_of(listener, tracker, session_destroy);
+	active_capture_count--;
+	wl_list_remove(&tracker->session_destroy.link);
+
+	Client *c = NULL;
+	wl_list_for_each(c, &clients, link) {
+		if (c->shield_when_capture && !c->iskilling && VISIBLEON(c, c->mon)) {
+			arrange(c->mon, false, false);
+		}
+	}
+
+	wlr_log(WLR_DEBUG, "Capture session ended, active count: %d",
+			active_capture_count);
+	free(tracker);
+}
+
+// 新会话创建时的回调
+void handle_iamge_copy_capture_new_session(struct wl_listener *listener,
+										   void *data) {
+	struct wlr_ext_image_copy_capture_session_v1 *session = data;
+
+	struct capture_session_tracker *tracker = calloc(1, sizeof(*tracker));
+	if (!tracker) {
+		wlr_log(WLR_ERROR, "Failed to allocate capture session tracker");
+		return;
+	}
+	tracker->session = session;
+	tracker->session_destroy.notify = handle_session_destroy;
+	// 监听会话的 destroy 信号，以便在会话结束时减少计数
+	wl_signal_add(&session->events.destroy, &tracker->session_destroy);
+
+	active_capture_count++;
+
+	Client *c = NULL;
+	wl_list_for_each(c, &clients, link) {
+		if (c->shield_when_capture && !c->iskilling && VISIBLEON(c, c->mon)) {
+			arrange(c->mon, false, false);
+		}
+	}
+
+	wlr_log(WLR_DEBUG, "New capture session started, active count: %d",
+			active_capture_count);
 }
 
 void powermgrsetmode(struct wl_listener *listener, void *data) {
@@ -6000,10 +6131,16 @@ void setup(void) {
 	wlr_subcompositor_create(dpy);
 	wlr_alpha_modifier_v1_create(dpy);
 	wlr_ext_data_control_manager_v1_create(dpy, 1);
+	wlr_fixes_create(dpy, 1);
 
 	// 在 setup 函数中
 	wl_signal_init(&mango_print_status);
 	wl_signal_add(&mango_print_status, &print_status_listener);
+
+	ext_image_copy_capture_mgr =
+		wlr_ext_image_copy_capture_manager_v1_create(dpy, 1);
+	wl_signal_add(&ext_image_copy_capture_mgr->events.new_session,
+				  &ext_image_copy_capture_mgr_new_session);
 
 	/* Initializes the interface used to implement urgency hints */
 	activation = wlr_xdg_activation_v1_create(dpy);
@@ -6014,6 +6151,15 @@ void setup(void) {
 
 	power_mgr = wlr_output_power_manager_v1_create(dpy);
 	wl_signal_add(&power_mgr->events.set_mode, &output_power_mgr_set_mode);
+
+	foreign_toplevel_list = wlr_ext_foreign_toplevel_list_v1_create(dpy, 1);
+	ext_foreign_toplevel_image_capture_source_manager_v1 =
+		wlr_ext_foreign_toplevel_image_capture_source_manager_v1_create(dpy, 1);
+	new_foreign_toplevel_capture_request.notify =
+		handle_new_foreign_toplevel_capture_request;
+	wl_signal_add(&ext_foreign_toplevel_image_capture_source_manager_v1->events
+					   .new_request,
+				  &new_foreign_toplevel_capture_request);
 
 	tearing_control = wlr_tearing_control_manager_v1_create(dpy, 1);
 	tearing_new_object.notify = handle_tearing_new_object;
@@ -6303,6 +6449,11 @@ void overview_backup_surface(Client *c) {
 		wlr_scene_tree_snapshot(&c->scene_surface->node, c->scene);
 	wlr_scene_node_set_enabled(&c->overview_scene_surface->node, false);
 	wlr_scene_node_set_enabled(&c->scene_surface->node, true);
+
+	wlr_scene_node_reparent(&c->blur->node, c->scene_surface);
+	wlr_scene_node_lower_to_bottom(&c->blur->node);
+	wlr_scene_node_reparent(&c->shield->node, c->scene_surface);
+	wlr_scene_node_raise_to_top(&c->shield->node);
 }
 
 // 普通视图切换到overview时保存窗口的旧状态
@@ -6348,6 +6499,10 @@ void overview_restore(Client *c, const Arg *arg) {
 	c->is_restoring_from_ov = (arg->ui & c->tags & TAGMASK) == 0 ? true : false;
 
 	if (c->overview_scene_surface) {
+		wlr_scene_node_reparent(&c->blur->node, c->overview_scene_surface);
+		wlr_scene_node_lower_to_bottom(&c->blur->node);
+		wlr_scene_node_reparent(&c->shield->node, c->overview_scene_surface);
+		wlr_scene_node_raise_to_top(&c->shield->node);
 		wlr_scene_node_destroy(&c->scene_surface->node);
 		c->scene_surface = c->overview_scene_surface;
 		c->overview_scene_surface = NULL;
@@ -6486,6 +6641,11 @@ void unmapnotify(struct wl_listener *listener, void *data) {
 		(!c->mon || VISIBLEON(c, c->mon)))
 		init_fadeout_client(c);
 
+	if (c->ext_foreign_toplevel) {
+		wlr_ext_foreign_toplevel_handle_v1_destroy(c->ext_foreign_toplevel);
+		c->ext_foreign_toplevel = NULL;
+	}
+
 	// If the client is in a stack, remove it from the stack
 
 	if (c->swallowedby) {
@@ -6582,6 +6742,8 @@ void unmapnotify(struct wl_listener *listener, void *data) {
 		c->tab_bar_node = NULL;
 	}
 
+	wlr_scene_node_destroy(&c->image_capture_scene_surface->buffer->node);
+	wlr_scene_node_destroy(&c->image_capture_scene->tree.node);
 	wlr_scene_node_destroy(&c->scene->node);
 	printstatus(IPC_WATCH_ARRANGGE);
 	motionnotify(0, NULL, 0, 0, 0, 0);
@@ -6737,6 +6899,14 @@ void updatetitle(struct wl_listener *listener, void *data) {
 	mango_tab_bar_node_update(c->tab_bar_node, title, 1.0);
 	if (title && c->foreign_toplevel)
 		wlr_foreign_toplevel_handle_v1_set_title(c->foreign_toplevel, title);
+	if (title && c->ext_foreign_toplevel) {
+		wlr_ext_foreign_toplevel_handle_v1_update_state(
+			c->ext_foreign_toplevel,
+			&(struct wlr_ext_foreign_toplevel_handle_v1_state){
+				.title = title,
+				.app_id = c->ext_foreign_toplevel->app_id,
+			});
+	}
 	if (c == focustop(c->mon))
 		printstatus(IPC_WATCH_ARRANGGE);
 }
@@ -7107,11 +7277,13 @@ void xwaylandready(struct wl_listener *listener, void *data) {
 	wlr_xwayland_set_seat(xwayland, seat);
 
 	/* Set the default XWayland cursor to match the rest of dwl. */
-	if ((xcursor = wlr_xcursor_manager_get_xcursor(cursor_mgr, "default", 1)))
-		wlr_xwayland_set_cursor(
-			xwayland, xcursor->images[0]->buffer, xcursor->images[0]->width * 4,
-			xcursor->images[0]->width, xcursor->images[0]->height,
-			xcursor->images[0]->hotspot_x, xcursor->images[0]->hotspot_y);
+	if ((xcursor = wlr_xcursor_manager_get_xcursor(cursor_mgr, "default", 1))) {
+		struct wlr_xcursor_image *image = xcursor->images[0];
+		struct wlr_buffer *buffer = wlr_xcursor_image_get_buffer(image);
+		wlr_xwayland_set_cursor(xwayland, buffer, xcursor->images[0]->hotspot_x,
+								xcursor->images[0]->hotspot_y);
+	}
+
 	/* xwayland can't auto sync the keymap, so we do it manually
 	  and we need to wait the xwayland completely inited
 	*/

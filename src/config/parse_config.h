@@ -74,6 +74,7 @@ typedef struct {
 	int32_t isunglobal;
 	int32_t isglobal;
 	int32_t isoverlay;
+	int32_t shield_when_capture;
 	int32_t allow_shortcuts_inhibit;
 	int32_t ignore_maximize;
 	int32_t ignore_minimize;
@@ -2349,6 +2350,7 @@ bool parse_option(Config *config, char *key, char *value) {
 		rule->isunglobal = -1;
 		rule->isglobal = -1;
 		rule->isoverlay = -1;
+		rule->shield_when_capture = -1;
 		rule->allow_shortcuts_inhibit = -1;
 		rule->ignore_maximize = -1;
 		rule->ignore_minimize = -1;
@@ -2456,6 +2458,8 @@ bool parse_option(Config *config, char *key, char *value) {
 					rule->focused_opacity = atof(val);
 				} else if (strcmp(key, "isoverlay") == 0) {
 					rule->isoverlay = atoi(val);
+				} else if (strcmp(key, "shield_when_capture") == 0) {
+					rule->shield_when_capture = atoi(val);
 				} else if (strcmp(key, "allow_shortcuts_inhibit") == 0) {
 					rule->allow_shortcuts_inhibit = atoi(val);
 				} else if (strcmp(key, "ignore_maximize") == 0) {
@@ -3683,7 +3687,7 @@ void set_value_default() {
 	config.view_current_to_back = 0;
 	config.single_scratchpad = 1;
 	config.xwayland_persistence = 1;
-	config.syncobj_enable = 0;
+	config.syncobj_enable = 1;
 	config.tag_carousel = 0;
 	config.drag_tile_refresh_interval = 8.0f;
 	config.drag_floating_refresh_interval = 8.0f;
@@ -3738,7 +3742,6 @@ void set_value_default() {
 	config.blur_layer = 0;
 	config.blur_optimized = 1;
 	config.border_radius = 0;
-	config.border_radius_location_default = CORNER_LOCATION_ALL;
 	config.blur_params.num_passes = 1;
 	config.blur_params.radius = 5;
 	config.blur_params.noise = 0.02f;
