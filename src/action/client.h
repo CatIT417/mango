@@ -168,7 +168,7 @@ void client_focus_group_member(Client *c) {
 	arrange(c->mon, false, false);
 }
 
-void client_set_tab_node_visible(Client *c) {
+void client_check_tab_node_visible(Client *c) {
 
 	if (!c || c->iskilling)
 		return;

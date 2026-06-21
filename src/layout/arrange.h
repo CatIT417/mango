@@ -1132,6 +1132,10 @@ void pre_caculate_before_arrange(Monitor *m, bool want_animation,
 			client_add_jump_label_node(c);
 		}
 
+		if (c->tab_bar_node && c->tab_bar_node->scene_buffer->node.enabled) {
+			client_check_tab_node_visible(c);
+		}
+
 		if (c->mon == m && (c->isglobal || c->isunglobal)) {
 			c->tags = m->tagset[m->seltags];
 		}

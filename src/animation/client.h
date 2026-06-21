@@ -460,7 +460,7 @@ void client_draw_title(Client *c) {
 		}
 		return;
 	} else {
-		client_set_tab_node_visible(c);
+		client_check_tab_node_visible(c);
 	}
 
 	int32_t bar_w = tw / count;
