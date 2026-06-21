@@ -5684,6 +5684,7 @@ setfloating(Client *c, int32_t floating) {
 	}
 
 	if (c->isfloating) {
+		set_size_per(c->mon, c);
 		client_raise_group_tab_bar(c);
 	}
 

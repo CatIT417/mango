@@ -20,7 +20,7 @@ void set_size_per(Monitor *m, Client *c) {
 		}
 	}
 
-	if (!found) {
+	if (!found || c->isfloating) {
 		c->master_mfact_per = m->pertag->mfacts[m->pertag->curtag];
 		c->master_inner_per = 1.0f;
 		c->stack_inner_per = 1.0f;
