@@ -198,6 +198,40 @@ int32_t groupjoin(const Arg *arg) {
 	return 0;
 }
 
+int32_t groupleave(const Arg *arg) {
+
+	if (!selmon)
+		return 0;
+	Client *tc = arg->tc ? arg->tc : selmon->sel;
+	if (!tc || !tc->isgroupfocusing)
+		return 0;
+	if (!tc->group_next && !tc->group_prev) {
+		return 0;
+	}
+	Client *rc = tc->group_next ? tc->group_next : tc->group_prev;
+
+	client_focus_group_member(rc);
+
+	if (tc->group_prev) {
+		tc->group_prev->group_next = tc->group_next;
+	}
+
+	if (tc->group_next) {
+		tc->group_next->group_prev = tc->group_prev;
+	}
+
+	tc->group_prev = NULL;
+	tc->group_next = NULL;
+	tc->isgroupfocusing = false;
+
+	wl_list_insert(&rc->link, &tc->link);
+	wl_list_insert(&rc->flink, &tc->flink);
+
+	arrange(tc->mon, false, false);
+
+	return 0;
+}
+
 int32_t focuslast(const Arg *arg) {
 	Client *c = NULL;
 	Client *tc = NULL;

@@ -1020,6 +1020,8 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
 	} else if (strcmp(func_name, "groupjoin") == 0) {
 		func = groupjoin;
 		(*arg).i = parse_direction(arg_value);
+	} else if (strcmp(func_name, "groupleave") == 0) {
+		func = groupleave;
 	} else if (strcmp(func_name, "focusid") == 0) {
 		func = focusid;
 	} else if (strcmp(func_name, "incnmaster") == 0) {
