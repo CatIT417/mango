@@ -227,6 +227,10 @@ int32_t groupleave(const Arg *arg) {
 	wl_list_insert(&rc->link, &tc->link);
 	wl_list_insert(&rc->flink, &tc->flink);
 
+	if (!rc->group_prev && !rc->group_next) {
+		rc->isgroupfocusing = false;
+	}
+
 	arrange(tc->mon, false, false);
 
 	return 0;
