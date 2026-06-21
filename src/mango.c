@@ -115,6 +115,8 @@
 #define ISTILED(A)                                                             \
 	(A && !(A)->isfloating && !(A)->isminimized && !(A)->iskilling &&          \
 	 !(A)->ismaximizescreen && !(A)->isfullscreen && !(A)->isunglobal)
+#define ISNORMAL(A)                                                            \
+	(A && !(A)->isminimized && !(A)->iskilling && !(A)->isunglobal)
 #define ISSCROLLTILED(A)                                                       \
 	(A && !(A)->isfloating && !(A)->isminimized && !(A)->iskilling &&          \
 	 !(A)->isunglobal)

@@ -181,7 +181,7 @@ void client_check_tab_node_visible(Client *c) {
 	while (cur) {
 		if (!c->mon->isoverview && cur->tab_bar_node &&
 			(cur->group_next || cur->group_prev) && VISIBLEON(c, c->mon) &&
-			ISSCROLLTILED(c) && !c->isfullscreen &&
+			ISNORMAL(c) && !c->isfullscreen &&
 			(!is_monocle_layout(c->mon) || c == c->mon->sel)) {
 			wlr_scene_node_set_enabled(&cur->tab_bar_node->scene_buffer->node,
 									   true);
