@@ -170,8 +170,9 @@ enum {
 	LyrBg,
 	LyrBlur,
 	LyrBottom,
-	LyrDecorate,
 	LyrTile,
+	LyrDecorate,
+	LyrMaximize,
 	LyrTop,
 	LyrFadeOut,
 	LyrOverlay,
@@ -5761,6 +5762,7 @@ void setmaximizescreen(Client *c, int32_t maximizescreen, bool rearrange) {
 		}
 
 		wlr_scene_node_raise_to_top(&c->scene->node);
+		client_raise_group_tab_bar(c);
 		if (!is_scroller_layout(c->mon) || c->isfloating)
 			resize(c, maximizescreen_box, 0);
 	} else {
@@ -5770,7 +5772,9 @@ void setmaximizescreen(Client *c, int32_t maximizescreen, bool rearrange) {
 	}
 
 	wlr_scene_node_reparent(&c->scene->node,
-							layers[c->isfloating ? LyrTop : LyrTile]);
+							layers[c->ismaximizescreen ? LyrMaximize
+								   : c->isfloating	   ? LyrTop
+													   : LyrTile]);
 
 	if (!c->force_fakemaximize && !c->ismaximizescreen) {
 		client_set_maximized(c, false);

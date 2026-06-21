@@ -181,12 +181,33 @@ void client_set_tab_node_visible(Client *c) {
 	while (cur) {
 		if (!c->mon->isoverview && cur->tab_bar_node &&
 			(cur->group_next || cur->group_prev) && VISIBLEON(c, c->mon) &&
-			ISSCROLLTILED(c) && !c->isfullscreen) {
+			ISSCROLLTILED(c) && !c->isfullscreen &&
+			(!is_monocle_layout(c->mon) || c == c->mon->sel)) {
 			wlr_scene_node_set_enabled(&cur->tab_bar_node->scene_buffer->node,
 									   true);
 		} else {
 			wlr_scene_node_set_enabled(&cur->tab_bar_node->scene_buffer->node,
 									   false);
+		}
+		cur = cur->group_next;
+	}
+}
+
+void client_raise_group_tab_bar(Client *c) {
+	if (!c || !c->mon)
+		return;
+
+	if (!c->group_prev && !c->group_next)
+		return;
+
+	Client *head = c;
+	while (head->group_prev)
+		head = head->group_prev;
+
+	Client *cur = head;
+	while (cur) {
+		if (cur->tab_bar_node) {
+			wlr_scene_node_raise_to_top(&cur->tab_bar_node->scene_buffer->node);
 		}
 		cur = cur->group_next;
 	}
