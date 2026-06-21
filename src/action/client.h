@@ -163,6 +163,9 @@ void client_focus_group_member(Client *c) {
 
 	c->isgroupfocusing = true;
 	mango_tab_bar_node_set_focus(c->tab_bar_node, true);
+
+	client_reparent_group(c);
+
 	focusclient(c, 1);
 
 	arrange(c->mon, false, false);
@@ -193,7 +196,7 @@ void client_check_tab_node_visible(Client *c) {
 	}
 }
 
-void client_raise_group_tab_bar(Client *c) {
+void client_raise_group(Client *c) {
 	if (!c || !c->mon)
 		return;
 
@@ -208,7 +211,54 @@ void client_raise_group_tab_bar(Client *c) {
 	while (cur) {
 		if (cur->tab_bar_node) {
 			wlr_scene_node_raise_to_top(&cur->tab_bar_node->scene_buffer->node);
+			wlr_scene_node_raise_to_top(&cur->scene->node);
 		}
 		cur = cur->group_next;
+	}
+}
+
+void client_reparent_group(Client *c) {
+	if (!c || !c->tab_bar_node)
+		return;
+
+	if (!c->group_prev && !c->group_next)
+		return;
+
+	int32_t bar_layer = c->isfloating ? LyrDecorateTop : LyrDecorate;
+	int32_t client_layer = c->isfloating || c->isfullscreen ? LyrTop
+						   : c->ismaximizescreen			? LyrMaximize
+															: LyrTile;
+
+	Client *head = c;
+	while (head->group_prev)
+		head = head->group_prev;
+
+	Client *cur = head;
+	while (cur) {
+		if (cur->tab_bar_node) {
+			wlr_scene_node_reparent(&cur->tab_bar_node->scene_buffer->node,
+									layers[bar_layer]);
+			wlr_scene_node_reparent(&cur->scene->node, layers[client_layer]);
+		}
+		cur = cur->group_next;
+	}
+}
+
+void client_handle_decorate_click(int32_t x, int32_t y) {
+	struct wlr_scene_node *node =
+		wlr_scene_node_at(&layers[LyrDecorateTop]->node, x, y, NULL, NULL);
+
+	if (!node || !node->data) {
+		node = wlr_scene_node_at(&layers[LyrDecorate]->node, x, y, NULL, NULL);
+	}
+
+	if (!node || !node->data) {
+		return;
+	}
+
+	MangoNodeData *mangonodedata = (MangoNodeData *)node->data;
+	if (mangonodedata->type == MANGO_TITLE_NODE) {
+		Client *c = mangonodedata->node_data;
+		client_focus_group_member(c);
 	}
 }

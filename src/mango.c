@@ -175,6 +175,7 @@ enum {
 	LyrTile,
 	LyrDecorate,
 	LyrMaximize,
+	LyrDecorateTop,
 	LyrTop,
 	LyrFadeOut,
 	LyrOverlay,
@@ -943,6 +944,8 @@ static void finish_jump_mode(Monitor *m);
 static void begin_jump_mode(Monitor *m);
 static void global_draw_tab_bar(Client *c, int32_t x, int32_t y, int32_t width,
 								int32_t height);
+
+static void client_reparent_group(Client *c);
 
 #include "data/static_keymap.h"
 #include "dispatch/bind_declare.h"
@@ -2484,15 +2487,7 @@ bool handle_buttonpress(struct wlr_pointer_button_event *event) {
 		}
 
 		// handle click on tile node
-		struct wlr_scene_node *node = wlr_scene_node_at(
-			&layers[LyrDecorate]->node, cursor->x, cursor->y, NULL, NULL);
-		if (node && node->data) {
-			MangoNodeData *mangonodedata = (MangoNodeData *)node->data;
-			if (mangonodedata->type == MANGO_TITLE_NODE) {
-				Client *c = mangonodedata->node_data;
-				client_focus_group_member(c);
-			}
-		}
+		client_handle_decorate_click(cursor->x, cursor->y);
 
 		// 当鼠标焦点在layer上的时候，不检测虚拟键盘的mod状态，
 		// 避免layer虚拟键盘锁死mod按键状态
@@ -3952,8 +3947,10 @@ void focusclient(Client *c, int32_t lift) {
 		return;
 
 	/* Raise client in stacking order if requested */
-	if (c && lift)
+	if (c && lift) {
+		client_raise_group(c);
 		wlr_scene_node_raise_to_top(&c->scene->node); // 将视图提升到顶层
+	}
 
 	if (c && client_surface(c) == old_keyboard_focus_surface && selmon &&
 		selmon->sel)
@@ -5683,9 +5680,10 @@ setfloating(Client *c, int32_t floating) {
 								layers[c->isfloating ? LyrTop : LyrTile]);
 	}
 
+	client_reparent_group(c);
+
 	if (c->isfloating) {
 		set_size_per(c->mon, c);
-		client_raise_group_tab_bar(c);
 	}
 
 	if (!c->force_fakemaximize)
@@ -5769,7 +5767,6 @@ void setmaximizescreen(Client *c, int32_t maximizescreen, bool rearrange) {
 		}
 
 		wlr_scene_node_raise_to_top(&c->scene->node);
-		client_raise_group_tab_bar(c);
 		if (!is_scroller_layout(c->mon) || c->isfloating)
 			resize(c, maximizescreen_box, 0);
 	} else {
@@ -5782,6 +5779,7 @@ void setmaximizescreen(Client *c, int32_t maximizescreen, bool rearrange) {
 							layers[c->ismaximizescreen ? LyrMaximize
 								   : c->isfloating	   ? LyrTop
 													   : LyrTile]);
+	client_reparent_group(c);
 
 	if (!c->force_fakemaximize && !c->ismaximizescreen) {
 		client_set_maximized(c, false);
@@ -5850,6 +5848,8 @@ void setfullscreen(Client *c, int32_t fullscreen,
 			&c->scene->node,
 			layers[fullscreen || c->isfloating ? LyrTop : LyrTile]);
 	}
+
+	client_reparent_group(c);
 
 	if (rearrange)
 		arrange(c->mon, false, false);
