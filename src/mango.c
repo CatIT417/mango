@@ -5683,6 +5683,10 @@ setfloating(Client *c, int32_t floating) {
 								layers[c->isfloating ? LyrTop : LyrTile]);
 	}
 
+	if (c->isfloating) {
+		client_raise_group_tab_bar(c);
+	}
+
 	if (!c->force_fakemaximize)
 		client_set_maximized(c, false);
 
