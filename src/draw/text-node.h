@@ -72,7 +72,7 @@ typedef struct {
 } MangoJumpLabel;
 
 typedef struct {
-	uint32_t type;
+	uint32_t type; // must at first in struct
 	struct wlr_scene_buffer *scene_buffer;
 	struct mango_text_buffer *buffer;
 	cairo_surface_t *surface;

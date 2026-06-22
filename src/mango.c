@@ -328,7 +328,7 @@ typedef struct {
 
 struct Client {
 	/* Must keep these three elements in this order */
-	uint32_t type; /* XDGShell or X11* */
+	uint32_t type; // must at first in struct
 	struct wlr_box geom, pending, float_geom, animainit_geom,
 		overview_backup_geom, current,
 		drag_begin_geom; /* layout-relative, includes border */
@@ -509,7 +509,7 @@ typedef struct {
 
 typedef struct {
 	/* Must keep these three elements in this order */
-	uint32_t type; /* LayerShell */
+	uint32_t type; // must at first in struct
 	struct wlr_box geom, current, pending, animainit_geom;
 	Monitor *mon;
 	struct wlr_scene_tree *scene;
@@ -539,7 +539,7 @@ typedef struct {
 } LayerSurface;
 
 typedef struct {
-	uint32_t type;
+	uint32_t type; // must at first in struct
 	struct wlr_xdg_popup *wlr_popup;
 	struct wl_listener destroy;
 	struct wl_listener commit;
@@ -651,7 +651,7 @@ struct TagScrollerState {
 };
 
 typedef struct {
-	uint32_t type;
+	uint32_t type; // must at first in struct
 	int32_t orig_width;
 	int32_t orig_height;
 	bool is_subsurface;

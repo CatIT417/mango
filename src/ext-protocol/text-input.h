@@ -27,7 +27,7 @@ struct dwl_input_method_relay {
 };
 
 struct dwl_input_method_popup {
-	uint32_t type;
+	uint32_t type; // must at first in struct
 	struct wlr_input_popup_surface_v2 *popup_surface;
 	struct wlr_scene_tree *tree;
 	struct wlr_scene_tree *scene_surface;
