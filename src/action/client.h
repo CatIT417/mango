@@ -162,6 +162,7 @@ void client_focus_group_member(Client *c) {
 
 	if (cur_focusing) {
 		cur_focusing->isgroupfocusing = false;
+		c->mon = cur_focusing->mon;
 		client_replace(c, cur_focusing, true);
 		mango_tab_bar_node_set_focus(cur_focusing->tab_bar_node, false);
 	}
