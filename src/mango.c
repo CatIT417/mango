@@ -165,9 +165,17 @@ enum { TOP_LEFT, TOP_RIGHT, BOTTOM_LEFT, BOTTOM_RIGHT };
 
 enum { VERTICAL, HORIZONTAL };
 enum { SWIPE_UP, SWIPE_DOWN, SWIPE_LEFT, SWIPE_RIGHT };
-enum { CurNormal, CurPressed, CurMove, CurResize };			  /* cursor */
-enum { XDGShell, LayerShell, X11, CustomDecorate, Snapshot }; /* client types */
-enum { AxisUp, AxisDown, AxisLeft, AxisRight };				  // 滚轮滚动的方向
+enum { CurNormal, CurPressed, CurMove, CurResize }; /* cursor */
+enum {
+	XDGShell,
+	LayerShell,
+	X11,
+	Snapshot,
+	XdgPopup,
+	XdgImPopup,
+	GroupBar
+}; /* client types */
+enum { AxisUp, AxisDown, AxisLeft, AxisRight }; // 滚轮滚动的方向
 enum {
 	LyrBg,
 	LyrBlur,
@@ -181,8 +189,6 @@ enum {
 	LyrBlock,
 	NUM_LAYERS
 }; /* scene layers */
-
-enum mango_node_type { MANGO_TITLE_NODE, MANGO_JUMP_NODE };
 
 #ifdef XWAYLAND
 enum {
@@ -249,13 +255,6 @@ typedef struct {
 	uint32_t ui2;
 	Client *tc;
 } Arg;
-
-typedef struct {
-	uint32_t type;
-	enum mango_node_type node_type;
-	void *node_data;
-} MangoCustomDecorate;
-
 typedef struct {
 	uint32_t mod;
 	uint32_t button;
@@ -347,8 +346,8 @@ struct Client {
 	struct wlr_ext_image_capture_source_v1 *image_capture_source;
 	struct wlr_scene_surface *image_capture_scene_surface;
 	struct wlr_scene_tree *overview_scene_surface;
-	struct mango_jump_label_node *jump_label_node;
-	struct mango_tab_bar_node *tab_bar_node;
+	MangoJumpLabel *jump_label_node;
+	MangoGroupBar *group_bar;
 	struct wl_list link;
 	struct wl_list flink;
 	struct wl_list fadeout_link;
@@ -540,6 +539,7 @@ typedef struct {
 } LayerSurface;
 
 typedef struct {
+	uint32_t type;
 	struct wlr_xdg_popup *wlr_popup;
 	struct wl_listener destroy;
 	struct wl_listener commit;
@@ -805,7 +805,7 @@ static Monitor *get_monitor_nearest_to(int32_t x, int32_t y);
 static void handle_iamge_copy_capture_new_session(struct wl_listener *listener,
 												  void *data);
 static void xytonode(double x, double y, struct wlr_surface **psurface,
-					 Client **pc, LayerSurface **pl, MangoCustomDecorate **pd,
+					 Client **pc, LayerSurface **pl, MangoGroupBar **tb,
 					 double *nx, double *ny);
 static void clear_fullscreen_flag(Client *c);
 static pid_t getparentprocess(pid_t p);
@@ -943,8 +943,8 @@ static void overview_backup_surface(Client *c);
 static void create_jump_hints(Monitor *m);
 static void finish_jump_mode(Monitor *m);
 static void begin_jump_mode(Monitor *m);
-static void global_draw_tab_bar(Client *c, int32_t x, int32_t y, int32_t width,
-								int32_t height);
+static void global_draw_group_bar(Client *c, int32_t x, int32_t y,
+								  int32_t width, int32_t height);
 
 static void client_reparent_group(Client *c);
 
@@ -1333,7 +1333,7 @@ void client_replace(Client *c, Client *w, bool isgroupaction) {
 		}
 
 		if (c->isgroupfocusing)
-			mango_tab_bar_node_set_focus(c->tab_bar_node, true);
+			mango_group_bar_set_focus(c->group_bar, true);
 	}
 
 	if (w->overview_scene_surface) {
@@ -1346,8 +1346,8 @@ void client_replace(Client *c, Client *w, bool isgroupaction) {
 		overview_backup_surface(c);
 	}
 
-	if (w->tab_bar_node && !isgroupaction) {
-		wlr_scene_node_set_enabled(&w->tab_bar_node->scene_buffer->node, false);
+	if (w->group_bar && !isgroupaction) {
+		wlr_scene_node_set_enabled(&w->group_bar->scene_buffer->node, false);
 	}
 
 	if (c->link.prev && c->link.next && c->link.prev != &c->link) {
@@ -2436,7 +2436,7 @@ bool handle_buttonpress(struct wlr_pointer_button_event *event) {
 	uint32_t hard_mods, mods;
 	Client *c = NULL;
 	LayerSurface *l = NULL;
-	MangoCustomDecorate *md = NULL;
+	MangoGroupBar *gb = NULL;
 	struct wlr_surface *surface;
 	Client *tmpc = NULL;
 	int32_t ji;
@@ -2458,7 +2458,7 @@ bool handle_buttonpress(struct wlr_pointer_button_event *event) {
 		if (locked)
 			break;
 
-		xytonode(cursor->x, cursor->y, &surface, NULL, NULL, &md, NULL, NULL);
+		xytonode(cursor->x, cursor->y, &surface, NULL, NULL, &gb, NULL, NULL);
 		if (toplevel_from_wlr_surface(surface, &c, &l) >= 0) {
 			if (c && c->scene->node.enabled &&
 				(!client_is_unmanaged(c) || client_wants_focus(c)))
@@ -2489,7 +2489,7 @@ bool handle_buttonpress(struct wlr_pointer_button_event *event) {
 		}
 
 		// handle click on tile node
-		client_handle_decorate_click(md);
+		client_handle_decorate_click(gb);
 
 		// 当鼠标焦点在layer上的时候，不检测虚拟键盘的mod状态，
 		// 避免layer虚拟键盘锁死mod按键状态
@@ -3153,6 +3153,8 @@ static void createpopup(struct wl_listener *listener, void *data) {
 	Popup *popup = calloc(1, sizeof(Popup));
 	if (!popup)
 		return;
+
+	popup->type = XdgPopup;
 
 	popup->destroy.notify = destroypopup;
 	wl_signal_add(&wlr_popup->events.destroy, &popup->destroy);
@@ -4521,7 +4523,7 @@ void init_client_properties(Client *c) {
 	c->grid_col_per = 1.0f;
 	c->grid_row_per = 1.0f;
 	c->jump_label_node = NULL;
-	c->tab_bar_node = NULL;
+	c->group_bar = NULL;
 	c->overview_scene_surface = NULL;
 	c->drop_direction = UNDIR;
 	c->enable_drop_area_draw = false;
@@ -4698,7 +4700,7 @@ mapnotify(struct wl_listener *listener, void *data) {
 		wlr_scene_node_set_enabled(&c->splitindicator[i]->node, false);
 	}
 
-	client_add_tab_bar_node(c);
+	client_add_group_bar(c);
 
 	c->droparea = wlr_scene_rect_create(c->scene, 0, 0, config.dropcolor);
 	wlr_scene_node_lower_to_bottom(&c->droparea->node);
@@ -5716,9 +5718,9 @@ void reset_maximizescreen_size(Client *c) {
 	geom.width = c->mon->w.width - 2 * config.gappoh;
 	geom.height = c->mon->w.height - 2 * config.gappov;
 
-	if ((c->group_next || c->group_prev) && c->tab_bar_node) {
-		geom.height -= config.tab_bar_height;
-		geom.y += config.tab_bar_height;
+	if ((c->group_next || c->group_prev) && c->group_bar) {
+		geom.height -= config.group_bar_height;
+		geom.y += config.group_bar_height;
 	}
 
 	resize(c, geom, 0);
@@ -5763,9 +5765,9 @@ void setmaximizescreen(Client *c, int32_t maximizescreen, bool rearrange) {
 		maximizescreen_box.width = c->mon->w.width - 2 * config.gappoh;
 		maximizescreen_box.height = c->mon->w.height - 2 * config.gappov;
 
-		if ((c->group_next || c->group_prev) && c->tab_bar_node) {
-			maximizescreen_box.height -= config.tab_bar_height;
-			maximizescreen_box.y += config.tab_bar_height;
+		if ((c->group_next || c->group_prev) && c->group_bar) {
+			maximizescreen_box.height -= config.group_bar_height;
+			maximizescreen_box.y += config.group_bar_height;
 		}
 
 		wlr_scene_node_raise_to_top(&c->scene->node);
@@ -6853,9 +6855,9 @@ void unmapnotify(struct wl_listener *listener, void *data) {
 		mango_jump_label_node_destroy(c->jump_label_node);
 		c->jump_label_node = NULL;
 	}
-	if (c->tab_bar_node) {
-		mango_tab_bar_node_destroy(c->tab_bar_node);
-		c->tab_bar_node = NULL;
+	if (c->group_bar) {
+		mango_group_bar_destroy(c->group_bar);
+		c->group_bar = NULL;
 	}
 
 	wlr_scene_node_destroy(&c->image_capture_scene_surface->buffer->node);
@@ -7015,7 +7017,7 @@ void updatetitle(struct wl_listener *listener, void *data) {
 
 	const char *title;
 	title = client_get_title(c);
-	mango_tab_bar_node_update(c->tab_bar_node, title, 1.0);
+	mango_group_bar_update(c->group_bar, title, 1.0);
 	if (title && c->foreign_toplevel)
 		wlr_foreign_toplevel_handle_v1_set_title(c->foreign_toplevel, title);
 	if (title && c->ext_foreign_toplevel) {

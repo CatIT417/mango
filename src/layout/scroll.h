@@ -698,7 +698,7 @@ void vertical_scroller(Monitor *m) {
 	} else {
 		bar_height = !root_client->isfullscreen && (root_client->group_prev ||
 													root_client->group_next)
-						 ? config.tab_bar_height
+						 ? config.group_bar_height
 						 : 0;
 
 		target_geom.y = root_client->geom.y - bar_height;
@@ -718,7 +718,7 @@ void vertical_scroller(Monitor *m) {
 		bar_height = !heads[focus_index - i + 1]->client->isfullscreen &&
 							 (heads[focus_index - i + 1]->client->group_prev ||
 							  heads[focus_index - i + 1]->client->group_next)
-						 ? config.tab_bar_height
+						 ? config.group_bar_height
 						 : 0;
 
 		up_geom.y = heads[focus_index - i + 1]->client->geom.y - cur_gappiv -

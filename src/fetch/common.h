@@ -100,13 +100,12 @@ static bool layer_ignores_focus(LayerSurface *l) {
 }
 
 void xytonode(double x, double y, struct wlr_surface **psurface, Client **pc,
-			  LayerSurface **pl, MangoCustomDecorate **pd, double *nx,
-			  double *ny) {
+			  LayerSurface **pl, MangoGroupBar **gb, double *nx, double *ny) {
 	struct wlr_scene_node *node = NULL, *pnode = NULL;
 	struct wlr_surface *surface = NULL;
 	Client *c = NULL;
 	LayerSurface *l = NULL;
-	MangoCustomDecorate *mangocustomdecorate = NULL;
+	MangoGroupBar *mangogroupbar = NULL;
 	int32_t layer;
 	Client *ovc = NULL;
 
@@ -116,8 +115,8 @@ void xytonode(double x, double y, struct wlr_surface **psurface, Client **pc,
 		*pc = NULL;
 	if (pl)
 		*pl = NULL;
-	if (pd)
-		*pd = NULL;
+	if (gb)
+		*gb = NULL;
 
 	for (layer = NUM_LAYERS - 1; layer >= 0; layer--) {
 		if (layer == LyrFadeOut)
@@ -152,8 +151,8 @@ void xytonode(double x, double y, struct wlr_surface **psurface, Client **pc,
 				Client *temp_c = (Client *)data;
 				if (temp_c->type == LayerShell) {
 					l = (LayerSurface *)temp_c;
-				} else if (temp_c->type == CustomDecorate) {
-					mangocustomdecorate = (MangoCustomDecorate *)temp_c;
+				} else if (temp_c->type == GroupBar) {
+					mangogroupbar = (MangoGroupBar *)temp_c;
 				} else if (temp_c->type == XDGShell || temp_c->type == X11) {
 					c = temp_c;
 				}
@@ -175,8 +174,8 @@ void xytonode(double x, double y, struct wlr_surface **psurface, Client **pc,
 		*pc = c;
 	if (pl)
 		*pl = l;
-	if (pd)
-		*pd = mangocustomdecorate;
+	if (gb)
+		*gb = mangogroupbar;
 
 	if (selmon && selmon->isoverview && config.ov_no_resize) {
 		ovc = xytoclient(x, y);
@@ -196,8 +195,8 @@ void xytonode(double x, double y, struct wlr_surface **psurface, Client **pc,
 				*psurface = ovc ? client_surface(ovc) : NULL;
 			if (pl)
 				*pl = NULL;
-			if (pd)
-				*pd = NULL;
+			if (gb)
+				*gb = NULL;
 		}
 	}
 }

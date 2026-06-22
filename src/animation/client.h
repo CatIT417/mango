@@ -414,12 +414,12 @@ void client_draw_shadow(Client *c) {
 
 void client_draw_title(Client *c) {
 
-	if (!c || !c->tab_bar_node)
+	if (!c || !c->group_bar)
 		return;
 
-	if (!c->group_next && !c->group_prev && c->tab_bar_node &&
-		c->tab_bar_node->scene_buffer->node.enabled) {
-		wlr_scene_node_set_enabled(&c->tab_bar_node->scene_buffer->node, false);
+	if (!c->group_next && !c->group_prev && c->group_bar &&
+		c->group_bar->scene_buffer->node.enabled) {
+		wlr_scene_node_set_enabled(&c->group_bar->scene_buffer->node, false);
 		return;
 	}
 
@@ -438,21 +438,21 @@ void client_draw_title(Client *c) {
 	}
 
 	int32_t tab_x = c->animation.current.x;
-	int32_t tab_y = c->animation.current.y - config.tab_bar_height;
+	int32_t tab_y = c->animation.current.y - config.group_bar_height;
 	int32_t tw = c->animation.current.width;
-	int32_t th = config.tab_bar_height;
+	int32_t th = config.group_bar_height;
 
 	int32_t left_over = c->mon->m.x - tab_x;
 	int32_t right_over = tab_x + tw - c->mon->m.x - c->mon->m.width;
 	int32_t top_over = c->mon->m.y - tab_y;
 	int32_t bottom_over =
-		tab_y + config.tab_bar_height - c->mon->m.y - c->mon->m.height;
+		tab_y + config.group_bar_height - c->mon->m.y - c->mon->m.height;
 
 	if (c != grabc &&
 		(ISSCROLLTILED(c) || c->animation.tagining || c->animation.tagouting)) {
 		if (top_over > 0) {
 			tab_y = c->mon->m.y;
-			th = config.tab_bar_height - top_over;
+			th = config.group_bar_height - top_over;
 		}
 		if (bottom_over > 0) {
 			th = th - bottom_over;
@@ -469,9 +469,9 @@ void client_draw_title(Client *c) {
 	if (tw <= 0 || th <= 0) {
 		cur = head;
 		while (cur) {
-			if (cur->tab_bar_node)
-				wlr_scene_node_set_enabled(
-					&cur->tab_bar_node->scene_buffer->node, false);
+			if (cur->group_bar)
+				wlr_scene_node_set_enabled(&cur->group_bar->scene_buffer->node,
+										   false);
 			cur = cur->group_next;
 		}
 		return;
@@ -486,7 +486,7 @@ void client_draw_title(Client *c) {
 
 	for (int i = 0; i < count && cur; i++) {
 		int32_t w = bar_w + (i < rem ? 1 : 0);
-		global_draw_tab_bar(cur, x, tab_y, w, th);
+		global_draw_group_bar(cur, x, tab_y, w, th);
 		x += w;
 		cur = cur->group_next;
 	}
@@ -532,17 +532,17 @@ void client_draw_blur(Client *c, struct wlr_box clip_box, struct ivec2 offset) {
 	}
 }
 
-void global_draw_tab_bar(Client *c, int32_t x, int32_t y, int32_t width,
-						 int32_t height) {
-	if (!c->tab_bar_node)
+void global_draw_group_bar(Client *c, int32_t x, int32_t y, int32_t width,
+						   int32_t height) {
+	if (!c->group_bar)
 		return;
 
 	if (height <= 0) {
-		wlr_scene_node_set_enabled(&c->tab_bar_node->scene_buffer->node, false);
+		wlr_scene_node_set_enabled(&c->group_bar->scene_buffer->node, false);
 	}
 
-	wlr_scene_node_set_position(&c->tab_bar_node->scene_buffer->node, x, y);
-	mango_tab_bar_node_set_size(c->tab_bar_node, width, height);
+	wlr_scene_node_set_position(&c->group_bar->scene_buffer->node, x, y);
+	mango_group_bar_set_size(c->group_bar, width, height);
 }
 
 void apply_split_border(Client *c, bool hit_no_border) {
