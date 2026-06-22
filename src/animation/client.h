@@ -12,6 +12,12 @@ void set_rect_size(struct wlr_scene_rect *rect, int32_t width, int32_t height) {
 struct fx_corner_radii set_client_corner_location(Client *c) {
 	struct fx_corner_radii current_corner_location =
 		corner_radii_all(config.border_radius);
+
+	if (c == grabc ||
+		(!ISTILED(c) && !c->animation.tagining && !c->animation.tagouting)) {
+		return current_corner_location;
+	}
+
 	struct wlr_box target_geom =
 		config.animations ? c->animation.current : c->geom;
 	if (target_geom.x + config.border_radius <= c->mon->m.x) {
@@ -370,7 +376,8 @@ void client_draw_shadow(Client *c) {
 
 	int32_t right_offset, bottom_offset, left_offset, top_offset;
 
-	if (c == grabc) {
+	if (c == grabc ||
+		(!ISTILED(c) && !c->animation.tagining && !c->animation.tagouting)) {
 		right_offset = 0;
 		bottom_offset = 0;
 		left_offset = 0;
@@ -674,7 +681,8 @@ void apply_border(Client *c) {
 
 	int32_t right_offset, bottom_offset, left_offset, top_offset;
 
-	if (c == grabc) {
+	if (c == grabc ||
+		(!ISTILED(c) && !c->animation.tagining && !c->animation.tagouting)) {
 		right_offset = 0;
 		bottom_offset = 0;
 		left_offset = 0;
