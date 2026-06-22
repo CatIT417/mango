@@ -441,15 +441,22 @@ void client_draw_title(Client *c) {
 	int32_t bottom_over =
 		tab_y + config.tab_bar_height - c->mon->m.y - c->mon->m.height;
 
-	if (top_over > 0)
-		th = config.tab_bar_height - top_over;
-	if (bottom_over > 0)
-		th = th - bottom_over;
-	if (right_over > 0)
-		tw = tw - right_over;
-	if (left_over > 0) {
-		tab_x = c->mon->m.x;
-		tw = tw - left_over;
+	if (c != grabc &&
+		(ISSCROLLTILED(c) || c->animation.tagining || c->animation.tagouting)) {
+		if (top_over > 0) {
+			tab_y = c->mon->m.y;
+			th = config.tab_bar_height - top_over;
+		}
+		if (bottom_over > 0) {
+			th = th - bottom_over;
+		}
+		if (right_over > 0) {
+			tw = tw - right_over;
+		}
+		if (left_over > 0) {
+			tab_x = c->mon->m.x;
+			tw = tw - left_over;
+		}
 	}
 
 	if (tw <= 0 || th <= 0) {
