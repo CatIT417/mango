@@ -126,9 +126,10 @@ void client_add_tab_bar_node(Client *c) {
 	MangoCustomDecorate->node_data = c;
 	MangoCustomDecorate->node_type = MANGO_TITLE_NODE;
 	MangoCustomDecorate->type = CustomDecorate;
-	uint32_t layer = c->isfloating || c->isfullscreen ? LyrTop
-					 : c->ismaximizescreen			  ? LyrMaximize
-													  : LyrTile;
+	uint32_t layer = c->isoverlay						? LyrOverlay
+					 : c->isfloating || c->isfullscreen ? LyrTop
+					 : c->ismaximizescreen				? LyrMaximize
+														: LyrTile;
 
 	c->tab_bar_node = mango_tab_bar_node_create(
 		MangoCustomDecorate, layers[layer], config.tabdata, 0, 0);
@@ -230,9 +231,10 @@ void client_reparent_group(Client *c) {
 	if (!c->group_prev && !c->group_next)
 		return;
 
-	int32_t layer = c->isfloating || c->isfullscreen ? LyrTop
-					: c->ismaximizescreen			 ? LyrMaximize
-													 : LyrTile;
+	int32_t layer = c->isoverlay					   ? LyrOverlay
+					: c->isfloating || c->isfullscreen ? LyrTop
+					: c->ismaximizescreen			   ? LyrMaximize
+													   : LyrTile;
 
 	Client *head = c;
 	while (head->group_prev)

@@ -1541,6 +1541,8 @@ int32_t toggleoverlay(const Arg *arg) {
 		wlr_scene_node_reparent(&c->scene->node,
 								layers[c->isfloating ? LyrTop : LyrTile]);
 	}
+
+	client_reparent_group(c);
 	setborder_color(c);
 	return 0;
 }
