@@ -1338,6 +1338,12 @@ void client_replace(Client *c, Client *w, bool isgroupaction) {
 	}
 
 	if (w->overview_scene_surface) {
+
+		wlr_scene_node_reparent(&w->blur->node, w->overview_scene_surface);
+		wlr_scene_node_lower_to_bottom(&w->blur->node);
+		wlr_scene_node_reparent(&w->shield->node, w->overview_scene_surface);
+		wlr_scene_node_raise_to_top(&w->shield->node);
+
 		wlr_scene_node_destroy(&w->scene_surface->node);
 		w->scene_surface = w->overview_scene_surface;
 		w->overview_scene_surface = NULL;
