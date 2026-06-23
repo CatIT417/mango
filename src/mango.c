@@ -947,6 +947,7 @@ static void global_draw_group_bar(Client *c, int32_t x, int32_t y,
 								  int32_t width, int32_t height);
 
 static void client_reparent_group(Client *c);
+static void client_change_mon(Client *c, Monitor *m);
 
 #include "data/static_keymap.h"
 #include "dispatch/bind_declare.h"
@@ -2771,10 +2772,8 @@ void closemon(Monitor *m) {
 					c->foreign_toplevel = NULL;
 				}
 
-				c->mon = NULL;
 				client_set_group_mon(c, NULL);
 			} else {
-				client_change_mon(c, selmon);
 				client_set_group_mon(c, selmon);
 			}
 			// record the oldmonname which is used to restore
@@ -3955,7 +3954,6 @@ void focusclient(Client *c, int32_t lift) {
 	/* Raise client in stacking order if requested */
 	if (c && lift) {
 		client_raise_group(c);
-		wlr_scene_node_raise_to_top(&c->scene->node); // 将视图提升到顶层
 	}
 
 	if (c && client_surface(c) == old_keyboard_focus_surface && selmon &&
@@ -5677,15 +5675,6 @@ setfloating(Client *c, int32_t floating) {
 		}
 	}
 
-	if (c->isoverlay) {
-		wlr_scene_node_reparent(&c->scene->node, layers[LyrOverlay]);
-	} else if (client_should_overtop(c) && c->isfloating) {
-		wlr_scene_node_reparent(&c->scene->node, layers[LyrTop]);
-	} else {
-		wlr_scene_node_reparent(&c->scene->node,
-								layers[c->isfloating ? LyrTop : LyrTile]);
-	}
-
 	client_reparent_group(c);
 
 	if (c->isfloating) {
@@ -5781,10 +5770,6 @@ void setmaximizescreen(Client *c, int32_t maximizescreen, bool rearrange) {
 			setfloating(c, 1);
 	}
 
-	wlr_scene_node_reparent(&c->scene->node,
-							layers[c->ismaximizescreen ? LyrMaximize
-								   : c->isfloating	   ? LyrTop
-													   : LyrTile]);
 	client_reparent_group(c);
 
 	if (!c->force_fakemaximize && !c->ismaximizescreen) {
@@ -5843,16 +5828,6 @@ void setfullscreen(Client *c, int32_t fullscreen,
 		c->bw = c->isnoborder ? 0 : config.borderpx;
 		if (c->isfloating)
 			setfloating(c, 1);
-	}
-
-	if (c->isoverlay) {
-		wlr_scene_node_reparent(&c->scene->node, layers[LyrOverlay]);
-	} else if (client_should_overtop(c) && c->isfloating) {
-		wlr_scene_node_reparent(&c->scene->node, layers[LyrTop]);
-	} else {
-		wlr_scene_node_reparent(
-			&c->scene->node,
-			layers[fullscreen || c->isfloating ? LyrTop : LyrTile]);
 	}
 
 	client_reparent_group(c);
