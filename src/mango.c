@@ -4755,14 +4755,14 @@ mapnotify(struct wl_listener *listener, void *data) {
 		wlr_scene_shadow_create(c->scene, 0, 0, config.border_radius,
 								config.shadows_blur, config.shadowscolor);
 
-	c->blur = wlr_scene_blur_create(c->scene_surface, 0, 0);
+	c->blur = wlr_scene_blur_create(c->scene, 0, 0);
 	wlr_scene_node_lower_to_bottom(&c->blur->node);
 
 	wlr_scene_node_lower_to_bottom(&c->shadow->node);
 	wlr_scene_node_set_enabled(&c->shadow->node, true);
 
-	c->shield = wlr_scene_rect_create(c->scene_surface, 0, 0,
-									  (float[4]){0, 0, 0, 0xff});
+	c->shield =
+		wlr_scene_rect_create(c->scene, 0, 0, (float[4]){0, 0, 0, 0xff});
 	c->shield->node.data = c;
 	wlr_scene_node_lower_to_bottom(&c->shield->node);
 	wlr_scene_node_set_enabled(&c->shield->node, false);
@@ -6556,11 +6556,6 @@ void overview_backup_surface(Client *c) {
 		wlr_scene_tree_snapshot(&c->scene_surface->node, c->scene);
 	wlr_scene_node_set_enabled(&c->overview_scene_surface->node, false);
 	wlr_scene_node_set_enabled(&c->scene_surface->node, true);
-
-	wlr_scene_node_reparent(&c->blur->node, c->scene_surface);
-	wlr_scene_node_lower_to_bottom(&c->blur->node);
-	wlr_scene_node_reparent(&c->shield->node, c->scene_surface);
-	wlr_scene_node_raise_to_top(&c->shield->node);
 }
 
 // 普通视图切换到overview时保存窗口的旧状态
@@ -6606,10 +6601,6 @@ void overview_restore(Client *c, const Arg *arg) {
 	c->is_restoring_from_ov = (arg->ui & c->tags & TAGMASK) == 0 ? true : false;
 
 	if (c->overview_scene_surface) {
-		wlr_scene_node_reparent(&c->blur->node, c->overview_scene_surface);
-		wlr_scene_node_lower_to_bottom(&c->blur->node);
-		wlr_scene_node_reparent(&c->shield->node, c->overview_scene_surface);
-		wlr_scene_node_raise_to_top(&c->shield->node);
 		wlr_scene_node_destroy(&c->scene_surface->node);
 		c->scene_surface = c->overview_scene_surface;
 		c->overview_scene_surface = NULL;
