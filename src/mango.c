@@ -126,7 +126,7 @@
 	(A && !(A)->isfloating && !(A)->isminimized && !(A)->iskilling &&          \
 	 !(A)->isunglobal)
 #define VISIBLEON(C, M)                                                        \
-	((C) && (M) && (C)->mon == (M) &&                                          \
+	((C) && (M) && (C)->mon == (M) && !(C)->is_logic_hide &&                   \
 	 (((C)->tags & (M)->tagset[(M)->seltags] || (C)->isglobal ||               \
 	   (C)->isunglobal)))
 #define LENGTH(X) (sizeof X / sizeof X[0])
@@ -473,6 +473,7 @@ struct Client {
 	Client *group_prev;
 	Client *group_next;
 	bool isgroupfocusing;
+	bool is_logic_hide;
 };
 
 typedef struct {
@@ -1375,32 +1376,14 @@ void client_replace(Client *c, Client *w, bool isgroupaction) {
 		wlr_scene_node_set_enabled(&w->group_bar->scene_buffer->node, false);
 	}
 
-	if (c->link.prev && c->link.next && c->link.prev != &c->link) {
-		wl_list_remove(&c->link);
-	}
-	wl_list_init(&c->link);
+	wl_list_remove(&c->link);
+	wl_list_insert(&w->link, &c->link);
 
-	if (c->flink.prev && c->flink.next && c->flink.prev != &c->flink) {
-		wl_list_remove(&c->flink);
-	}
-	wl_list_init(&c->flink);
+	wl_list_remove(&c->flink);
+	wl_list_insert(&w->flink, &c->flink);
 
-	if (w->link.prev && w->link.next && w->link.prev != &w->link) {
-		wl_list_insert(w->link.prev, &c->link);
-		wl_list_remove(&w->link);
-		wl_list_init(&w->link);
-	}
-
-	if (w->flink.prev && w->flink.next && w->flink.prev != &w->flink) {
-		if (selmon && c == selmon->sel) {
-			wl_list_insert(&fstack, &c->flink);
-		} else {
-			wl_list_insert(w->flink.prev, &c->flink);
-		}
-		wl_list_remove(&w->flink);
-		wl_list_init(&w->flink);
-	}
-	/* --------------------------------------------------------------------- */
+	w->is_logic_hide = true;
+	c->is_logic_hide = false;
 
 	if (w->foreign_toplevel) {
 		wlr_foreign_toplevel_handle_v1_output_leave(w->foreign_toplevel,
@@ -4574,6 +4557,7 @@ static void iter_xdg_scene_buffers(struct wlr_scene_buffer *buffer, int32_t sx,
 }
 
 void init_client_properties(Client *c) {
+	c->is_logic_hide = false;
 	c->isgroupfocusing = false;
 	c->group_prev = NULL;
 	c->group_next = NULL;
@@ -6902,8 +6886,6 @@ void unmapnotify(struct wl_listener *listener, void *data) {
 			focusclient(focustop(selmon), 1);
 	} else {
 
-		bool is_in_group = c->group_next || c->group_prev;
-
 		if (c->group_next && !c->isgroupfocusing) {
 			c->group_next->group_prev = c->group_prev;
 		}
@@ -6915,19 +6897,9 @@ void unmapnotify(struct wl_listener *listener, void *data) {
 		c->group_next = NULL;
 		c->group_prev = NULL;
 
-		if (!c->swallowing && (!is_in_group || c->isgroupfocusing)) {
-			if (c->link.prev && c->link.next && c->link.prev != &c->link) {
-				wl_list_remove(&c->link);
-				wl_list_init(&c->link);
-			}
-		}
+		wl_list_remove(&c->link);
 		setmon(c, NULL, 0, true);
-		if (!c->swallowing && (!is_in_group || c->isgroupfocusing)) {
-			if (c->flink.prev && c->flink.next && c->flink.prev != &c->flink) {
-				wl_list_remove(&c->flink);
-				wl_list_init(&c->flink);
-			}
-		}
+		wl_list_remove(&c->flink);
 	}
 
 	if (c->foreign_toplevel) {
