@@ -503,6 +503,7 @@ void client_draw_title(Client *c) {
 void apply_shield(Client *c, struct wlr_box clip_box) {
 
 	if (clip_box.width <= 0 || clip_box.height <= 0) {
+		wlr_scene_node_set_enabled(&c->shield->node, false);
 		return;
 	}
 
@@ -533,7 +534,6 @@ void apply_shield(Client *c, struct wlr_box clip_box) {
 }
 
 void client_draw_blur(Client *c, struct wlr_box clip_box, struct ivec2 offset) {
-
 	if (c->isfullscreen) {
 		if (c->blur->node.enabled) {
 			wlr_scene_node_set_enabled(&c->blur->node, false);
@@ -541,12 +541,21 @@ void client_draw_blur(Client *c, struct wlr_box clip_box, struct ivec2 offset) {
 		return;
 	} else {
 		if (config.blur && !c->noblur) {
-			int32_t blur_x = (int32_t)c->bw + offset.x;
-			int32_t blur_y = (int32_t)c->bw + offset.y;
+			if (c == grabc || (!ISSCROLLTILED(c) && !c->animation.tagining &&
+							   !c->animation.tagouting)) {
+				clip_box.x = 0;
+				clip_box.y = 0;
+				clip_box.width =
+					c->animation.current.width - 2 * (int32_t)c->bw;
+				clip_box.height =
+					c->animation.current.height - 2 * (int32_t)c->bw;
+			}
+
+			int32_t blur_x = clip_box.x + (int32_t)c->bw;
+			int32_t blur_y = clip_box.y + (int32_t)c->bw;
 			wlr_scene_node_set_enabled(&c->blur->node, true);
 			wlr_scene_node_set_position(&c->blur->node, blur_x, blur_y);
-			wlr_scene_blur_set_size(c->blur, clip_box.width - c->bw,
-									clip_box.height - c->bw);
+			wlr_scene_blur_set_size(c->blur, clip_box.width, clip_box.height);
 		} else {
 			wlr_scene_node_set_enabled(&c->blur->node, false);
 		}
@@ -1049,6 +1058,14 @@ void client_apply_clip(Client *c, float factor) {
 		apply_shield(c, clip_box);
 
 		if (clip_box.width <= 0 || clip_box.height <= 0) {
+			should_render_client_surface = false;
+			wlr_scene_node_set_enabled(&c->scene_surface->node, false);
+		} else {
+			should_render_client_surface = true;
+			wlr_scene_node_set_enabled(&c->scene_surface->node, true);
+		}
+
+		if (!should_render_client_surface) {
 			return;
 		}
 
