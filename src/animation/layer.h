@@ -408,6 +408,10 @@ void init_fadeout_layers(LayerSurface *l) {
 	if (!l->mon || !l->scene)
 		return;
 
+	if (l->shield_when_capture) {
+		return;
+	}
+
 	if ((l->animation_type_close &&
 		 strcmp(l->animation_type_close, "none") == 0) ||
 		(!l->animation_type_close &&
