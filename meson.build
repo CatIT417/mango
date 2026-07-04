@@ -121,7 +121,6 @@ executable('mango',
 )
 
 # build mmsg
-dwl_ipc_protocol = 'protocols/dwl-ipc-unstable-v2.xml'
 
 wayland_scanner_client_header = generator(
   wayland_scanner,
@@ -138,8 +137,6 @@ wayland_scanner_private_code = generator(
 # use generator in mmsg target
 executable('mmsg',
   'mmsg/mmsg.c',
-  wayland_scanner_private_code.process(dwl_ipc_protocol),
-  wayland_scanner_client_header.process(dwl_ipc_protocol),
   dependencies: [
     libwayland_client_dep
   ],
