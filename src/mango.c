@@ -2234,6 +2234,10 @@ int32_t ongesture(struct wlr_pointer_swipe_end_event *event) {
 void swipe_begin(struct wl_listener *listener, void *data) {
 	struct wlr_pointer_swipe_begin_event *event = data;
 
+	if (config.disable_trackpad) {
+		return;
+	}
+
 	// Forward swipe begin event to client
 	wlr_pointer_gestures_v1_send_swipe_begin(pointer_gestures, seat,
 											 event->time_msec, event->fingers);
@@ -2241,6 +2245,10 @@ void swipe_begin(struct wl_listener *listener, void *data) {
 
 void swipe_update(struct wl_listener *listener, void *data) {
 	struct wlr_pointer_swipe_update_event *event = data;
+
+	if (config.disable_trackpad) {
+		return;
+	}
 
 	swipe_fingers = event->fingers;
 	// Accumulate swipe distance
@@ -2254,6 +2262,11 @@ void swipe_update(struct wl_listener *listener, void *data) {
 
 void swipe_end(struct wl_listener *listener, void *data) {
 	struct wlr_pointer_swipe_end_event *event = data;
+
+	if (config.disable_trackpad) {
+		return;
+	}
+
 	ongesture(event);
 	swipe_dx = 0;
 	swipe_dy = 0;
@@ -2265,6 +2278,10 @@ void swipe_end(struct wl_listener *listener, void *data) {
 void pinch_begin(struct wl_listener *listener, void *data) {
 	struct wlr_pointer_pinch_begin_event *event = data;
 
+	if (config.disable_trackpad) {
+		return;
+	}
+
 	// Forward pinch begin event to client
 	wlr_pointer_gestures_v1_send_pinch_begin(pointer_gestures, seat,
 											 event->time_msec, event->fingers);
@@ -2272,6 +2289,10 @@ void pinch_begin(struct wl_listener *listener, void *data) {
 
 void pinch_update(struct wl_listener *listener, void *data) {
 	struct wlr_pointer_pinch_update_event *event = data;
+
+	if (config.disable_trackpad) {
+		return;
+	}
 
 	// Forward pinch update event to client
 	wlr_pointer_gestures_v1_send_pinch_update(
@@ -2282,6 +2303,10 @@ void pinch_update(struct wl_listener *listener, void *data) {
 void pinch_end(struct wl_listener *listener, void *data) {
 	struct wlr_pointer_pinch_end_event *event = data;
 
+	if (config.disable_trackpad) {
+		return;
+	}
+
 	// Forward pinch end event to client
 	wlr_pointer_gestures_v1_send_pinch_end(pointer_gestures, seat,
 										   event->time_msec, event->cancelled);
@@ -2290,6 +2315,10 @@ void pinch_end(struct wl_listener *listener, void *data) {
 void hold_begin(struct wl_listener *listener, void *data) {
 	struct wlr_pointer_hold_begin_event *event = data;
 
+	if (config.disable_trackpad) {
+		return;
+	}
+
 	// Forward hold begin event to client
 	wlr_pointer_gestures_v1_send_hold_begin(pointer_gestures, seat,
 											event->time_msec, event->fingers);
@@ -2297,6 +2326,10 @@ void hold_begin(struct wl_listener *listener, void *data) {
 
 void hold_end(struct wl_listener *listener, void *data) {
 	struct wlr_pointer_hold_end_event *event = data;
+
+	if (config.disable_trackpad) {
+		return;
+	}
 
 	// Forward hold end event to client
 	wlr_pointer_gestures_v1_send_hold_end(pointer_gestures, seat,
