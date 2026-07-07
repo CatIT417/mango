@@ -843,7 +843,7 @@ get_nearest_output_mode(struct wlr_output *output, int32_t width,
 
 static void client_commit(Client *c);
 static void layer_commit(LayerSurface *l);
-static void client_draw_border(Client *c);
+static void client_draw_border(Client *c, struct ivec2 offsets);
 static void client_set_opacity(Client *c, double opacity);
 static void init_baked_points(void);
 static void scene_buffer_apply_opacity(struct wlr_scene_buffer *buffer,
