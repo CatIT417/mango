@@ -638,10 +638,10 @@ void client_draw_border(Client *c, struct ivec2 offsets) {
 
 	if (c->isfullscreen) {
 		if (c->border->node.enabled) {
-			wlr_scene_node_set_position(&c->scene_surface->node, 0, 0);
 			wlr_scene_node_set_enabled(&c->splitindicator[0]->node, false);
 			wlr_scene_node_set_enabled(&c->splitindicator[1]->node, false);
 			wlr_scene_node_set_enabled(&c->border->node, false);
+			wlr_scene_node_set_position(&c->scene_surface->node, 0, 0);
 		}
 		return;
 	} else {
