@@ -1326,9 +1326,20 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
 	return func;
 }
 
-void set_env() {
+void set_env_without_display() {
 	for (int32_t i = 0; i < config.env_count; i++) {
+		if (strcmp(config.env[i]->type, "DISPLAY") == 0) {
+			continue; // Skip setting DISPLAY
+		}
 		setenv(config.env[i]->type, config.env[i]->value, 1);
+	}
+}
+
+void set_env_display() {
+	for (int32_t i = 0; i < config.env_count; i++) {
+		if (strcmp(config.env[i]->type, "DISPLAY") == 0) {
+			setenv("DISPLAY", config.env[i]->value, 1);
+		}
 	}
 }
 
@@ -4334,7 +4345,8 @@ void reset_option(void) {
 	handlecursoractivity();
 	reset_keyboard_layout();
 	reset_blur_params();
-	set_env();
+	set_env_without_display();
+	set_env_display();
 	run_exec();
 
 	reapply_cursor_style();
