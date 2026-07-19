@@ -608,6 +608,7 @@ struct Monitor {
 	bool is_vrr_opening;
 	bool hdr_enable;
 	bool prefer_disable;
+	bool is_hdr_enabling;
 };
 
 typedef struct {
@@ -3474,6 +3475,7 @@ void createmon(struct wl_listener *listener, void *data) {
 	m->is_vrr_opening = false;
 	m->hdr_enable = false;
 	m->prefer_disable = false;
+	m->is_hdr_enabling = false;
 
 	m->wlr_output = wlr_output;
 	m->wlr_output->data = m;
