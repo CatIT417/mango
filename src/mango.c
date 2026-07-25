@@ -4047,7 +4047,6 @@ void focusclient(Client *c, int32_t lift) {
 
 	/* Raise client in stacking order if requested */
 	if (c && lift) {
-		wlr_log(WLR_ERROR, "%s", client_get_title(c));
 		client_raise_group(c);
 	}
 
