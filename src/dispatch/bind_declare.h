@@ -83,4 +83,5 @@ void toggle_all_floating(const Arg *arg);
 void dwindle_toggle_split_direction(const Arg *arg);
 void dwindle_split_horizontal(const Arg *arg);
 void dwindle_split_vertical(const Arg *arg);
+void dwindle_toggle_current_split(const Arg *arg);
 void focusid(const Arg *arg);

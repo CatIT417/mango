@@ -1331,6 +1331,8 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
 		func = dwindle_split_horizontal;
 	} else if (strcmp(func_name, "dwindle_split_vertical") == 0) {
 		func = dwindle_split_vertical;
+	} else if (strcmp(func_name, "dwindle_toggle_current_split") == 0) {
+		func = dwindle_toggle_current_split;
 	} else {
 		return NULL;
 	}

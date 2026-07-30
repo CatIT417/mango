@@ -2227,6 +2227,29 @@ void dwindle_split_vertical(const Arg *arg) {
 	dwindle_set_split_direction(c, false, false);
 }
 
+void dwindle_toggle_current_split(const Arg *arg) {
+	if (!selmon)
+		return;
+	Client *c = arg->tc ? arg->tc : selmon->sel;
+	if (!c || !c->mon || c->isfloating)
+		return;
+
+	const Layout *layout = c->mon->pertag->ltidxs[c->mon->pertag->curtag];
+	if (layout->id != DWINDLE)
+		return;
+
+	DwindleNode *root = c->mon->pertag->dwindle_root[c->mon->pertag->curtag];
+	DwindleNode *leaf = dwindle_find_leaf(root, c);
+	if (!leaf || !leaf->parent)
+		return; 
+
+	DwindleNode *parent = leaf->parent;
+	parent->split_h = !parent->split_h;
+	parent->split_locked = true;
+
+	arrange(c->mon, false, false);
+}
+
 void focusid(const Arg *arg) {
 	if (!selmon || !arg->tc)
 		return;
