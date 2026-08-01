@@ -82,19 +82,23 @@ static cJSON *tags_mask_to_array(uint32_t tagmask) {
 static cJSON *build_tags_json(Monitor *m) {
 	cJSON *tags_array = cJSON_CreateArray();
 	Client *c = NULL;
+
 	for (int tag = 1; tag <= LENGTH(tags); tag++) {
 		int numclients = 0;
+		uint32_t client_status = 0;
 		bool is_active = false, is_urgent = false;
 		uint32_t tagmask = 1 << (tag - 1);
 		if (tagmask & m->tagset[m->seltags])
 			is_active = true;
 		wl_list_for_each(c, &clients, link) {
-			if (c->mon != m)
+			client_status = get_tag_status(tag, m);
+
+			if (!client_status)
 				continue;
-			if (!(c->tags & tagmask & TAGMASK))
-				continue;
-			if (c->isurgent)
+
+			if (client_status == 2)
 				is_urgent = true;
+
 			numclients++;
 		}
 		cJSON *tag_obj = cJSON_CreateObject();
