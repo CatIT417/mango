@@ -1841,7 +1841,7 @@ void zoom(const Arg *arg) {
 }
 
 void setoption(const Arg *arg) {
-	parse_option(&config, arg->v, arg->v2);
+	parse_option(&config, arg->v, arg->v2, 0);
 	override_config();
 	reset_option();
 	return;
@@ -2241,7 +2241,7 @@ void dwindle_toggle_current_split(const Arg *arg) {
 	DwindleNode *root = c->mon->pertag->dwindle_root[c->mon->pertag->curtag];
 	DwindleNode *leaf = dwindle_find_leaf(root, c);
 	if (!leaf || !leaf->parent)
-		return; 
+		return;
 
 	DwindleNode *parent = leaf->parent;
 	parent->split_h = !parent->split_h;
