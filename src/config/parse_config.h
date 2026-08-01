@@ -51,6 +51,7 @@ typedef struct {
 	bool isreleaseapply;
 	bool ispassapply;
 	int line_number;
+	int file_index;
 } KeyBinding;
 
 typedef struct {
@@ -428,6 +429,9 @@ typedef struct {
 
 typedef void (*FuncType)(const Arg *);
 Config config;
+static char **file_paths = NULL;
+static int file_paths_count = 0;
+static int current_file_index = -1;
 
 bool parse_config_file(Config *config, const char *file_path, bool must_exist);
 bool apply_rule_to_state(Monitor *m, const ConfigMonitorRule *rule,
@@ -2677,6 +2681,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		KeyBinding *binding = &config->key_bindings[config->key_bindings_count];
 		memset(binding, 0, sizeof(KeyBinding));
 		binding->line_number = line_number;
+		binding->file_index = current_file_index;
 
 		char mod_str[256], keysym_str[256], func_name[256],
 			arg_value[256] = "0\0", arg_value2[256] = "0\0",
@@ -3141,6 +3146,16 @@ bool parse_config_file(Config *config, const char *file_path, bool must_exist) {
 		file = fopen(file_path, "r");
 	}
 
+	// 保存当前文件索引，用于递归恢复
+	int saved_file_index = current_file_index;
+
+	// 将文件路径加入全局列表
+	file_paths = realloc(file_paths, (file_paths_count + 1) * sizeof(char *));
+	file_paths[file_paths_count] =
+		strdup(file_path); // 需要 strdup 申请独立内存
+	current_file_index = file_paths_count;
+	file_paths_count++;
+
 	if (!file) {
 		if (must_exist) {
 			fprintf(stderr,
@@ -3174,6 +3189,8 @@ bool parse_config_file(Config *config, const char *file_path, bool must_exist) {
 	}
 
 	fclose(file);
+
+	current_file_index = saved_file_index;
 	return parse_correct;
 }
 
@@ -3246,7 +3263,6 @@ bool check_key_binding_conflicts(Config *config) {
 	qsort(binds, count, sizeof(KeyBinding), compare_keybind_by_key_only);
 
 	bool conflict_found = false;
-	char key1_str[128], key2_str[128];
 
 	for (int i = 0; i < count;) {
 		int j = i;
@@ -3261,32 +3277,24 @@ bool check_key_binding_conflicts(Config *config) {
 				bool any_common =
 					binds[a].iscommonmode || binds[b].iscommonmode;
 				if (same_mode || any_common) {
-					/* 获取按键名称 */
-					if (binds[a].keysymcode.type == KEY_TYPE_SYM)
-						xkb_keysym_get_name(binds[a].keysymcode.keysym,
-											key1_str, sizeof(key1_str));
-					else
-						snprintf(key1_str, sizeof(key1_str), "code:%d",
-								 binds[a].keysymcode.keycode.keycode1);
-					if (binds[b].keysymcode.type == KEY_TYPE_SYM)
-						xkb_keysym_get_name(binds[b].keysymcode.keysym,
-											key2_str, sizeof(key2_str));
-					else
-						snprintf(key2_str, sizeof(key2_str), "code:%d",
-								 binds[b].keysymcode.keycode.keycode1);
+
+					const char *file_a = (binds[a].file_index >= 0)
+											 ? file_paths[binds[a].file_index]
+											 : "(built-in)";
+					const char *file_b = (binds[b].file_index >= 0)
+											 ? file_paths[binds[b].file_index]
+											 : "(built-in)";
 
 					conflict_found = true;
 					fprintf(stderr,
 							"\033[1;33m[WARNING]\033[0m Key binding conflict "
-							"in mode "
-							"\033[1;36m%s\033[0m:\n"
-							"  Line %d: mod %s (0x%x), key %s\n"
-							"  Line %d: mod %s (0x%x), key %s\n\n",
-							(any_common ? "common" : binds[a].mode),
-							binds[a].line_number, mod_to_string(binds[a].mod),
-							binds[a].mod, key1_str, binds[b].line_number,
-							mod_to_string(binds[b].mod), binds[b].mod,
-							key2_str);
+							"in keymode \033[1;36m%s\033[0m:\n"
+							"  File \033[1;32m\"%s\"\033[0m, line "
+							"\033[1;35m%d\033[0m\n"
+							"  File \033[1;32m\"%s\"\033[0m, line "
+							"\033[1;35m%d\033[0m\n\n",
+							(any_common ? "common" : binds[a].mode), file_a,
+							binds[a].line_number, file_b, binds[b].line_number);
 				}
 			}
 		}
@@ -4178,6 +4186,17 @@ bool parse_config(void) {
 	set_default_key_bindings(&config);
 	override_config();
 	keybindings_conflict = check_key_binding_conflicts(&config);
+
+	// 释放文件路径列表
+	if (file_paths) {
+		for (int i = 0; i < file_paths_count; i++) {
+			free(file_paths[i]);
+		}
+		free(file_paths);
+		file_paths = NULL;
+		file_paths_count = 0;
+	}
+
 	return parse_correct || keybindings_conflict;
 }
 
