@@ -6797,7 +6797,8 @@ void check_vrr_enable(Client *c) {
 	if (!c->mon->is_vrr_enabling && c->mon->vrr_global_enable) {
 		enable_adaptive_sync(c->mon, &m->pending);
 		mango_output_commit(m);
-	} else if (c->mon->is_vrr_enabling && !c->mon->vrr_global_enable) {
+	} else if (c->mon->is_vrr_enabling && !c->mon->vrr_global_enable &&
+			   (!c->vrr_only_fullscreen || !c->isfullscreen)) {
 		disable_adaptive_sync(c->mon, &m->pending);
 		mango_output_commit(m);
 	}
