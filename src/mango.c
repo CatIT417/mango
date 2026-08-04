@@ -6225,6 +6225,9 @@ void setup(void) {
 	/* The Wayland display is managed by libwayland. It handles accepting
 	 * clients from the Unix socket, manging Wayland globals, and so on. */
 	dpy = wl_display_create();
+
+	wl_display_set_default_max_buffer_size(dpy, 1024 * 1024);
+
 	event_loop = wl_display_get_event_loop(dpy);
 
 	ipc_init(event_loop);
