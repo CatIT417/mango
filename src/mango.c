@@ -1342,6 +1342,11 @@ void client_replace(Client *c, Client *w, bool is_group_change_member,
 		wlr_scene_node_set_enabled(&w->group_bar->scene_buffer->node, false);
 	}
 
+	if (w->jump_label_node) {
+		wlr_scene_node_set_enabled(&w->jump_label_node->scene_buffer->node,
+								   false);
+	}
+
 	wl_list_safe_reinsert_next(&w->link, &c->link);
 	wl_list_safe_reinsert_prev(&w->flink, &c->flink);
 	wlr_scene_node_set_enabled(&w->scene->node, false);
@@ -4510,7 +4515,8 @@ void keypress(struct wl_listener *listener, void *data) {
 				char c_char = 'A' + (sym - XKB_KEY_a);
 				Client *c;
 				wl_list_for_each(c, &clients, link) {
-					if (c->mon == selmon && c->jump_char == c_char) {
+					if (c->mon == selmon && c->jump_char == c_char &&
+						!c->is_logic_hide) {
 						focusclient(c, 1);
 						toggleoverview(&(Arg){.i = 1});
 						return;
