@@ -183,16 +183,16 @@ void overview_restore(Client *c, const Arg *arg) {
 	c->animation.tagining = false;
 	c->is_restoring_from_ov = (arg->ui & c->tags & TAGMASK) == 0 ? true : false;
 
+	/* 关闭实时预览状态 */
+	c->ov_live_enabled = false;
+	c->ov_last_snap_ms = 0;
+	c->ov_serial_last_snap = 0;
+
 	if (c->overview_scene_surface) {
 		wlr_scene_node_destroy(&c->scene_surface->node);
 		c->scene_surface = c->overview_scene_surface;
 		c->overview_scene_surface = NULL;
 	}
-
-	/* 关闭实时预览状态 */
-	c->ov_live_enabled = false;
-	c->ov_last_snap_ms = 0;
-	c->ov_serial_last_snap = 0;
 
 	if (c->isfloating) {
 		// XRaiseWindow(dpy, c->win); // 提升悬浮窗口到顶层
