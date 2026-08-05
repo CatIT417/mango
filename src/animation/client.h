@@ -1385,7 +1385,7 @@ void resize(Client *c, struct wlr_box geo, int32_t interact) {
 		c->fake_no_border = true;
 	}
 
-	if (!c->mon->isoverview || !config.ov_no_resize)
+	if (!c->mon->isoverview)
 		c->configure_serial = client_set_size(c, c->geom.width - 2 * c->bw,
 											  c->geom.height - 2 * c->bw);
 
@@ -1430,11 +1430,11 @@ void resize(Client *c, struct wlr_box geo, int32_t interact) {
 	if (c->scratchpad_switching_mon && c->isfloating)
 		c->animainit_geom = c->geom;
 
-	if (config.animations && config.ov_no_resize && c->mon->isoverview &&
-		c != c->mon->sel && c->animation.action == OVERVIEW)
+	if (config.animations && c->mon->isoverview && c != c->mon->sel &&
+		c->animation.action == OVERVIEW)
 		set_overview_enter_animation(c);
 
-	if (!config.animations && config.ov_no_resize && c->mon->isoverview)
+	if (!config.animations && c->mon->isoverview)
 		c->animainit_geom = c->geom;
 
 	client_set_pending_state(c);

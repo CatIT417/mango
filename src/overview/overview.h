@@ -158,9 +158,7 @@ void overview_backup(Client *c) {
 		c->isfloating = 0;
 	}
 
-	if (config.ov_no_resize) {
-		overview_backup_surface(c);
-	}
+	overview_backup_surface(c);
 
 	if (c->isfullscreen || c->ismaximizescreen) {
 		client_pending_fullscreen_state(c, 0); // 清除窗口全屏标志

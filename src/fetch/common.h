@@ -181,7 +181,7 @@ void xytonode(double x, double y, struct wlr_surface **psurface, Client **pc,
 	if (gb)
 		*gb = mangogroupbar;
 
-	if (selmon && selmon->isoverview && config.ov_no_resize) {
+	if (selmon && selmon->isoverview) {
 		ovc = xytoclient(x, y);
 
 		if (ovc && (!l || layer_ignores_focus(l))) {

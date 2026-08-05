@@ -384,7 +384,7 @@ struct Client {
 		fullscreen_backup_h;
 	int32_t overview_isfullscreenbak, overview_ismaximizescreenbak,
 		overview_isfloatingbak;
-	/* 实时 overview 预览（ov_no_resize=1 快照模式）相关字段 */
+
 	uint32_t ov_surface_commit_serial; /* 客户端表面提交计数，用于检测新帧 */
 	uint32_t ov_serial_last_snap;	   /* 上次重拍时记录的提交计数 */
 	uint32_t ov_last_snap_ms;		   /* 上次快照重拍的时间戳（毫秒） */
@@ -1334,7 +1334,7 @@ void client_replace(Client *c, Client *w, bool is_group_change_member,
 		w->overview_scene_surface = NULL;
 	}
 
-	if (c->mon && c->mon->isoverview && config.ov_no_resize) {
+	if (c->mon && c->mon->isoverview) {
 		overview_backup_surface(c);
 	}
 
@@ -4882,7 +4882,7 @@ mapnotify(struct wl_listener *listener, void *data) {
 	// set border color
 	setborder_color(c);
 
-	if (c->mon && c->mon->isoverview && config.ov_no_resize) {
+	if (c->mon && c->mon->isoverview) {
 		overview_backup_surface(c);
 	}
 
