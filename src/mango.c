@@ -4709,6 +4709,9 @@ void init_client_properties(Client *c) {
 	c->allow_shortcuts_inhibit = SHORTCUTS_INHIBIT_ENABLE;
 	c->idleinhibit_when_focus = 0;
 	c->vrr_only_fullscreen = 0;
+	c->ov_live_enabled = false;
+	c->ov_last_snap_ms = 0;
+	c->ov_serial_last_snap = 0;
 	c->force_render = 0;
 	c->scroller_proportion_single = 0.0f;
 	c->float_geom.width = 0;
