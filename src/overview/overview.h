@@ -53,26 +53,6 @@ void overview_backup_surface(Client *c) {
 	c->ov_serial_last_snap = c->ov_surface_commit_serial;
 }
 
-void overview_frame_done_surface(struct wlr_surface *surface, int sx, int sy,
-								 void *data) {
-	(void)sx;
-	(void)sy;
-	wlr_surface_send_frame_done(surface, data);
-}
-
-// 给被隐藏窗口的所有 surface（含 subsurface）喂 frame callback，
-// 让客户端在 overview 预览中继续渲染（解除帧回调节流导致的停画）。
-// 不能用 wlr_scene_node_for_each_buffer 遍历原 scene_surface 树：
-// 该树在拍完快照后被 disabled，scenefx 的 for_each_buffer 会直接跳过
-// disabled 节点（wlr_scene.c scene_node_for_each_scene_buffer），导致
-// 一个 surface 都喂不到——普通窗口就会因收不到 frame callback 而停画。
-void overview_send_frame_done(Client *c, const struct timespec *now) {
-	struct wlr_surface *s = client_surface(c);
-	if (!s)
-		return;
-	wlr_surface_for_each_surface(s, overview_frame_done_surface, (void *)now);
-}
-
 // 重新计算裁剪区域并重拍快照，刷新 overview 预览画面。
 void overview_resnap(Client *c) {
 	if (!c->overview_scene_surface)
@@ -129,7 +109,7 @@ bool overview_live_pass(Client *c) {
 	clock_gettime(CLOCK_MONOTONIC, &now);
 
 	// 给隐藏 surface 喂 frame callback，让客户端持续渲染
-	overview_send_frame_done(c, &now);
+	client_send_frame_done(c, &now);
 
 	// 客户端提交了新帧且距上次重拍超过限速间隔时，重拍快照
 	uint32_t now_ms = get_now_in_ms();

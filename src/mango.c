@@ -849,7 +849,7 @@ static void buffer_set_effect(Client *c, BufferData buffer_data);
 static void snap_scene_buffer_apply_effect(struct wlr_scene_buffer *buffer,
 										   int32_t sx, int32_t sy, void *data);
 /* 实时 overview 预览：喂帧 + 检测新帧 + 限速重拍快照 */
-static void overview_send_frame_done(Client *c, const struct timespec *now);
+static void client_send_frame_done(Client *c, const struct timespec *now);
 static void overview_resnap(Client *c);
 static bool overview_live_pass(Client *c);
 static void client_set_pending_state(Client *c);
