@@ -37,6 +37,7 @@ windowrule=Parameter:Values,Parameter:Values,appid:Values,title:Values
 | `idleinhibit_when_focus` | integer | `0` / `1` (default 0) | Automatically keep idle inhibit active when this window is focused |
 | `vrr_only_fullscreen` | integer | `0` / `1` (default 0) | VRR only fullscreen,you need to turn `vrr` to `0` in monitor rule first |
 | `shield_when_capture` | integer | `0` / `1` | Shield window when captured |
+| `force_render` | integer | `0` / `1` | Force render frame even if the window is not visible |
 
 
 ### Geometry & Position
