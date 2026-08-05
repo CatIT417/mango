@@ -377,7 +377,7 @@ struct Client {
 	int32_t isfloating, isurgent, isfullscreen, isfakefullscreen,
 		need_float_size_reduce, isminimized, isoverlay, isnosizehint,
 		ignore_maximize, ignore_minimize, idleinhibit_when_focus,
-		vrr_only_fullscreen;
+		vrr_only_fullscreen, force_render;
 	int32_t ismaximizescreen;
 	int32_t overview_backup_bw;
 	int32_t fullscreen_backup_x, fullscreen_backup_y, fullscreen_backup_w,
@@ -1617,6 +1617,7 @@ static void apply_rule_properties(Client *c, const ConfigWinRule *r) {
 	APPLY_INT_PROP(c, r, isnosizehint);
 	APPLY_INT_PROP(c, r, idleinhibit_when_focus);
 	APPLY_INT_PROP(c, r, vrr_only_fullscreen);
+	APPLY_INT_PROP(c, r, force_render);
 	APPLY_INT_PROP(c, r, isunglobal);
 	APPLY_INT_PROP(c, r, noblur);
 	APPLY_INT_PROP(c, r, allow_shortcuts_inhibit);
@@ -4708,6 +4709,7 @@ void init_client_properties(Client *c) {
 	c->allow_shortcuts_inhibit = SHORTCUTS_INHIBIT_ENABLE;
 	c->idleinhibit_when_focus = 0;
 	c->vrr_only_fullscreen = 0;
+	c->force_render = 0;
 	c->scroller_proportion_single = 0.0f;
 	c->float_geom.width = 0;
 	c->float_geom.height = 0;

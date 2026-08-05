@@ -1592,13 +1592,23 @@ bool client_apply_focus_opacity(Client *c) {
 bool client_draw_frame(Client *c) {
 
 	bool need_next_tick = false;
+	bool ov_live_need_fresh = false;
+	bool force_render = false;
 
 	if (!c || !client_surface(c)->mapped)
 		return false;
 
+	// always render when scene is disabled
+	if (c->force_render && !c->scene->node.enabled) {
+		force_render = client_force_render(c);
+		need_next_tick = force_render || need_next_tick;
+	}
+
 	/* 实时 overview 预览：喂 frame done + 检测新帧 + 限速重拍快照 */
-	if (c->ov_live_enabled)
-		need_next_tick = overview_live_pass(c) || need_next_tick;
+	if (c->ov_live_enabled) {
+		ov_live_need_fresh = overview_live_pass(c);
+		need_next_tick = ov_live_need_fresh || need_next_tick;
+	}
 
 	if (!c->need_output_flush)
 		return client_apply_focus_opacity(c) || need_next_tick;

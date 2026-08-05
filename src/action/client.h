@@ -327,3 +327,15 @@ void client_send_frame_done(Client *c, const struct timespec *now) {
 		return;
 	wlr_surface_for_each_surface(s, mango_surface_frame_done, (void *)now);
 }
+
+bool client_force_render(Client *c) {
+	if (!c || !c->mon || c->iskilling || !client_surface(c)->mapped ||
+		c->scene->node.enabled)
+		return false;
+
+	struct timespec now;
+	clock_gettime(CLOCK_MONOTONIC, &now);
+
+	client_send_frame_done(c, &now);
+	return true;
+}
