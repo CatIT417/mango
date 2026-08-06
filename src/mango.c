@@ -2408,6 +2408,20 @@ void place_drag_tile_client(Client *c) {
 			return;
 		}
 
+		if (layout->id == RIGHT_TILE) {
+			if (closest->drop_direction == LEFT) {
+				wl_list_safe_reinsert_next(&closest->link, &c->link);
+			} else if (closest->drop_direction == RIGHT) {
+				wl_list_safe_reinsert_prev(&closest->link, &c->link);
+			} else if (closest->drop_direction == UP) {
+				wl_list_safe_reinsert_prev(&closest->link, &c->link);
+			} else {
+				wl_list_safe_reinsert_next(&closest->link, &c->link);
+			}
+			setfloating(c, 0);
+			return;
+		}
+
 		if (closest->drop_direction == LEFT || closest->drop_direction == UP) {
 			wl_list_safe_reinsert_prev(&closest->link, &c->link);
 		} else {
