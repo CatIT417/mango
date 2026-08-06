@@ -1636,6 +1636,12 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		int32_t float_count = count + 1; // 浮点数的数量是逗号数量加 1
 
 		// 2. 动态分配内存，存储浮点数
+		// 先释放旧的内存（防止重复设置该选项时内存泄漏）
+		if (config->scroller_proportion_preset) {
+			free(config->scroller_proportion_preset);
+			config->scroller_proportion_preset = NULL;
+			config->scroller_proportion_preset_count = 0;
+		}
 		config->scroller_proportion_preset =
 			(float *)malloc(float_count * sizeof(float));
 		if (!config->scroller_proportion_preset) {
@@ -1699,13 +1705,23 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		int32_t string_count = count + 1; // 字符串的数量是逗号数量加 1
 
 		// 2. 动态分配内存，存储字符串指针
+		// 先释放旧的内存（防止重复设置该选项时内存泄漏）
+		if (config->circle_layout) {
+			for (int32_t j = 0; j < config->circle_layout_count; j++) {
+				if (config->circle_layout[j])
+					free(config->circle_layout[j]);
+			}
+			free(config->circle_layout);
+			config->circle_layout = NULL;
+			config->circle_layout_count = 0;
+		}
 		config->circle_layout = (char **)malloc(string_count * sizeof(char *));
-		memset(config->circle_layout, 0, string_count * sizeof(char *));
 		if (!config->circle_layout) {
 			fprintf(stderr, "\033[1m\033[31m[ERROR]:\033[33m Memory "
 							"allocation failed\n");
 			return false;
 		}
+		memset(config->circle_layout, 0, string_count * sizeof(char *));
 
 		// 3. 解析 value 中的字符串
 		char *value_copy =
@@ -1840,8 +1856,12 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 	} else if (strcmp(key, "cursor_size") == 0) {
 		config->cursor_size = atoi(value);
 	} else if (strcmp(key, "cursor_theme") == 0) {
+		if (config->cursor_theme)
+			free(config->cursor_theme);
 		config->cursor_theme = strdup(value);
 	} else if (strcmp(key, "group_bar_decorate_font_desc") == 0) {
+		if (config->groupbardata.font_desc)
+			free((void *)config->groupbardata.font_desc);
 		config->groupbardata.font_desc = strdup(value);
 	} else if (strcmp(key, "group_bar_decorate_fg_color") == 0) {
 		int64_t color = parse_color(value);
@@ -1912,6 +1932,8 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 	} else if (strcmp(key, "group_bar_decorate_padding_y") == 0) {
 		config->groupbardata.padding_y = CLAMP_INT(atoi(value), 0, 100);
 	} else if (strcmp(key, "jump_label_decorate_font_desc") == 0) {
+		if (config->jumplabeldata.font_desc)
+			free((void *)config->jumplabeldata.font_desc);
 		config->jumplabeldata.font_desc = strdup(value);
 	} else if (strcmp(key, "jump_label_decorate_fg_color") == 0) {
 		int64_t color = parse_color(value);
