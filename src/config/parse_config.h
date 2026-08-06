@@ -486,6 +486,14 @@ int32_t parse_double_array(const char *input, double *output,
 			free(dup);
 			return -1;
 		}
+		if (val < 0.0) {
+			fprintf(stderr,
+					"\033[1m\033[31m[ERROR]:\033[33m Invalid number in "
+					"array (must be non-negative): %s\n",
+					token);
+			free(dup);
+			return -1;
+		}
 		output[count] = val; // 赋值到当前count位置
 		count++;			 // 然后才自增
 		token = strtok(NULL, ",");
