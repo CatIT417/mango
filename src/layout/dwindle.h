@@ -455,7 +455,7 @@ static void dwindle_resize_client_step(Monitor *m, Client *c, int32_t dx,
 static void dwindle_remove_client(Client *c) {
 	Monitor *m;
 	wl_list_for_each(m, &mons, link) {
-		for (uint32_t t = 0; t < LENGTH(tags) + 1; t++)
+		for (uint32_t t = 0; t < (uint32_t)config.tag_num + 1; t++)
 			dwindle_remove(&m->pertag->dwindle_root[t], c);
 	}
 }
@@ -630,6 +630,6 @@ void dwindle(Monitor *m) {
 }
 
 void cleanup_monitor_dwindle(Monitor *m) {
-	for (uint32_t t = 0; t < LENGTH(tags) + 1; t++)
+	for (uint32_t t = 0; t < (uint32_t)config.tag_num + 1; t++)
 		dwindle_free_tree(m->pertag->dwindle_root[t]);
 }

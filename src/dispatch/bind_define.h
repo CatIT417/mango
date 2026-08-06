@@ -1379,7 +1379,7 @@ void tagtoleft(const Arg *arg) {
 		if (target == 0) {
 			if (!config.tag_carousel)
 				return;
-			target = (1 << (LENGTH(tags) - 1)) & TAGMASK;
+			target = (1 << (config.tag_num - 1)) & TAGMASK;
 			selmon->carousel_anim_dir = -1;
 		}
 
@@ -1653,7 +1653,7 @@ void viewtoleft(const Arg *arg) {
 	if (target == 0) {
 		if (!config.tag_carousel)
 			return;
-		target = (1 << (LENGTH(tags) - 1)) & TAGMASK;
+		target = (1 << (config.tag_num - 1)) & TAGMASK;
 		selmon->carousel_anim_dir = -1;
 	}
 
@@ -1710,7 +1710,7 @@ void viewtoleft_have_client(const Arg *arg) {
 	}
 
 	if (!found && config.tag_carousel) {
-		for (n = LENGTH(tags); n > current; n--) {
+		for (n = (uint32_t)config.tag_num; n > current; n--) {
 			if (get_tag_status(n, selmon)) {
 				found = true;
 				wrapped = true;
@@ -1740,7 +1740,7 @@ void viewtoright_have_client(const Arg *arg) {
 	bool found = false;
 	bool wrapped = false;
 
-	for (n = current + 1; n <= LENGTH(tags); n++) {
+	for (n = current + 1; n <= (uint32_t)config.tag_num; n++) {
 		if (get_tag_status(n, selmon)) {
 			found = true;
 			break;

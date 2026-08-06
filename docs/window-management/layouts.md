@@ -73,6 +73,7 @@ These settings apply to layouts like `tile` and `center_tile`.
 | `new_is_master` | `1` | New windows become the master window. |
 | `default_mfact` | `0.55` | The split ratio between master and stack areas. |
 | `default_nmaster` | `1` | Number of allowed master windows. |
+| `tag_num` | `9` | Number of tags/workspaces (1–31). On config reload, clients on tags beyond this count are moved to the last tag. |
 | `smartgaps` | `0` | Disable gaps when only one window is present. |
 | `center_master_overspread` | `0` | (Center Tile) Master spreads across screen if no stack exists. |
 | `center_when_single_stack` | `1` | (Center Tile) Center master when only one stack window exists. |
@@ -83,6 +84,7 @@ new_is_master=1
 smartgaps=0
 default_mfact=0.55
 default_nmaster=1
+tag_num=9
 ```
 
 ---

@@ -73,7 +73,7 @@ static const char *ipc_get_layout_str(void) {
 
 static cJSON *tags_mask_to_array(uint32_t tagmask) {
 	cJSON *arr = cJSON_CreateArray();
-	for (int i = 0; i < LENGTH(tags); i++)
+	for (int i = 0; i < config.tag_num; i++)
 		if (tagmask & (1 << i))
 			cJSON_AddItemToArray(arr, cJSON_CreateNumber(i + 1));
 	return arr;
@@ -83,7 +83,7 @@ static cJSON *build_tags_json(Monitor *m) {
 	cJSON *tags_array = cJSON_CreateArray();
 	Client *c = NULL;
 
-	for (int tag = 1; tag <= LENGTH(tags); tag++) {
+	for (int tag = 1; tag <= config.tag_num; tag++) {
 		int numclients = 0;
 		uint32_t client_status = 0;
 		bool is_active = false, is_urgent = false;
@@ -136,7 +136,7 @@ static cJSON *monitor_active_tags(Monitor *m) {
 		return arr;
 	}
 	tagset = m->tagset[m->seltags];
-	for (int i = 0; i < LENGTH(tags); i++)
+	for (int i = 0; i < config.tag_num; i++)
 		if (tagset & (1 << i))
 			cJSON_AddItemToArray(arr, cJSON_CreateNumber(i + 1));
 	return arr;
@@ -313,7 +313,7 @@ static void handle_command(int client_fd, const char *cmd_raw) {
 		}
 		int tag_idx = ext_tag_idx - 1;
 		Monitor *m = monitor_by_name(mon_name);
-		if (!m || tag_idx < 0 || tag_idx >= LENGTH(tags)) {
+		if (!m || tag_idx < 0 || tag_idx >= config.tag_num) {
 			send_static_json(client_fd,
 							 "{\"error\":\"invalid monitor or tag index\"}\n");
 			return;

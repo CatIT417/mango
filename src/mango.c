@@ -139,8 +139,11 @@
 
 #define LENGTH(X) (sizeof X / sizeof X[0])
 #define END(A) ((A) + LENGTH(A))
-#define TAGMASK ((1 << LENGTH(tags)) - 1)
 #define LISTEN(E, L, H) wl_signal_add((E), ((L)->notify = (H), (L)))
+
+#define TAGMASK (tagmask)
+uint32_t tagmask = ((1u << 9) - 1); // 默认 9 个 tag
+
 #define ISFULLSCREEN(A)                                                        \
 	((A)->isfullscreen || (A)->ismaximizescreen ||                             \
 	 (A)->overview_ismaximizescreenbak || (A)->overview_isfullscreenbak)
@@ -1382,7 +1385,7 @@ void client_replace(Client *c, Client *w, bool is_group_change_member,
 	if (layout->id == DWINDLE || layout->id == SCROLLER ||
 		layout->id == VERTICAL_SCROLLER) {
 
-		for (uint32_t t = 0; t < LENGTH(tags) + 1; t++) {
+		for (uint32_t t = 0; t < (uint32_t)config.tag_num + 1; t++) {
 			/* dwindle */
 
 			if (layout->id == DWINDLE) {
@@ -1687,7 +1690,8 @@ void client_reset_mon_tags(Client *c, Monitor *mon, uint32_t newtags) {
 	} else if (!newtags && mon && mon->isoverview) {
 		c->tags = mon->ovbk_current_tagset;
 	} else if (newtags) {
-		c->tags = newtags;
+		uint32_t masked = newtags & TAGMASK;
+		c->tags = masked ? masked : mon->tagset[mon->seltags];
 	} else {
 		c->tags = mon->tagset[mon->seltags];
 	}
@@ -3641,7 +3645,7 @@ void createmon(struct wl_listener *listener, void *data) {
 
 	// 初始化 Pertag 等
 	m->pertag = calloc(1, sizeof(Pertag));
-	for (int i = 0; i < LENGTH(tags) + 1; i++)
+	for (int i = 0; i < config.tag_num + 1; i++)
 		m->pertag->scroller_state[i] = NULL;
 
 	if (chvt_backup_tag &&
@@ -3655,7 +3659,7 @@ void createmon(struct wl_listener *listener, void *data) {
 		m->pertag->curtag = m->pertag->prevtag = 1;
 	}
 
-	for (i = 0; i <= LENGTH(tags); i++) {
+	for (i = 0; i <= config.tag_num; i++) {
 		m->pertag->nmasters[i] = config.default_nmaster;
 		m->pertag->mfacts[i] = config.default_mfact;
 		m->pertag->ltidxs[i] = &layouts[0];
@@ -3676,7 +3680,7 @@ void createmon(struct wl_listener *listener, void *data) {
 		ext_manager, EXT_WORKSPACE_ENABLE_CAPS);
 	wlr_ext_workspace_group_handle_v1_output_enter(m->ext_group, m->wlr_output);
 
-	for (i = 1; i <= LENGTH(tags); i++) {
+	for (i = 1; i <= config.tag_num; i++) {
 		add_workspace_by_tag(i, m);
 	}
 
@@ -7165,10 +7169,13 @@ void view_in_mon(const Arg *arg, bool want_animation, Monitor *m,
 		if (arg->ui == (~0 & TAGMASK))
 			m->pertag->curtag = 0;
 		else {
-			for (i = 0; !(arg->ui & 1 << i) && i < LENGTH(tags) && arg->ui != 0;
+			for (i = 0; !(arg->ui & 1 << i) && i < (uint32_t)config.tag_num &&
+						arg->ui != 0;
 				 i++)
 				;
-			m->pertag->curtag = i >= LENGTH(tags) ? LENGTH(tags) : i + 1;
+			m->pertag->curtag = i >= (uint32_t)config.tag_num
+									? (uint32_t)config.tag_num
+									: i + 1;
 		}
 
 		m->pertag->prevtag =

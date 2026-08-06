@@ -100,9 +100,11 @@ static void handle_ext_commit(struct wl_listener *listener, void *data) {
 }
 
 static const char *get_name_from_tag(uint32_t tag) {
-	static const char *names[] = {"overview", "1", "2", "3", "4",
-								  "5",		  "6", "7", "8", "9"};
-	return (tag < sizeof(names) / sizeof(names[0])) ? names[tag] : NULL;
+	if (tag == 0)
+		return "overview";
+	if (tag <= (uint32_t)config.tag_num)
+		return tags[tag - 1];
+	return NULL;
 }
 
 void destroy_workspace(struct workspace *workspace) {
@@ -193,13 +195,55 @@ void refresh_monitors_workspaces_status(Monitor *m) {
 
 	if (m->isoverview) {
 		add_workspace_by_tag(0, m);
-		for (i = 1; i <= LENGTH(tags); i++) {
+		for (i = 1; i <= config.tag_num; i++) {
 			remove_workspace_by_tag(i, m);
 		}
 	} else {
 		remove_workspace_by_tag(0, m);
-		for (i = 1; i <= LENGTH(tags); i++) {
+		for (i = 1; i <= config.tag_num; i++) {
 			add_workspace_by_tag(i, m);
+		}
+	}
+
+	mango_ext_workspace_printstatus(m);
+}
+
+void sync_workspaces_to_tag_num(Monitor *m) {
+	if (!m || !m->wlr_output->enabled || m->iscleanuping)
+		return;
+
+	struct workspace *w, *tmp;
+
+	if (m->isoverview) {
+		bool has_overview = false;
+		wl_list_for_each_safe(w, tmp, &workspaces, link) {
+			if (w->m == m) {
+				if (w->tag == 0) {
+					has_overview = true;
+				} else {
+					destroy_workspace(w);
+				}
+			}
+		}
+		if (!has_overview)
+			add_workspace_by_tag(0, m);
+	} else {
+		// 普通状态:销毁超出 tag_num 的旧 tag workspace
+		wl_list_for_each_safe(w, tmp, &workspaces, link) {
+			if (w->m == m && w->tag > config.tag_num)
+				destroy_workspace(w);
+		}
+		// 补充缺失的tag
+		for (int32_t i = 1; i <= config.tag_num; i++) {
+			bool exists = false;
+			wl_list_for_each(w, &workspaces, link) {
+				if (w->m == m && w->tag == i) {
+					exists = true;
+					break;
+				}
+			}
+			if (!exists)
+				add_workspace_by_tag(i, m);
 		}
 	}
 

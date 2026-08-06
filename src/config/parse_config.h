@@ -276,6 +276,7 @@ typedef struct {
 	uint32_t new_is_master;
 	float default_mfact;
 	uint32_t default_nmaster;
+	int32_t tag_num; // 可配置的 tag 数量,范围 1..tag_num_MAX
 	int32_t center_master_overspread;
 	int32_t center_when_single_stack;
 
@@ -470,6 +471,7 @@ bool parse_config_file(Config *config, const char *file_path, bool must_exist);
 bool apply_rule_to_state(Monitor *m, const ConfigMonitorRule *rule,
 						 struct wlr_output_state *state);
 bool monitor_matches_rule(Monitor *m, const ConfigMonitorRule *rule);
+void sync_workspaces_to_tag_num(Monitor *m);
 
 // Helper function to trim whitespace from start and end of a string
 void trim_whitespace(char *str) {
@@ -1076,7 +1078,7 @@ uint32_t parse_tag_mask(char *str) {
 
 		while (token != NULL) {
 			int32_t num = atoi(token);
-			if (num > 0 && num <= LENGTH(tags)) {
+			if (num > 0 && num <= tag_num_MAX) {
 				mask |= (1 << (num - 1));
 			}
 			token = strtok_r(NULL, "|", &saveptr);
@@ -1824,6 +1826,8 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->default_mfact = atof(value);
 	} else if (strcmp(key, "default_nmaster") == 0) {
 		config->default_nmaster = atoi(value);
+	} else if (strcmp(key, "tag_num") == 0) {
+		config->tag_num = atoi(value);
 	} else if (strcmp(key, "center_master_overspread") == 0) {
 		config->center_master_overspread = atoi(value);
 	} else if (strcmp(key, "center_when_single_stack") == 0) {
@@ -3845,6 +3849,8 @@ void free_config(void) {
 	cleanup_config_keymap();
 }
 
+void update_global_var(void) { tagmask = ((uint32_t)1 << config.tag_num) - 1; }
+
 void override_config(void) {
 	config.animations = CLAMP_INT(config.animations, 0, 1);
 	config.layer_animations = CLAMP_INT(config.layer_animations, 0, 1);
@@ -3888,6 +3894,7 @@ void override_config(void) {
 	config.scroller_structs = CLAMP_INT(config.scroller_structs, 0, 1000);
 	config.default_mfact = CLAMP_FLOAT(config.default_mfact, 0.1f, 0.9f);
 	config.default_nmaster = CLAMP_INT(config.default_nmaster, 1, 1000);
+	config.tag_num = CLAMP_INT(config.tag_num, 1, tag_num_MAX);
 	config.center_master_overspread =
 		CLAMP_INT(config.center_master_overspread, 0, 1);
 	config.center_when_single_stack =
@@ -4039,6 +4046,8 @@ void override_config(void) {
 		CLAMP_INT(config.jumplabeldata.padding_x, 0, 100);
 	config.jumplabeldata.padding_y =
 		CLAMP_INT(config.jumplabeldata.padding_y, 0, 100);
+
+	update_global_var();
 }
 
 void set_value_default() {
@@ -4062,6 +4071,7 @@ void set_value_default() {
 	config.new_is_master = 1;
 	config.default_mfact = 0.55f;
 	config.default_nmaster = 1;
+	config.tag_num = 9;
 	config.center_master_overspread = 0;
 	config.center_when_single_stack = 1;
 
@@ -4415,6 +4425,7 @@ bool parse_config(void) {
 	parse_correct = parse_config_file(&config, filename, true);
 	set_default_key_bindings(&config);
 	override_config();
+
 	keybindings_conflict = check_key_binding_conflicts(&config);
 	keybindings_conflict |= check_mouse_binding_conflicts(&config);
 	keybindings_conflict |= check_axis_binding_conflicts(&config);
@@ -4610,7 +4621,7 @@ void reapply_master(void) {
 
 	int32_t i;
 	Monitor *m = NULL;
-	for (i = 0; i <= LENGTH(tags); i++) {
+	for (i = 0; i <= config.tag_num; i++) {
 		wl_list_for_each(m, &mons, link) {
 			if (!m->wlr_output->enabled) {
 				continue;
@@ -4631,9 +4642,11 @@ void parse_tagrule(Monitor *m) {
 	Client *c = NULL;
 	bool match_rule = false;
 
-	for (i = 0; i <= LENGTH(tags); i++) {
+	// 初始化每个 tag 的默认值
+	for (i = 0; i <= config.tag_num; i++) {
 		m->pertag->nmasters[i] = config.default_nmaster;
 		m->pertag->mfacts[i] = config.default_mfact;
+		m->pertag->ltidxs[i] = &layouts[0];
 		m->pertag->scroller_default_proportion[i] =
 			config.scroller_default_proportion;
 		m->pertag->scroller_default_proportion_single[i] =
@@ -4675,7 +4688,8 @@ void parse_tagrule(Monitor *m) {
 			}
 		}
 
-		if (config.tag_rules_count > 0 && match_rule) {
+		if (config.tag_rules_count > 0 && match_rule &&
+			tr.id <= config.tag_num) {
 
 			for (jk = 0; jk < LENGTH(layouts); jk++) {
 				if (tr.layout_name &&
@@ -4706,7 +4720,7 @@ void parse_tagrule(Monitor *m) {
 		}
 	}
 
-	for (i = 1; i <= LENGTH(tags); i++) {
+	for (i = 1; i <= config.tag_num; i++) {
 		wl_list_for_each(c, &clients, link) {
 			if ((c->tags & (1 << (i - 1)) & TAGMASK) && ISTILED(c)) {
 				if (m->pertag->mfacts[i] > 0.0f)
@@ -4748,8 +4762,40 @@ void reset_option(void) {
 	arrange(selmon, false, false);
 }
 
+void reset_tag(int old_tag_num) {
+
+	if (config.tag_num != old_tag_num) {
+		uint32_t last_tag_mask = (uint32_t)1 << (config.tag_num - 1);
+		Client *c = NULL;
+		Monitor *m = NULL;
+
+		wl_list_for_each(c, &clients, link) {
+			if (c->tags & ~tagmask) {
+				c->tags = last_tag_mask;
+				c->oldtags = last_tag_mask;
+			}
+		}
+
+		wl_list_for_each(m, &mons, link) {
+			if (!m->wlr_output->enabled)
+				continue;
+			m->tagset[0] &= tagmask;
+			m->tagset[1] &= tagmask;
+			if (m->tagset[m->seltags] == 0)
+				m->tagset[m->seltags] = last_tag_mask;
+			if (m->pertag->curtag > (uint32_t)config.tag_num)
+				m->pertag->curtag = config.tag_num;
+			if (m->pertag->prevtag > (uint32_t)config.tag_num)
+				m->pertag->prevtag = config.tag_num;
+			sync_workspaces_to_tag_num(m);
+		}
+	}
+}
+
 void reload_config(const Arg *arg) {
+	int old_tag_num = config.tag_num;
 	parse_config();
+	reset_tag(old_tag_num);
 	reset_option();
 	printstatus(IPC_WATCH_ARRANGGE);
 	return;

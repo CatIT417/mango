@@ -77,7 +77,7 @@ static void clear_scroller_state(struct TagScrollerState *st) {
 
 /* 在 Monitor 销毁时清理所有 tag 的 scroller 状态 */
 static void cleanup_monitor_scroller(Monitor *m) {
-	for (int t = 0; t < LENGTH(tags) + 1; t++) {
+	for (int t = 0; t < config.tag_num + 1; t++) {
 		if (m->pertag->scroller_state[t]) {
 			clear_scroller_state(m->pertag->scroller_state[t]);
 			m->pertag->scroller_state[t] = NULL;
@@ -743,7 +743,7 @@ void vertical_scroller(Monitor *m) {
 void scroller_remove_client(Client *c) {
 	Monitor *m;
 	wl_list_for_each(m, &mons, link) {
-		for (uint32_t t = 0; t < LENGTH(tags) + 1; t++) {
+		for (uint32_t t = 0; t < (uint32_t)config.tag_num + 1; t++) {
 			struct TagScrollerState *st = m->pertag->scroller_state[t];
 			if (!st)
 				continue;
