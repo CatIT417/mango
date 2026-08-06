@@ -326,6 +326,20 @@ typedef struct {
 	bool should_scale;
 } BufferData;
 
+// overview 卡片 surface 节点：每个 surface（含 subsurface）对应卡片树中
+// 的一个 scene_surface 节点，sx/sy 是其相对根 surface 的坐标
+struct ov_card_surface {
+	Client *c;
+	struct wlr_surface *surface;
+	struct wlr_scene_surface *scene_surface;
+	struct wlr_scene_buffer *buffer;
+	int sx, sy; /* 相对根 surface 的坐标 */
+	bool is_root;
+	struct wl_list link;
+	struct wl_listener commit;	/* 提交后重算缩放（提交会重置 dest/source） */
+	struct wl_listener destroy; /* surface 销毁时移除节点 */
+};
+
 struct Client {
 	/* Must keep these three elements in this order */
 	uint32_t type; // must at first in struct
@@ -388,10 +402,9 @@ struct Client {
 	int32_t overview_isfullscreenbak, overview_ismaximizescreenbak,
 		overview_isfloatingbak;
 
-	uint32_t ov_surface_commit_serial; /* 客户端表面提交计数，用于检测新帧 */
-	uint32_t ov_serial_last_snap;	   /* 上次重拍时记录的提交计数 */
-	uint32_t ov_last_snap_ms;		   /* 上次快照重拍的时间戳（毫秒） */
-	bool ov_live_enabled;			   /* 是否处于实时预览状态 */
+	struct wlr_scene_tree *
+		ov_card_tree; /* overview 卡片树（含主 surface + 各 subsurface 节点） */
+	struct wl_list ov_card_surfaces; /* struct ov_card_surface 链表 */
 
 	struct wlr_xdg_toplevel_decoration_v1 *decoration;
 	struct wl_listener foreign_activate_request;
@@ -851,10 +864,11 @@ static void view_in_mon(const Arg *arg, bool want_animation, Monitor *m,
 static void buffer_set_effect(Client *c, BufferData buffer_data);
 static void snap_scene_buffer_apply_effect(struct wlr_scene_buffer *buffer,
 										   int32_t sx, int32_t sy, void *data);
-/* 实时 overview 预览：喂帧 + 检测新帧 + 限速重拍快照 */
 static void client_send_frame_done(Client *c, const struct timespec *now);
-static void overview_resnap(Client *c);
-static bool overview_live_pass(Client *c);
+static void overview_layout_card(Client *c);
+static void overview_destroy_card(Client *c);
+static void overview_card_set_corner_radii(Client *c,
+										   struct fx_corner_radii corners);
 static void client_set_pending_state(Client *c);
 static void layer_set_pending_state(LayerSurface *l);
 static void set_rect_size(struct wlr_scene_rect *rect, int32_t width,
@@ -1331,9 +1345,9 @@ void client_replace(Client *c, Client *w, bool is_group_change_member,
 	w->is_logic_hide = true;
 	mango_group_bar_set_focus(c->group_bar, c->isgroupfocusing);
 
+	/* 若旧窗口处于 overview：销毁其卡片树 */
+	overview_destroy_card(w);
 	if (w->overview_scene_surface) {
-		wlr_scene_node_destroy(&w->scene_surface->node);
-		w->scene_surface = w->overview_scene_surface;
 		w->overview_scene_surface = NULL;
 	}
 
@@ -1356,7 +1370,9 @@ void client_replace(Client *c, Client *w, bool is_group_change_member,
 
 	if (!c->is_logic_hide) {
 		wlr_scene_node_set_enabled(&c->scene->node, true);
-		wlr_scene_node_set_enabled(&c->scene_surface->node, true);
+		/* overview 中真实 surface 树由卡片树替代，保持禁用 */
+		if (!c->ov_card_tree)
+			wlr_scene_node_set_enabled(&c->scene_surface->node, true);
 	}
 
 	if (w->foreign_toplevel) {
@@ -3041,9 +3057,7 @@ void commitnotify(struct wl_listener *listener, void *data) {
 	Client *c = wl_container_of(listener, c, commit);
 	struct wlr_box *new_geo;
 
-	/* 实时 overview 预览：记录表面提交，用于检测新帧以重拍快照 */
-	if (c->ov_live_enabled)
-		c->ov_surface_commit_serial++;
+	/* overview 卡片节点是独立的 scene_surface，提交后自动更新，无需在此处理 */
 
 	if (c->surface.xdg->initial_commit) {
 		// xdg client will first enter this before mapnotify
@@ -4746,9 +4760,10 @@ void init_client_properties(Client *c) {
 	c->allow_shortcuts_inhibit = SHORTCUTS_INHIBIT_ENABLE;
 	c->idleinhibit_when_focus = 0;
 	c->vrr_only_fullscreen = 0;
-	c->ov_live_enabled = false;
-	c->ov_last_snap_ms = 0;
-	c->ov_serial_last_snap = 0;
+	/* unmap 时若在 overview，先销毁卡片树，避免泄漏 */
+	overview_destroy_card(c);
+	c->ov_card_tree = NULL;
+	wl_list_init(&c->ov_card_surfaces);
 	c->force_render = 0;
 	c->scroller_proportion_single = 0.0f;
 	c->float_geom.width = 0;
@@ -7436,9 +7451,7 @@ void commitx11(struct wl_listener *listener, void *data) {
 	Client *c = wl_container_of(listener, c, commmitx11);
 	struct wlr_surface_state *state = &c->surface.xwayland->surface->current;
 
-	/* 实时 overview 预览：记录表面提交，用于检测新帧以重拍快照 */
-	if (c->ov_live_enabled)
-		c->ov_surface_commit_serial++;
+	/* overview 卡片节点是独立的 scene_surface，提交后自动更新 */
 
 	if ((int32_t)c->geom.width - 2 * (int32_t)c->bw == (int32_t)state->width &&
 		(int32_t)c->geom.height - 2 * (int32_t)c->bw ==

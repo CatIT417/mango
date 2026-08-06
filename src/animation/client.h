@@ -251,39 +251,6 @@ void scene_buffer_apply_effect(struct wlr_scene_buffer *buffer, int32_t sx,
 	wlr_scene_buffer_set_corner_radii(buffer, buffer_data->corner_location);
 }
 
-void scene_buffer_apply_overview_effect(struct wlr_scene_buffer *buffer,
-										int32_t sx, int32_t sy, void *data) {
-	BufferData *buffer_data = (BufferData *)data;
-
-	int32_t surface_width = 0, surface_height = 0;
-	bool is_subsurface = false;
-
-	struct wlr_scene_tree *parent_tree = buffer->node.parent;
-	SnapshotMetadata *meta = (SnapshotMetadata *)parent_tree->node.data;
-	if (parent_tree->node.data != NULL && meta->type == Snapshot) {
-		surface_width = meta->orig_width;
-		surface_height = meta->orig_height;
-		is_subsurface = meta->is_subsurface;
-	} else {
-		return;
-	}
-
-	surface_height = surface_height * buffer_data->height_scale;
-	surface_width = surface_width * buffer_data->width_scale;
-
-	if (is_subsurface && surface_width > 0 && surface_height > 0) {
-		wlr_scene_buffer_set_dest_size(buffer, surface_width, surface_height);
-	} else if (buffer_data->height > 0 && buffer_data->width > 0) {
-		wlr_scene_buffer_set_dest_size(buffer, buffer_data->width,
-									   buffer_data->height);
-	}
-
-	if (is_subsurface)
-		return;
-
-	wlr_scene_buffer_set_corner_radii(buffer, buffer_data->corner_location);
-}
-
 void buffer_set_effect(Client *c, BufferData data) {
 	if (!c || c->iskilling)
 		return;
@@ -302,12 +269,14 @@ void buffer_set_effect(Client *c, BufferData data) {
 	if (config.blur && !c->noblur)
 		wlr_scene_blur_set_corner_radii(c->blur, data.corner_location);
 
-	if (c->overview_scene_surface)
-		wlr_scene_node_for_each_buffer(
-			&c->scene_surface->node, scene_buffer_apply_overview_effect, &data);
-	else
-		wlr_scene_node_for_each_buffer(&c->scene_surface->node,
-									   scene_buffer_apply_effect, &data);
+	/* overview 卡片直接应用圆角 */
+	if (c->ov_card_tree) {
+		overview_card_set_corner_radii(c, data.corner_location);
+		return;
+	}
+
+	wlr_scene_node_for_each_buffer(&c->scene_surface->node,
+								   scene_buffer_apply_effect, &data);
 }
 
 void client_draw_shadow(Client *c, struct ivec2 offsets) {
@@ -943,6 +912,28 @@ void client_apply_clip(Client *c, float factor) {
 	if (c->iskilling || !client_surface(c)->mapped)
 		return;
 
+	/* overview 卡片模式：内容由独立卡片树显示，这里更新卡片位置/缩放，
+	 * 同时重绘装饰节点使其适配卡片几何 */
+	if (c->ov_card_tree) {
+		struct ivec2 offsets = compute_edge_offsets(c);
+
+		struct wlr_box clip_box;
+		struct ivec2 surface_clip_offset;
+		client_get_clip(c, &clip_box);
+		surface_clip_offset = clip_to_hide(c, &clip_box, offsets);
+
+		/* 装饰节点按卡片几何绘制 */
+		client_draw_border(c, offsets);
+		client_draw_shadow(c, offsets);
+		client_draw_groupbar(c, offsets);
+		client_draw_blur(c, surface_clip_offset);
+		client_draw_shield(c, surface_clip_offset);
+
+		overview_layout_card(c);
+		overview_card_set_corner_radii(c, set_client_corner_location(c));
+		return;
+	}
+
 	struct ivec2 offsets = compute_edge_offsets(c);
 
 	struct wlr_box clip_box;
@@ -1197,12 +1188,21 @@ void init_fadeout_client(Client *c) {
 
 	wlr_scene_node_set_enabled(&c->scene->node, true);
 	client_set_border_color(c, config.bordercolor);
-	if (c->overview_scene_surface) {
-		wlr_scene_node_destroy(&c->overview_scene_surface->node);
+	if (c->ov_card_tree) {
+		/* overview 中关闭：fadeout 快照基于已缩放的卡片树。
+		 * 快照按节点坐标累加，卡片树坐标只是相对 (bw,bw)，直接快照会落在
+		 * 层原点附近；先临时把卡片树摆到卡片绝对屏幕坐标再快照 */
+		int32_t abs_x = c->animation.current.x + (int32_t)c->bw;
+		int32_t abs_y = c->animation.current.y + (int32_t)c->bw;
+		wlr_scene_node_set_position(&c->ov_card_tree->node, abs_x, abs_y);
+		fadeout_client->scene =
+			wlr_scene_tree_snapshot(&c->ov_card_tree->node, layers[LyrFadeOut]);
+		overview_destroy_card(c);
 		c->overview_scene_surface = NULL;
+	} else {
+		fadeout_client->scene =
+			wlr_scene_tree_snapshot(&c->scene->node, layers[LyrFadeOut]);
 	}
-	fadeout_client->scene =
-		wlr_scene_tree_snapshot(&c->scene->node, layers[LyrFadeOut]);
 	wlr_scene_node_set_enabled(&c->scene->node, false);
 
 	if (!fadeout_client->scene) {
@@ -1592,7 +1592,6 @@ bool client_apply_focus_opacity(Client *c) {
 bool client_draw_frame(Client *c) {
 
 	bool need_next_tick = false;
-	bool ov_live_need_fresh = false;
 	bool force_render = false;
 
 	if (!c || !client_surface(c)->mapped)
@@ -1602,12 +1601,6 @@ bool client_draw_frame(Client *c) {
 	if (c->force_render && !c->scene->node.enabled) {
 		force_render = client_force_render(c);
 		need_next_tick = force_render || need_next_tick;
-	}
-
-	/* 实时 overview 预览：喂 frame done + 检测新帧 + 限速重拍快照 */
-	if (c->ov_live_enabled) {
-		ov_live_need_fresh = overview_live_pass(c);
-		need_next_tick = ov_live_need_fresh || need_next_tick;
 	}
 
 	if (!c->need_output_flush)

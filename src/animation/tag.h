@@ -45,11 +45,17 @@ void set_tagin_animation(Monitor *m, Client *c) {
 
 void set_arrange_visible(Monitor *m, Client *c, bool want_animation) {
 
+	/* 被吞噬的窗口完全消失，保持隐藏 */
+	if (c->is_logic_hide)
+		return;
+
 	if (!ISTILED(c) || (!c->is_clip_to_hide || !is_scroller_layout(c->mon))) {
 		c->is_clip_to_hide = false;
 		c->is_logic_hide = false;
 		wlr_scene_node_set_enabled(&c->scene->node, true);
-		wlr_scene_node_set_enabled(&c->scene_surface->node, true);
+		/* overview 中真实 surface 树由卡片树替代，保持禁用 */
+		if (!c->ov_card_tree)
+			wlr_scene_node_set_enabled(&c->scene_surface->node, true);
 	}
 
 	if (!c->animation.tag_from_rule && want_animation &&
@@ -110,6 +116,21 @@ void set_tagout_animation(Monitor *m, Client *c) {
 }
 
 void set_arrange_hidden(Monitor *m, Client *c, bool want_animation) {
+
+	/* 被吞噬的窗口完全消失，保持隐藏（避免触发 tag 动画导致闪现） */
+	if (c->is_logic_hide) {
+		wlr_scene_node_set_enabled(&c->scene->node, false);
+		return;
+	}
+
+	/* overview 里所有 tag 的窗口都要显示卡片，不能被隐藏逻辑禁用 */
+	if (c->ov_card_tree) {
+		c->is_logic_hide = false;
+		c->is_clip_to_hide = false;
+		wlr_scene_node_set_enabled(&c->scene->node, true);
+		c->animation.running = false;
+		return;
+	}
 
 	if ((c->tags & (1 << (m->pertag->prevtag - 1))) &&
 		m->pertag->prevtag != 0 && m->pertag->curtag != 0 &&

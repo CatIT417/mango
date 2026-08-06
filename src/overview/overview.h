@@ -1,5 +1,6 @@
-// 实时 overview 预览：客户端提交新帧后限速重拍快照的间隔（毫秒）
-#define OVERVIEW_SNAP_INTERVAL_MS 33
+// overview 预览：每个客户端建一个独立卡片树，遍历其 surface 树（含
+// subsurface）为每个 surface 建 scene_surface 节点直接绑定纹理，尺寸由
+// GPU 采样缩放，坐标用 client_get_clip 的 geometry 偏移。提交后自动刷新。
 
 // 目标窗口有其他窗口和它同个tag就返回0
 uint32_t want_restore_fullscreen(Client *target_client) {
@@ -18,109 +19,194 @@ uint32_t want_restore_fullscreen(Client *target_client) {
 	return 1;
 }
 
+// surface 提交后重算布局（scene_surface 提交时会重置
+// dest/source，需要重新套用）
+static void overview_card_surface_commit(struct wl_listener *listener,
+										 void *data) {
+	struct ov_card_surface *entry = wl_container_of(listener, entry, commit);
+	if (entry->c && entry->c->ov_card_tree)
+		overview_layout_card(entry->c);
+}
+
+// surface 销毁时移除并释放节点
+static void overview_card_surface_destroy(struct wl_listener *listener,
+										  void *data) {
+	struct ov_card_surface *entry = wl_container_of(listener, entry, destroy);
+	wl_list_remove(&entry->link);
+	wl_list_remove(&entry->commit.link);
+	wl_list_remove(&entry->destroy.link);
+	free(entry);
+}
+
+// 为每个 surface（含 subsurface）建一个卡片 scene_surface 节点
+static void overview_card_surface_add(struct wlr_surface *surface, int sx,
+									  int sy, void *data) {
+	Client *c = data;
+	if (!c->ov_card_tree)
+		return;
+
+	struct ov_card_surface *entry = ecalloc(1, sizeof(*entry));
+	entry->c = c;
+	entry->surface = surface;
+	entry->sx = sx;
+	entry->sy = sy;
+	entry->is_root = (surface == client_surface(c));
+
+	entry->scene_surface = wlr_scene_surface_create(c->ov_card_tree, surface);
+	if (!entry->scene_surface) {
+		free(entry);
+		return;
+	}
+	entry->buffer = entry->scene_surface->buffer;
+	wlr_scene_buffer_set_filter_mode(entry->buffer, WLR_SCALE_FILTER_BILINEAR);
+	entry->buffer->node.data = c; /* 命中测试 */
+
+	entry->commit.notify = overview_card_surface_commit;
+	wl_signal_add(&surface->events.commit, &entry->commit);
+	entry->destroy.notify = overview_card_surface_destroy;
+	wl_signal_add(&surface->events.destroy, &entry->destroy);
+
+	wl_list_insert(&c->ov_card_surfaces, &entry->link);
+}
+
+// 按当前几何更新卡片位置与缩放；内容起点用 client_get_clip 的 geometry 偏移
+void overview_layout_card(Client *c) {
+	if (!c->ov_card_tree)
+		return;
+
+	struct wlr_box geo = c->animation.current;
+	if (geo.width <= 0 || geo.height <= 0)
+		client_get_geometry(c, &geo);
+	int32_t w = geo.width - 2 * (int32_t)c->bw;
+	int32_t h = geo.height - 2 * (int32_t)c->bw;
+	if (w <= 0 || h <= 0)
+		return;
+
+	wlr_scene_node_set_position(&c->ov_card_tree->node, c->bw, c->bw);
+
+	// 内容起点（geometry 偏移）与卡片内容尺寸
+	struct wlr_box clip;
+	client_get_clip(c, &clip);
+
+	struct wlr_surface *s = client_surface(c);
+	float content_w, content_h;
+#ifdef XWAYLAND
+	if (client_is_x11(c)) {
+		content_w = s->current.width;
+		content_h = s->current.height;
+	} else
+#endif
+	{
+		content_w = c->surface.xdg->geometry.width;
+		content_h = c->surface.xdg->geometry.height;
+	}
+	if (content_w <= 0 || content_h <= 0)
+		return;
+
+	float scale_x = (float)w / content_w;
+	float scale_y = (float)h / content_h;
+
+	struct ov_card_surface *entry;
+	wl_list_for_each(entry, &c->ov_card_surfaces, link) {
+		struct wlr_surface *es = entry->surface;
+		/* current.width/height 是逻辑坐标，buffer_width/height 是像素坐标 */
+		float lw = es->current.width;
+		float lh = es->current.height;
+
+		if (entry->is_root) {
+			/* 根 surface 按内容区域裁剪填满卡片；source_box 为 buffer
+			 * 像素，用比例换算 */
+			float ratio_x =
+				es->current.width > 0
+					? (float)es->current.buffer_width / es->current.width
+					: 1.0f;
+			float ratio_y =
+				es->current.height > 0
+					? (float)es->current.buffer_height / es->current.height
+					: 1.0f;
+			wlr_scene_node_set_position(&entry->buffer->node, 0, 0);
+			wlr_scene_buffer_set_dest_size(entry->buffer, w, h);
+			struct wlr_fbox src = {
+				.x = clip.x * ratio_x,
+				.y = clip.y * ratio_y,
+				.width = content_w * ratio_x,
+				.height = content_h * ratio_y,
+			};
+			wlr_scene_buffer_set_source_box(entry->buffer, &src);
+		} else {
+			/* subsurface 相对内容起点摆放并缩放 */
+			int px = (int)((entry->sx - clip.x) * scale_x);
+			int py = (int)((entry->sy - clip.y) * scale_y);
+			wlr_scene_node_set_position(&entry->buffer->node, px, py);
+			wlr_scene_buffer_set_dest_size(entry->buffer, (int)(lw * scale_x),
+										   (int)(lh * scale_y));
+		}
+	}
+}
+
+// 销毁卡片树并释放全部 surface 节点
+void overview_destroy_card(Client *c) {
+	if (!c->ov_card_tree)
+		return;
+
+	struct ov_card_surface *entry, *tmp;
+	wl_list_for_each_safe(entry, tmp, &c->ov_card_surfaces, link) {
+		wl_list_remove(&entry->commit.link);
+		wl_list_remove(&entry->destroy.link);
+		wl_list_remove(&entry->link);
+		free(entry);
+	}
+
+	wlr_scene_node_destroy(&c->ov_card_tree->node);
+	c->ov_card_tree = NULL;
+}
+
+// 给卡片所有 buffer 节点统一应用圆角
+static void overview_card_set_corner_radii(Client *c,
+										   struct fx_corner_radii corners) {
+	struct ov_card_surface *entry;
+	wl_list_for_each(entry, &c->ov_card_surfaces, link)
+		wlr_scene_buffer_set_corner_radii(entry->buffer, corners);
+}
+
+// 进入 overview：保存并禁用真实 scene_surface 树，建独立卡片树显示内容
 void overview_backup_surface(Client *c) {
-
-	if (c->overview_scene_surface) {
+	if (c->ov_card_tree)
 		return;
-	}
-
-	struct wlr_box geometry;
-	client_get_geometry(c, &geometry);
-	struct wlr_box clip_box = (struct wlr_box){
-		.x = geometry.x,
-		.y = geometry.y,
-		.width = c->overview_backup_geom.width - 2 * config.borderpx,
-		.height = c->overview_backup_geom.height - 2 * config.borderpx,
-	};
-
-	if (client_is_x11(c)) {
-		clip_box.x = 0;
-		clip_box.y = 0;
-	}
-
-	c->overview_scene_surface = c->scene_surface;
-	wlr_scene_node_set_enabled(&c->scene_surface->node, true);
-	wlr_scene_node_set_position(&c->scene_surface->node, 0, 0);
-	wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
-	c->scene_surface =
-		wlr_scene_tree_snapshot(&c->scene_surface->node, c->scene);
-	wlr_scene_node_set_enabled(&c->overview_scene_surface->node, false);
-	wlr_scene_node_set_enabled(&c->scene_surface->node, true);
-
-	// 开启实时预览：进入 overview 时初始化 live 状态
-	c->ov_live_enabled = true;
-	c->ov_last_snap_ms = 0;
-	c->ov_serial_last_snap = c->ov_surface_commit_serial;
-}
-
-// 重新计算裁剪区域并重拍快照，刷新 overview 预览画面。
-void overview_resnap(Client *c) {
-	if (!c->overview_scene_surface)
+	/* 被吞噬/隐藏的窗口相当于完全消失，不给它建卡片、也不重置其隐藏状态 */
+	if (c->is_logic_hide)
 		return;
-
-	struct wlr_box geometry;
-	client_get_geometry(c, &geometry);
-	struct wlr_box clip_box = (struct wlr_box){
-		.x = geometry.x,
-		.y = geometry.y,
-		.width = c->overview_backup_geom.width - 2 * config.borderpx,
-		.height = c->overview_backup_geom.height - 2 * config.borderpx,
-	};
-
-	if (client_is_x11(c)) {
-		clip_box.x = 0;
-		clip_box.y = 0;
-	}
-
-	// 销毁旧快照
-	wlr_scene_node_destroy(&c->scene_surface->node);
-
-	// 重新启用原节点、设置位置与裁剪，然后重拍快照
-	wlr_scene_node_set_enabled(&c->overview_scene_surface->node, true);
-	wlr_scene_node_set_position(&c->overview_scene_surface->node, 0, 0);
-	wlr_scene_subsurface_tree_set_clip(&c->overview_scene_surface->node,
-									   &clip_box);
-	c->scene_surface =
-		wlr_scene_tree_snapshot(&c->overview_scene_surface->node, c->scene);
-	wlr_scene_node_set_enabled(&c->overview_scene_surface->node, false);
-	if (c->scene_surface)
-		wlr_scene_node_set_enabled(&c->scene_surface->node, true);
-
-	if (c->mon->is_jump_mode && c->jump_label_node) {
-		wlr_scene_node_raise_to_top(&c->jump_label_node->scene_buffer->node);
-	}
-
-	// 重拍后重新应用 overview 布局效果：快照树的 buffer 默认以原始尺寸渲染
-	// （scene_node_snapshot 用 dst_width/height 初始化 dest_size），必须重新
-	// 设置 dest_size 缩放，否则重拍的帧会脱离布局、以原始大小显示。
-	if (c->scene_surface)
-		client_apply_clip(c, 1.0);
-}
-
-// 每帧调用:喂帧 + 检测新帧 + 限速重拍快照。
-// 返回 true 表示需要继续渲染（overview 期间保持实时预览）。
-bool overview_live_pass(Client *c) {
-	if (!c->ov_live_enabled || !c->overview_scene_surface)
-		return false;
 	if (!client_surface(c) || !client_surface(c)->mapped)
-		return false;
+		return;
 
+	// 禁用真实 surface 树
+	c->overview_scene_surface = c->scene_surface;
+	wlr_scene_node_set_enabled(&c->scene_surface->node, false);
+
+	// overview 里所有 tag 的窗口都要显示卡片，不能被子树隐藏逻辑禁用
+	c->is_logic_hide = false;
+	c->is_clip_to_hide = false;
+	wlr_scene_node_set_enabled(&c->scene->node, true);
+
+	c->ov_card_tree = wlr_scene_tree_create(c->scene);
+	if (!c->ov_card_tree)
+		return;
+	c->ov_card_tree->node.data = c; // 命中测试
+
+	// 遍历 surface 树为每个 surface 建卡片节点
+	wlr_surface_for_each_surface(client_surface(c), overview_card_surface_add,
+								 c);
+
+	// 卡片树建在 scene 顶层，把已启用的 jump label 提到卡片之上
+	if (c->jump_label_node && c->jump_label_node->scene_buffer->node.enabled)
+		wlr_scene_node_raise_to_top(&c->jump_label_node->scene_buffer->node);
+
+	overview_layout_card(c);
+
+	// 喂一帧启动渲染循环（之后由 scene_surface 的 frame-done 驱动）
 	struct timespec now;
 	clock_gettime(CLOCK_MONOTONIC, &now);
-
-	// 给隐藏 surface 喂 frame callback，让客户端持续渲染
 	client_send_frame_done(c, &now);
-
-	// 客户端提交了新帧且距上次重拍超过限速间隔时，重拍快照
-	uint32_t now_ms = get_now_in_ms();
-	if (c->ov_surface_commit_serial != c->ov_serial_last_snap &&
-		now_ms - c->ov_last_snap_ms >= OVERVIEW_SNAP_INTERVAL_MS) {
-		overview_resnap(c);
-		c->ov_serial_last_snap = c->ov_surface_commit_serial;
-		c->ov_last_snap_ms = now_ms;
-	}
-
-	return true;
 }
 
 // 普通视图切换到overview时保存窗口的旧状态
@@ -152,6 +238,10 @@ void overview_backup(Client *c) {
 
 // overview切回到普通视图还原窗口的状态
 void overview_restore(Client *c, const Arg *arg) {
+	/* 被吞噬/隐藏的窗口保持原状（不还原、不显示） */
+	if (c->is_logic_hide)
+		return;
+
 	c->isfloating = c->overview_isfloatingbak;
 	c->isfullscreen = c->overview_isfullscreenbak;
 	c->ismaximizescreen = c->overview_ismaximizescreenbak;
@@ -163,15 +253,12 @@ void overview_restore(Client *c, const Arg *arg) {
 	c->animation.tagining = false;
 	c->is_restoring_from_ov = (arg->ui & c->tags & TAGMASK) == 0 ? true : false;
 
-	/* 关闭实时预览状态 */
-	c->ov_live_enabled = false;
-	c->ov_last_snap_ms = 0;
-	c->ov_serial_last_snap = 0;
-
+	// 销毁卡片树，恢复真实 scene_surface 树
+	overview_destroy_card(c);
 	if (c->overview_scene_surface) {
-		wlr_scene_node_destroy(&c->scene_surface->node);
 		c->scene_surface = c->overview_scene_surface;
 		c->overview_scene_surface = NULL;
+		wlr_scene_node_set_enabled(&c->scene_surface->node, true);
 	}
 
 	if (c->isfloating) {
