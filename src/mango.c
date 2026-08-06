@@ -4524,21 +4524,26 @@ void keypress(struct wl_listener *listener, void *data) {
 	if (selmon && selmon->is_jump_mode &&
 		event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
 		for (i = 0; i < nsyms; i++) {
-			xkb_keysym_t sym = xkb_keysym_to_lower(syms[i]);
-			if (sym >= XKB_KEY_a && sym <= XKB_KEY_z) {
-				char c_char = 'A' + (sym - XKB_KEY_a);
-				Client *c;
-				wl_list_for_each(c, &clients, link) {
-					if (c->mon == selmon && c->jump_char == c_char &&
-						!c->is_logic_hide) {
-						focusclient(c, 1);
-						toggleoverview(&(Arg){.i = 1});
-						return;
-					}
-				}
-			} else if (sym == XKB_KEY_Escape) {
+			if (syms[i] == XKB_KEY_Escape) {
 				togglejump(&(Arg){.i = 0});
 				return;
+			}
+			// keysym 转字符，与 jump_labels 匹配（字母忽略大小写）
+			uint32_t cp = xkb_keysym_to_utf32(syms[i]);
+			if (!cp || cp >= 0x80)
+				continue;
+			char c_char = (char)cp;
+			Client *c;
+			wl_list_for_each(c, &clients, link) {
+				if (c->mon == selmon && c->jump_char != '\0' &&
+					!c->is_logic_hide &&
+					(c_char == c->jump_char ||
+					 toupper((unsigned char)c_char) ==
+						 toupper((unsigned char)c->jump_char))) {
+					focusclient(c, 1);
+					toggleoverview(&(Arg){.i = 1});
+					return;
+				}
 			}
 		}
 	}

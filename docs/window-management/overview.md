@@ -13,6 +13,7 @@ description: Configure the overview mode for window navigation.
 | `ov_tab_mode` | integer | `1` | Overview tab mode (0: disable, 1: enable). |
 | `overviewgappi` | integer | `5` | Inner gap in overview mode. |
 | `overviewgappo` | integer | `30` | Outer gap in overview mode. |
+| `jump_labels` | string | `HJKLASDFGQWERTYUIOPZXCVBNM` | Character sequence used for jump hints in overview mode. |
 
 ### Setting Descriptions
 
@@ -20,6 +21,7 @@ description: Configure the overview mode for window navigation.
 - `hotarea_size` — Size of the hot area trigger zone in pixels.
 - `hotarea_corner` — Corner that triggers the hot area (0: top-left, 1: top-right, 2: bottom-left, 3: bottom-right).
 - `ov_tab_mode` — Circles focus through windows in overview; releasing the mod key exits overview.
+- `jump_labels` — Defines the ordered characters used for jump hints when in overview jump mode. Each visible window is assigned a label in this order, and pressing the corresponding key jumps to that window. The number of labels limits how many windows can be assigned hints at once.
 
 ### Mouse Interaction in Overview
 

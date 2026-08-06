@@ -276,6 +276,7 @@ typedef struct {
 
 	int32_t overviewgappi;
 	int32_t overviewgappo;
+	char *jump_labels;
 	uint32_t cursor_hide_timeout;
 	uint32_t cursor_hide_on_keypress;
 
@@ -429,6 +430,8 @@ typedef struct {
 
 typedef void (*FuncType)(const Arg *);
 Config config;
+// 默认跳转标签字符序列（静态数组，未配置 jump_labels 时使用）
+static const char default_jump_labels[] = "HJKLASDFGQWERTYUIOPZXCVBNM";
 static char **file_paths = NULL;
 static int file_paths_count = 0;
 static int current_file_index = -1;
@@ -1792,6 +1795,10 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->overviewgappi = atoi(value);
 	} else if (strcmp(key, "overviewgappo") == 0) {
 		config->overviewgappo = atoi(value);
+	} else if (strcmp(key, "jump_labels") == 0) {
+		if (config->jump_labels)
+			free(config->jump_labels);
+		config->jump_labels = strdup(value);
 	} else if (strcmp(key, "cursor_hide_timeout") == 0) {
 		config->cursor_hide_timeout = atoi(value);
 	} else if (strcmp(key, "cursor_hide_on_keypress") == 0) {
@@ -3613,6 +3620,11 @@ void free_config(void) {
 		config.tablet_map_to_mon = NULL;
 	}
 
+	if (config.jump_labels) {
+		free(config.jump_labels);
+		config.jump_labels = NULL;
+	}
+
 	// 释放 circle_layout
 	free_circle_layout(&config);
 
@@ -4161,6 +4173,7 @@ bool parse_config(void) {
 	config.jumplabeldata.font_desc = NULL;
 	config.groupbardata.font_desc = NULL;
 	config.tablet_map_to_mon = NULL;
+	config.jump_labels = NULL;
 	strcpy(config.keymode, "default");
 
 	create_config_keymap();

@@ -352,13 +352,18 @@ void overview_resize(Monitor *m) {
 }
 
 void create_jump_hints(Monitor *m) {
-	const char jump_labels[] = "HJKLASDFGQWERTYUIOPZXCVBNM";
+	// 未配置 jump_labels 时使用静态默认序列
+	const char *jump_labels =
+		config.jump_labels ? config.jump_labels : default_jump_labels;
+	if (!jump_labels || !jump_labels[0])
+		return;
+	size_t jump_labels_len = strlen(jump_labels);
 	int label_idx = 0;
 	Client *c;
 
 	wl_list_for_each(c, &clients, link) {
 		if (VISIBLEON(c, m) && !c->isunglobal && !client_is_x11_popup(c)) {
-			if (label_idx >= 26)
+			if (label_idx >= (int)jump_labels_len)
 				break;
 			char c_char = jump_labels[label_idx];
 			c->jump_char = c_char;
