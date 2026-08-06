@@ -5500,6 +5500,7 @@ void rendermon(struct wl_listener *listener, void *data) {
 	struct wl_list *layer_list;
 	struct timespec now;
 	bool need_more_frames = false;
+	bool resizing_on_this_mon = false;
 
 	if (session && !session->active) {
 		return;
@@ -5527,17 +5528,21 @@ void rendermon(struct wl_listener *listener, void *data) {
 		need_more_frames = layer_draw_fadeout_frame(l) || need_more_frames;
 	}
 
-	// 绘制客户端
 	wl_list_for_each(c, &clients, link) {
 		if (c->is_logic_hide)
 			continue;
 
 		need_more_frames = client_draw_frame(c) || need_more_frames;
-		if (!config.animations && !grabc && c->configure_serial &&
-			client_is_rendered_on_mon(c, m)) {
-			monitor_check_skip_frame_timeout(m);
-			goto skip;
-		}
+
+		if (!c->force_render && c->configure_serial &&
+			client_is_rendered_on_mon(c, m))
+			resizing_on_this_mon = true;
+	}
+
+	if (!config.animations && !grabc && !need_more_frames &&
+		resizing_on_this_mon) {
+		monitor_check_skip_frame_timeout(m);
+		goto skip;
 	}
 
 	if (m->skiping_frame) {
