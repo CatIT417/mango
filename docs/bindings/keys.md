@@ -51,6 +51,8 @@ You can divide key bindings into named modes. Rules:
 2. If no `keymode` is set before a bind, it belongs to the `default` mode.
 3. The special `common` keymode applies its binds **across all modes**.
 
+> **Info:** Key modes also apply to the other input bindings — `mousebind`, `axisbind`, `gesturebind` and `switchbind` — which share the exact same `keymode` rules as `bind`.
+
 Use `setkeymode` to switch modes, and `mmsg get keymode` to query the current mode.
 
 ```ini

@@ -2157,7 +2157,9 @@ axisnotify(struct wl_listener *listener, void *data) {
 		if (config.axis_bindings_count < 1)
 			break;
 		a = &config.axis_bindings[ji];
-		if (CLEANMASK(mods) == CLEANMASK(a->mod) && // 按键一致
+		if ((a->iscommonmode || (a->isdefaultmode && keymode.isdefault) ||
+			 (strcmp(keymode.mode, a->mode) == 0)) &&
+			CLEANMASK(mods) == CLEANMASK(a->mod) && // 按键一致
 			adir == a->dir && a->func) { // 滚轮方向判断一致且处理函数存在
 			if (event->time_msec - axis_apply_time >
 					config.axis_bind_apply_timeout ||
@@ -2229,7 +2231,9 @@ int32_t ongesture(struct wlr_pointer_swipe_end_event *event) {
 		if (config.gesture_bindings_count < 1)
 			break;
 		g = &config.gesture_bindings[ji];
-		if (CLEANMASK(mods) == CLEANMASK(g->mod) &&
+		if ((g->iscommonmode || (g->isdefaultmode && keymode.isdefault) ||
+			 (strcmp(keymode.mode, g->mode) == 0)) &&
+			CLEANMASK(mods) == CLEANMASK(g->mod) &&
 			swipe_fingers == g->fingers_count && motion == g->motion &&
 			g->func) {
 			g->func(&g->arg);
@@ -2525,7 +2529,9 @@ bool handle_buttonpress(struct wlr_pointer_button_event *event) {
 				break;
 			m = &config.mouse_bindings[ji];
 
-			if (CLEANMASK(mods) == CLEANMASK(m->mod) &&
+			if ((m->iscommonmode || (m->isdefaultmode && keymode.isdefault) ||
+				 (strcmp(keymode.mode, m->mode) == 0)) &&
+				CLEANMASK(mods) == CLEANMASK(m->mod) &&
 				event->button == m->button && m->func &&
 				(CLEANMASK(m->mod) != 0 ||
 				 (event->button != BTN_LEFT && event->button != BTN_RIGHT))) {
@@ -3828,7 +3834,9 @@ void switch_toggle(struct wl_listener *listener, void *data) {
 		if (config.switch_bindings_count < 1)
 			break;
 		s = &config.switch_bindings[ji];
-		if (event->switch_state == s->fold && s->func) {
+		if ((s->iscommonmode || (s->isdefaultmode && keymode.isdefault) ||
+			 (strcmp(keymode.mode, s->mode) == 0)) &&
+			event->switch_state == s->fold && s->func) {
 			s->func(&s->arg);
 			return;
 		}
