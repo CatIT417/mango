@@ -150,6 +150,8 @@ typedef struct {
 	char mode[28];
 	bool iscommonmode;
 	bool isdefaultmode;
+	int line_number;
+	int file_index;
 } MouseBinding;
 
 typedef struct {
@@ -160,6 +162,8 @@ typedef struct {
 	char mode[28];
 	bool iscommonmode;
 	bool isdefaultmode;
+	int line_number;
+	int file_index;
 } AxisBinding;
 
 typedef struct {
@@ -169,6 +173,8 @@ typedef struct {
 	char mode[28];
 	bool iscommonmode;
 	bool isdefaultmode;
+	int line_number;
+	int file_index;
 } SwitchBinding;
 
 typedef struct {
@@ -180,6 +186,8 @@ typedef struct {
 	char mode[28];
 	bool iscommonmode;
 	bool isdefaultmode;
+	int line_number;
+	int file_index;
 } GestureBinding;
 
 typedef struct {
@@ -440,8 +448,18 @@ typedef struct {
 	int32_t hdr_depth;
 } Config;
 
+typedef struct {
+	const char *mode;
+	bool iscommonmode;
+	int file_index;
+	int line_number;
+} BindingConflictMeta;
+
+typedef void (*BindingMetaFunc)(const void *elem, BindingConflictMeta *meta);
+
 typedef void (*FuncType)(const Arg *);
 Config config;
+
 // 默认跳转标签字符序列（静态数组，未配置 jump_labels 时使用）
 static const char default_jump_labels[] = "HJKLASDFGQWERTYUIOPZXCVBNM";
 static char **file_paths = NULL;
@@ -2844,6 +2862,8 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		memset(binding, 0, sizeof(MouseBinding));
 		set_binding_keymode(config, binding->mode, &binding->iscommonmode,
 							&binding->isdefaultmode);
+		binding->line_number = line_number;
+		binding->file_index = current_file_index;
 
 		char mod_str[256], button_str[256], func_name[256],
 			arg_value[256] = "0\0", arg_value2[256] = "0\0",
@@ -2928,6 +2948,8 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		memset(binding, 0, sizeof(AxisBinding));
 		set_binding_keymode(config, binding->mode, &binding->iscommonmode,
 							&binding->isdefaultmode);
+		binding->line_number = line_number;
+		binding->file_index = current_file_index;
 
 		char mod_str[256], dir_str[256], func_name[256],
 			arg_value[256] = "0\0", arg_value2[256] = "0\0",
@@ -3005,6 +3027,8 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		memset(binding, 0, sizeof(SwitchBinding));
 		set_binding_keymode(config, binding->mode, &binding->iscommonmode,
 							&binding->isdefaultmode);
+		binding->line_number = line_number;
+		binding->file_index = current_file_index;
 
 		char fold_str[256], func_name[256],
 			arg_value[256] = "0\0", arg_value2[256] = "0\0",
@@ -3075,6 +3099,8 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		memset(binding, 0, sizeof(GestureBinding));
 		set_binding_keymode(config, binding->mode, &binding->iscommonmode,
 							&binding->isdefaultmode);
+		binding->line_number = line_number;
+		binding->file_index = current_file_index;
 
 		char mod_str[256], motion_str[256], fingers_count_str[256],
 			func_name[256], arg_value[256] = "0\0", arg_value2[256] = "0\0",
@@ -3376,6 +3402,133 @@ bool check_key_binding_conflicts(Config *config) {
 
 	free(binds);
 	return conflict_found;
+}
+
+static bool same_mousebind_key(const void *a, const void *b) {
+	const MouseBinding *ma = (const MouseBinding *)a;
+	const MouseBinding *mb = (const MouseBinding *)b;
+	return ma->mod == mb->mod && ma->button == mb->button;
+}
+
+static bool same_axisbind_key(const void *a, const void *b) {
+	const AxisBinding *aa = (const AxisBinding *)a;
+	const AxisBinding *ab = (const AxisBinding *)b;
+	return aa->mod == ab->mod && aa->dir == ab->dir;
+}
+
+static bool same_switchbind_key(const void *a, const void *b) {
+	const SwitchBinding *sa = (const SwitchBinding *)a;
+	const SwitchBinding *sb = (const SwitchBinding *)b;
+	return sa->fold == sb->fold;
+}
+
+static bool same_gesturebind_key(const void *a, const void *b) {
+	const GestureBinding *ga = (const GestureBinding *)a;
+	const GestureBinding *gb = (const GestureBinding *)b;
+	return ga->mod == gb->mod && ga->motion == gb->motion &&
+		   ga->fingers_count == gb->fingers_count;
+}
+
+static bool
+check_simple_binding_conflicts(void *arr, size_t count, size_t elem_size,
+							   bool (*same_key)(const void *, const void *),
+							   BindingMetaFunc get_meta, const char *kind) {
+	bool conflict_found = false;
+
+	for (size_t i = 0; i < count; i++) {
+		for (size_t j = i + 1; j < count; j++) {
+			if (!same_key((char *)arr + i * elem_size,
+						  (char *)arr + j * elem_size))
+				continue;
+
+			BindingConflictMeta ma, mb;
+			get_meta((char *)arr + i * elem_size, &ma);
+			get_meta((char *)arr + j * elem_size, &mb);
+
+			bool same_mode = (strcmp(ma.mode, mb.mode) == 0);
+			bool any_common = ma.iscommonmode || mb.iscommonmode;
+			if (same_mode || any_common) {
+
+				const char *file_a = (ma.file_index >= 0)
+										 ? file_paths[ma.file_index]
+										 : "(built-in)";
+				const char *file_b = (mb.file_index >= 0)
+										 ? file_paths[mb.file_index]
+										 : "(built-in)";
+
+				conflict_found = true;
+				fprintf(stderr,
+						"\033[1;33m[WARNING]\033[0m %s conflict "
+						"in keymode \033[1;36m%s\033[0m:\n"
+						"  File \033[1;32m\"%s\"\033[0m, line "
+						"\033[1;35m%d\033[0m\n"
+						"  File \033[1;32m\"%s\"\033[0m, line "
+						"\033[1;35m%d\033[0m\n\n",
+						kind, (any_common ? "common" : ma.mode), file_a,
+						ma.line_number, file_b, mb.line_number);
+			}
+		}
+	}
+	return conflict_found;
+}
+
+static void get_mousebind_meta(const void *elem, BindingConflictMeta *meta) {
+	const MouseBinding *b = (const MouseBinding *)elem;
+	meta->mode = b->mode;
+	meta->iscommonmode = b->iscommonmode;
+	meta->file_index = b->file_index;
+	meta->line_number = b->line_number;
+}
+
+static void get_axisbind_meta(const void *elem, BindingConflictMeta *meta) {
+	const AxisBinding *b = (const AxisBinding *)elem;
+	meta->mode = b->mode;
+	meta->iscommonmode = b->iscommonmode;
+	meta->file_index = b->file_index;
+	meta->line_number = b->line_number;
+}
+
+static void get_switchbind_meta(const void *elem, BindingConflictMeta *meta) {
+	const SwitchBinding *b = (const SwitchBinding *)elem;
+	meta->mode = b->mode;
+	meta->iscommonmode = b->iscommonmode;
+	meta->file_index = b->file_index;
+	meta->line_number = b->line_number;
+}
+
+static void get_gesturebind_meta(const void *elem, BindingConflictMeta *meta) {
+	const GestureBinding *b = (const GestureBinding *)elem;
+	meta->mode = b->mode;
+	meta->iscommonmode = b->iscommonmode;
+	meta->file_index = b->file_index;
+	meta->line_number = b->line_number;
+}
+
+bool check_mouse_binding_conflicts(Config *config) {
+	return check_simple_binding_conflicts(
+		config->mouse_bindings, config->mouse_bindings_count,
+		sizeof(MouseBinding), same_mousebind_key, get_mousebind_meta,
+		"mousebind");
+}
+
+bool check_axis_binding_conflicts(Config *config) {
+	return check_simple_binding_conflicts(
+		config->axis_bindings, config->axis_bindings_count, sizeof(AxisBinding),
+		same_axisbind_key, get_axisbind_meta, "axisbind");
+}
+
+bool check_switch_binding_conflicts(Config *config) {
+	return check_simple_binding_conflicts(
+		config->switch_bindings, config->switch_bindings_count,
+		sizeof(SwitchBinding), same_switchbind_key, get_switchbind_meta,
+		"switchbind");
+}
+
+bool check_gesture_binding_conflicts(Config *config) {
+	return check_simple_binding_conflicts(
+		config->gesture_bindings, config->gesture_bindings_count,
+		sizeof(GestureBinding), same_gesturebind_key, get_gesturebind_meta,
+		"gesturebind");
 }
 
 void free_circle_layout(Config *config) {
@@ -4263,6 +4416,10 @@ bool parse_config(void) {
 	set_default_key_bindings(&config);
 	override_config();
 	keybindings_conflict = check_key_binding_conflicts(&config);
+	keybindings_conflict |= check_mouse_binding_conflicts(&config);
+	keybindings_conflict |= check_axis_binding_conflicts(&config);
+	keybindings_conflict |= check_switch_binding_conflicts(&config);
+	keybindings_conflict |= check_gesture_binding_conflicts(&config);
 
 	// 释放文件路径列表
 	if (file_paths) {
