@@ -1,12 +1,12 @@
 bool mango_scene_output_commit(struct wlr_scene_output *scene_output,
-							   struct wlr_output_state *state) {
+							   struct wlr_output_state *state, bool force) {
 	struct wlr_output *wlr_output = scene_output->output;
 	Monitor *m = wlr_output->data;
 	bool committed = false;
 
 	bool frame_allow_tearing = check_tearing_frame_allow(m);
 
-	if (!wlr_scene_output_needs_frame(scene_output))
+	if (!force && !wlr_scene_output_needs_frame(scene_output))
 		return true;
 
 	// build the state, attaching the scene's Buffer to it

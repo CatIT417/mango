@@ -4508,7 +4508,7 @@ void reapply_monitor_rules(void) {
 			output_enable_hdr(m, &m->pending, false, false);
 		}
 
-		if (!(mango_scene_output_commit(m->scene_output, &m->pending))) {
+		if (!(mango_scene_output_commit(m->scene_output, &m->pending, false))) {
 			if (m->hdr_enable) {
 				output_state_setup_hdr(m, true, &m->pending);
 			}
