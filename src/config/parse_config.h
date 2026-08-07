@@ -192,6 +192,7 @@ typedef struct {
 
 typedef struct {
 	int32_t id;
+	bool id_wildcard;
 	char *layout_name;
 	char *monitor_name;
 	char *monitor_make;
@@ -2336,6 +2337,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 
 		// 设置默认值
 		rule->id = 0;
+		rule->id_wildcard = false;
 		rule->layout_name = NULL;
 		rule->monitor_name = NULL;
 		rule->monitor_make = NULL;
@@ -2363,7 +2365,13 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 				trim_whitespace(val);
 
 				if (strcmp(key, "id") == 0) {
-					rule->id = CLAMP_INT(atoi(val), 0, LENGTH(tags));
+					if (strcmp(val, "*") == 0) {
+						rule->id_wildcard = true;
+						rule->id = 0;
+					} else {
+						rule->id_wildcard = false;
+						rule->id = CLAMP_INT(atoi(val), 0, LENGTH(tags));
+					}
 				} else if (strcmp(key, "layout_name") == 0) {
 					rule->layout_name = strdup(val);
 				} else if (strcmp(key, "monitor_name") == 0) {
@@ -4689,34 +4697,40 @@ void parse_tagrule(Monitor *m) {
 		}
 
 		if (config.tag_rules_count > 0 && match_rule &&
-			tr.id <= config.tag_num) {
+			(tr.id_wildcard || tr.id <= config.tag_num)) {
 
-			for (jk = 0; jk < LENGTH(layouts); jk++) {
-				if (tr.layout_name &&
-					strcmp(layouts[jk].name, tr.layout_name) == 0) {
-					m->pertag->ltidxs[tr.id] = &layouts[jk];
+			int32_t tag_id_start = tr.id_wildcard ? 0 : tr.id;
+			int32_t tag_id_end = tr.id_wildcard ? config.tag_num : tr.id;
+			int32_t ti;
+
+			for (ti = tag_id_start; ti <= tag_id_end; ti++) {
+				for (jk = 0; jk < LENGTH(layouts); jk++) {
+					if (tr.layout_name &&
+						strcmp(layouts[jk].name, tr.layout_name) == 0) {
+						m->pertag->ltidxs[ti] = &layouts[jk];
+					}
 				}
-			}
 
-			if (tr.no_hide >= 0)
-				m->pertag->no_hide[tr.id] = tr.no_hide;
-			if (tr.nmaster >= 1)
-				m->pertag->nmasters[tr.id] = tr.nmaster;
-			if (tr.mfact > 0.0f)
-				m->pertag->mfacts[tr.id] = tr.mfact;
-			if (tr.no_render_border >= 0)
-				m->pertag->no_render_border[tr.id] = tr.no_render_border;
-			if (tr.open_as_floating >= 0)
-				m->pertag->open_as_floating[tr.id] = tr.open_as_floating;
-			if (tr.scroller_default_proportion > 0.0f)
-				m->pertag->scroller_default_proportion[tr.id] =
-					tr.scroller_default_proportion;
-			if (tr.scroller_default_proportion_single > 0.0f)
-				m->pertag->scroller_default_proportion_single[tr.id] =
-					tr.scroller_default_proportion_single;
-			if (tr.scroller_ignore_proportion_single >= 0)
-				m->pertag->scroller_ignore_proportion_single[tr.id] =
-					tr.scroller_ignore_proportion_single;
+				if (tr.no_hide >= 0)
+					m->pertag->no_hide[ti] = tr.no_hide;
+				if (tr.nmaster >= 1)
+					m->pertag->nmasters[ti] = tr.nmaster;
+				if (tr.mfact > 0.0f)
+					m->pertag->mfacts[ti] = tr.mfact;
+				if (tr.no_render_border >= 0)
+					m->pertag->no_render_border[ti] = tr.no_render_border;
+				if (tr.open_as_floating >= 0)
+					m->pertag->open_as_floating[ti] = tr.open_as_floating;
+				if (tr.scroller_default_proportion > 0.0f)
+					m->pertag->scroller_default_proportion[ti] =
+						tr.scroller_default_proportion;
+				if (tr.scroller_default_proportion_single > 0.0f)
+					m->pertag->scroller_default_proportion_single[ti] =
+						tr.scroller_default_proportion_single;
+				if (tr.scroller_ignore_proportion_single >= 0)
+					m->pertag->scroller_ignore_proportion_single[ti] =
+						tr.scroller_ignore_proportion_single;
+			}
 		}
 	}
 
