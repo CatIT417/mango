@@ -232,7 +232,14 @@ void overview_scale(Monitor *m) {
 		float base_y = m->w.y + target_gappo + dy;
 
 		// 收集所有客户端的目标几何，最后统一调用 client_tile_resize
-		struct wlr_box overview_boxes[n]; // C99 VLA，n > 0 时有效
+		struct wlr_box *overview_boxes = calloc(n, sizeof(*overview_boxes));
+		if (!overview_boxes) {
+			free(items);
+			free(placed);
+			free(cands);
+			free(feas);
+			return;
+		}
 		for (int k = 0; k < n; k++) {
 			float w = items[k].orig_w * best_s;
 			float h = items[k].orig_h * best_s;
@@ -246,6 +253,7 @@ void overview_scale(Monitor *m) {
 		for (int k = 0; k < n; k++) {
 			client_tile_resize(items[k].c, overview_boxes[k], 0);
 		}
+		free(overview_boxes);
 	}
 
 	free(items);
