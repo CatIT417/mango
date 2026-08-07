@@ -615,6 +615,12 @@ struct Monitor {
 	bool hdr_enable;
 	bool prefer_disable;
 	bool is_hdr_enabling;
+	// Mastering display metadata, in cd/m². 0 = unset, see output_enable_hdr().
+	float hdr_min_lum;
+	float hdr_max_lum;
+	float hdr_max_avg_lum;
+	// Bypass the EDID-derived capability checks (DisplayID-only panels).
+	bool hdr_force;
 };
 
 typedef struct {
@@ -3480,6 +3486,10 @@ bool apply_rule_to_state(Monitor *m, const ConfigMonitorRule *rule,
 	m->vrr_global_enable = rule->vrr >= 0 ? rule->vrr : 0;
 	m->hdr_enable = rule->hdr >= 0 ? rule->hdr : 0;
 	m->prefer_disable = rule->disable >= 0 ? rule->disable : 0;
+	m->hdr_min_lum = rule->hdr_min_lum;
+	m->hdr_max_lum = rule->hdr_max_lum;
+	m->hdr_max_avg_lum = rule->hdr_max_avg_lum;
+	m->hdr_force = rule->hdr_force >= 0 ? rule->hdr_force : 0;
 
 	if (rule->width > 0 && rule->height > 0 && rule->refresh > 0) {
 		struct wlr_output_mode *internal_mode = get_nearest_output_mode(
@@ -3538,6 +3548,10 @@ void createmon(struct wl_listener *listener, void *data) {
 	m->hdr_enable = false;
 	m->prefer_disable = false;
 	m->is_hdr_enabling = false;
+	m->hdr_min_lum = 0.0f;
+	m->hdr_max_lum = 0.0f;
+	m->hdr_max_avg_lum = 0.0f;
+	m->hdr_force = false;
 
 	m->wlr_output = wlr_output;
 	m->wlr_output->data = m;

@@ -125,6 +125,10 @@ typedef struct {
 	int32_t vrr;				 // variable refresh rate
 	int32_t custom;				 // enable custom mode
 	int32_t hdr;				 // enable hdr mode
+	float hdr_min_lum;			 // mastering min luminance, cd/m² (0 = unset)
+	float hdr_max_lum;			 // mastering max luminance / max_cll, cd/m²
+	float hdr_max_avg_lum;		 // max frame-average light level, cd/m²
+	int32_t hdr_force;			 // ignore EDID-derived HDR capability checks
 	int32_t disable;			 // prefer disable
 } ConfigMonitorRule;
 
@@ -1151,6 +1155,20 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
 		(*arg).i = parse_circle_direction(arg_value);
 	} else if (strcmp(func_name, "toggleglobal") == 0) {
 		func = toggleglobal;
+	} else if (strcmp(func_name, "togglehdr") == 0) {
+		/* togglehdr[,on|off|toggle][,<monitor name>|all] */
+		func = togglehdr;
+		if (strcmp(arg_value, "on") == 0)
+			(*arg).i = 1;
+		else if (strcmp(arg_value, "off") == 0)
+			(*arg).i = 0;
+		else
+			(*arg).i = -1; // toggle, and the default for an empty argument
+		// "not given" is "" from the IPC path and "0" from the keybinding
+		// parser -- same rule as combine_args_until_empty().
+		bool has_name = arg_value2 && arg_value2[0] != '\0' &&
+						!(strlen(arg_value2) == 1 && arg_value2[0] == '0');
+		(*arg).v = has_name ? strdup(arg_value2) : NULL;
 	} else if (strcmp(func_name, "toggleoverview") == 0) {
 		func = toggleoverview;
 		(*arg).i = atoi(arg_value);
@@ -2259,6 +2277,10 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		rule->refresh = 0.0f;
 		rule->vrr = 0;
 		rule->hdr = 0;
+		rule->hdr_min_lum = 0.0f;
+		rule->hdr_max_lum = 0.0f;
+		rule->hdr_max_avg_lum = 0.0f;
+		rule->hdr_force = 0;
 		rule->custom = 0;
 		rule->disable = 0;
 
@@ -2300,6 +2322,17 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 					rule->vrr = CLAMP_INT(atoi(val), 0, 1);
 				} else if (strcmp(key, "hdr") == 0) {
 					rule->hdr = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "hdr_min_lum") == 0) {
+					// cd/m². OLED blacks sit well below 0.01, so the floor has
+					// to allow small fractions -- do not clamp to >= 1.
+					rule->hdr_min_lum = CLAMP_FLOAT(atof(val), 0.0f, 10000.0f);
+				} else if (strcmp(key, "hdr_max_lum") == 0) {
+					rule->hdr_max_lum = CLAMP_FLOAT(atof(val), 0.0f, 10000.0f);
+				} else if (strcmp(key, "hdr_max_avg_lum") == 0) {
+					rule->hdr_max_avg_lum =
+						CLAMP_FLOAT(atof(val), 0.0f, 10000.0f);
+				} else if (strcmp(key, "hdr_force") == 0) {
+					rule->hdr_force = CLAMP_INT(atoi(val), 0, 1);
 				} else if (strcmp(key, "disable") == 0) {
 					rule->disable = CLAMP_INT(atoi(val), 0, 1);
 				} else if (strcmp(key, "custom") == 0) {
