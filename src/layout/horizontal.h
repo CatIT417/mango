@@ -850,8 +850,8 @@ void fair(Monitor *m) {
 	float *row_h_base = calloc(base_rows, sizeof(*row_h_base));
 	float *row_y_max = calloc(max_rows, sizeof(*row_y_max));
 	float *row_h_max = calloc(max_rows, sizeof(*row_h_max));
-	if (!arr || !col_pers || !row_pers || !col_x || !col_w ||
-		!row_y_base || !row_h_base || !row_y_max || !row_h_max) {
+	if (!arr || !col_pers || !row_pers || !col_x || !col_w || !row_y_base ||
+		!row_h_base || !row_y_max || !row_h_max) {
 		free(arr);
 		free(col_pers);
 		free(row_pers);

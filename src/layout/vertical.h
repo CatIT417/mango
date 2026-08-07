@@ -404,8 +404,8 @@ void vertical_fair(Monitor *m) {
 	float *col_w_base = calloc(base_cols, sizeof(*col_w_base));
 	float *col_x_max = calloc(max_cols, sizeof(*col_x_max));
 	float *col_w_max = calloc(max_cols, sizeof(*col_w_max));
-	if (!arr || !row_pers || !col_pers || !row_y || !row_h ||
-		!col_x_base || !col_w_base || !col_x_max || !col_w_max) {
+	if (!arr || !row_pers || !col_pers || !row_y || !row_h || !col_x_base ||
+		!col_w_base || !col_x_max || !col_w_max) {
 		free(arr);
 		free(row_pers);
 		free(col_pers);

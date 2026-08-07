@@ -2959,7 +2959,7 @@ void commitlayersurfacenotify(struct wl_listener *listener, void *data) {
 	struct wlr_scene_tree *scene_layer =
 		layers[layermap[layer_surface->current.layer]];
 	struct wlr_layer_surface_v1_state old_state;
-	struct wlr_box box;
+	struct wlr_box box = l->geom;
 
 	if (l->layer_surface->initial_commit) {
 		client_set_scale(layer_surface->surface, l->mon->wlr_output->scale);
@@ -3146,7 +3146,8 @@ static bool popup_unconstrain(Popup *popup) {
 	}
 
 	type = toplevel_from_wlr_surface(wlr_popup->base->surface, &c, &l);
-	if ((l && !l->mon) || (c && !c->mon)) {
+	if ((type == LayerShell && (!l || !l->mon)) ||
+		(type != LayerShell && (!c || !c->mon))) {
 		return true;
 	}
 
@@ -4123,7 +4124,7 @@ void focusclient(Client *c, int32_t lift) {
 
 	if (c && !c->iskilling && !client_is_unmanaged(c) && c->mon) {
 
-		last_focus_client = selmon->sel;
+		last_focus_client = selmon ? selmon->sel : NULL;
 		selmon = c->mon;
 		selmon->prevsel = selmon->sel;
 		selmon->sel = c;
