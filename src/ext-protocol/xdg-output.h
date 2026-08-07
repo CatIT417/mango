@@ -155,12 +155,23 @@ static void xdg_output_update_all(void) {
 	}
 }
 
-/* 销毁指定输出对应的所有 xdg-output 资源（monitor 移除时调用） */
+/* 输出被移除时，让对应的 xdg-output 资源变为惰性，而不是销毁它 */
 static void xdg_output_cleanup_output(struct wlr_output *wlr_output) {
 	struct MangoXDGOutput *output, *tmp;
 	wl_list_for_each_safe(output, tmp, &xdg_output_resources, link) {
-		if (output->wlr_output == wlr_output)
-			wl_resource_destroy(output->resource);
+		if (output->wlr_output != wlr_output)
+			continue;
+
+		/* zxdg_output_v1 is created by the client, so only the client may
+		 * destroy it. Destroying it here makes libwayland send delete_id for
+		 * that id; the client then reuses the id while its own destroy request
+		 * is still in flight, and the next request hits an unknown object.
+		 * wlroots makes such resources inert instead -- do the same.
+		 * xdg_output_handle_resource_destroy() already returns early on NULL
+		 * user data, so the client's later destroy is a no-op. */
+		wl_resource_set_user_data(output->resource, NULL);
+		wl_list_remove(&output->link);
+		free(output);
 	}
 }
 
