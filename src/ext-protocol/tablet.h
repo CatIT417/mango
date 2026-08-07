@@ -329,6 +329,15 @@ void tablettoolmotion(struct TabletTool *tool, bool change_x, bool change_y,
 		tool->curr_surface = surface;
 	}
 
+	/* X11 窗口是物理尺寸，坐标乘 xwayland_scale */
+#ifdef XWAYLAND
+	if (c && client_is_x11(c) && config.xwayland_ignore_scale &&
+		c->xwayland_scale > 0.f) {
+		sx *= c->xwayland_scale;
+		sy *= c->xwayland_scale;
+	}
+#endif
+
 	if (surface)
 		wlr_tablet_v2_tablet_tool_notify_motion(tool->tool_v2, sx, sy);
 

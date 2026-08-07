@@ -426,6 +426,7 @@ typedef struct {
 
 	int32_t single_scratchpad;
 	int32_t xwayland_persistence;
+	int32_t xwayland_ignore_scale;
 	int32_t syncobj_enable;
 	int32_t tag_carousel;
 	float drag_tile_refresh_interval;
@@ -1621,6 +1622,8 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->single_scratchpad = atoi(value);
 	} else if (strcmp(key, "xwayland_persistence") == 0) {
 		config->xwayland_persistence = atoi(value);
+	} else if (strcmp(key, "xwayland_ignore_scale") == 0) {
+		config->xwayland_ignore_scale = atoi(value);
 	} else if (strcmp(key, "syncobj_enable") == 0) {
 		config->syncobj_enable = atoi(value);
 	} else if (strcmp(key, "tag_carousel") == 0) {
@@ -3930,6 +3933,8 @@ void override_config(void) {
 	config.overviewgappi = CLAMP_INT(config.overviewgappi, 0, 1000);
 	config.overviewgappo = CLAMP_INT(config.overviewgappo, 0, 1000);
 	config.xwayland_persistence = CLAMP_INT(config.xwayland_persistence, 0, 1);
+	config.xwayland_ignore_scale =
+		CLAMP_INT(config.xwayland_ignore_scale, 0, 1);
 	config.syncobj_enable = CLAMP_INT(config.syncobj_enable, 0, 1);
 	config.drag_tile_refresh_interval =
 		CLAMP_FLOAT(config.drag_tile_refresh_interval, 1.0f, 16.0f);
@@ -4130,6 +4135,7 @@ void set_value_default() {
 	config.view_current_to_back = 0;
 	config.single_scratchpad = 1;
 	config.xwayland_persistence = 1;
+	config.xwayland_ignore_scale = 0;
 	config.syncobj_enable = 1;
 	config.tag_carousel = 0;
 	config.drag_tile_refresh_interval = 8.0f;
@@ -4810,11 +4816,15 @@ void reset_tag(int old_tag_num) {
 	}
 }
 
+static void xdg_output_update_all(void);
+
 void reload_config(const Arg *arg) {
 	int old_tag_num = config.tag_num;
 	parse_config();
 	reset_tag(old_tag_num);
 	reset_option();
+	/* 配置变化后更新 xdg-output */
+	xdg_output_update_all();
 	printstatus(IPC_WATCH_ARRANGGE);
 	return;
 }

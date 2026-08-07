@@ -970,7 +970,11 @@ void client_apply_clip(Client *c, float factor) {
 		if (!should_render_client_surface)
 			return;
 
-		if (!c->overview_scene_surface)
+		/* X11 用 source_box + dest_size 裁剪（buffer 物理尺寸 × scale，
+		 * clip 逻辑尺寸），走 wlr_scene clip 会把内容按物理尺寸放大 */
+		if (client_is_x11(c))
+			client_update_xwayland_clip(c, &clip_box);
+		else if (!c->overview_scene_surface)
 			wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node,
 											   &clip_box);
 
@@ -1004,6 +1008,12 @@ void client_apply_clip(Client *c, float factor) {
 	client_draw_groupbar(c, offsets);
 	client_draw_shield(c, surface_clip_offset);
 	client_draw_blur(c, surface_clip_offset);
+	/* 动画时同步 X11 根 surface 的 dest_size / 裁剪（source_box + dest_size）
+	 */
+	if (client_is_x11(c))
+		client_update_xwayland_clip(c, &clip_box);
+	else
+		client_update_xwayland_dest_size(c);
 
 	if (clip_box.width <= 0 || clip_box.height <= 0) {
 		should_render_client_surface = false;
@@ -1016,7 +1026,9 @@ void client_apply_clip(Client *c, float factor) {
 	if (!should_render_client_surface)
 		return;
 
-	if (!c->overview_scene_surface)
+	/* X11 的裁剪已由上面的 client_update_xwayland_clip 用 source_box 完成；
+	 * wlr_scene clip 会把 buffer 按物理尺寸放大，不能用于 X11 */
+	if (!c->overview_scene_surface && !client_is_x11(c))
 		wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip_box);
 
 	int32_t actual_surface_width =
@@ -1410,7 +1422,10 @@ void resize(Client *c, struct wlr_box geo, int32_t interact) {
 		client_draw_shield(c, surface_clip_offset);
 		client_draw_blur(c, surface_clip_offset);
 
-		wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip);
+		if (client_is_x11(c))
+			client_update_xwayland_clip(c, &clip);
+		else
+			wlr_scene_subsurface_tree_set_clip(&c->scene_surface->node, &clip);
 		return;
 	}
 

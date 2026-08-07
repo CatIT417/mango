@@ -203,65 +203,16 @@ wlr-randr
 
 ---
 
-## Screen Scale
-
-### Without Global Scale (Recommended)
-
-- If you do not use XWayland apps, you can use monitor rules or `wlr-randr` to set a global monitor scale.
-- If you are using XWayland apps, it is not recommended to set a global monitor scale.
-
-You can set scale like this, for example with a 1.4 factor.
-
-**Dependencies:**
-
-```bash
-yay -S xorg-xrdb
-yay -S xwayland-satellite
-```
-
-**In config file:**
+## Screen Scale(1.5 scale example)
 
 ```ini
-env=QT_AUTO_SCREEN_SCALE_FACTOR,1
-env=QT_WAYLAND_FORCE_DPI,140
+# don't scale xwayland in global to avoid blurry
+xwayland_ignore_scale=1
+# scale:1.5 to scale native wayland app
+monitorrule=name:eDP-1,width:1920,height:1080,refresh:60,x:0,y:0,scale:1.5
+# use dpi to scale xwayland(1.5 * 96 = 144)
+exec-once=echo "Xft.dpi: 144" | xrdb -merge
 ```
-
-**In autostart:**
-
-```bash
-echo "Xft.dpi: 140" | xrdb -merge
-gsettings set org.gnome.desktop.interface text-scaling-factor 1.4
-```
-
-**Edit autostart for XWayland:**
-
-```bash
-# Start xwayland
-/usr/sbin/xwayland-satellite :11 &
-# Apply scale 1.4 for xwayland
-sleep 0.5s && echo "Xft.dpi: 140" | xrdb -merge
-```
-
-### Using xwayland-satellite to Prevent Blurry XWayland Apps
-
-If you use fractional scaling, you can use `xwayland-satellite` to automatically scale XWayland apps to prevent blurriness, for example with a scale of 1.4.
-
-**Dependencies:**
-
-```bash
-yay -S xwayland-satellite
-```
-
-**In config file:**
-
-```ini
-env=DISPLAY,:2
-exec-once=xwayland-satellite :2
-monitorrule=name:eDP-1,width:1920,height:1080,refresh:60,x:0,y:0,scale:1.4,vrr:0,rr:0
-```
-
-> **Warning:** Use a `DISPLAY` value other than `:1` to avoid conflicting with mangowm.
-
 ---
 
 ## Virtual Monitors
