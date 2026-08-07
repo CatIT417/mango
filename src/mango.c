@@ -394,7 +394,7 @@ struct Client {
 	int32_t isfloating, isurgent, isfullscreen, isfakefullscreen,
 		need_float_size_reduce, isminimized, isoverlay, isnosizehint,
 		ignore_maximize, ignore_minimize, idleinhibit_when_focus,
-		vrr_only_fullscreen, force_render;
+		vrr_only_fullscreen, force_render, activation_bypass;
 	int32_t ismaximizescreen;
 	int32_t overview_backup_bw;
 	int32_t fullscreen_backup_x, fullscreen_backup_y, fullscreen_backup_w,
@@ -980,6 +980,7 @@ static bool mango_scene_output_commit(struct wlr_scene_output *scene_output,
 static bool mango_output_commit(Monitor *m);
 static bool check_tearing_frame_allow(Monitor *m);
 static void client_set_group_config(Client *c);
+static const char *xdg_activation_v1_export_token(void);
 
 #include "data/static_keymap.h"
 #include "dispatch/bind_declare.h"
@@ -1002,7 +1003,6 @@ static struct wlr_allocator *alloc;
 static struct wlr_compositor *compositor;
 
 static struct wlr_xdg_shell *xdg_shell;
-static struct wlr_xdg_activation_v1 *activation;
 static struct wlr_xdg_decoration_manager_v1 *xdg_decoration_mgr;
 static struct wl_list clients; /* tiling order */
 static struct wl_list fstack;  /* focus order */
@@ -1157,7 +1157,6 @@ static struct wl_listener output_power_mgr_set_mode = {.notify =
 														   powermgrsetmode};
 static struct wl_listener ext_image_copy_capture_mgr_new_session = {
 	.notify = handle_iamge_copy_capture_new_session};
-static struct wl_listener request_activate = {.notify = urgent};
 static struct wl_listener request_cursor = {.notify = setcursor};
 static struct wl_listener request_set_psel = {.notify = setpsel};
 static struct wl_listener request_set_sel = {.notify = setsel};
@@ -1188,6 +1187,8 @@ static struct wl_listener xwayland_ready = {.notify = xwaylandready};
 static struct wlr_xwayland *xwayland;
 static struct wl_event_source *sync_keymap;
 #endif
+
+/* export an activation token for the process we're about to spawn */
 
 #include "action/client.h"
 #include "action/monitor.h"
@@ -1643,6 +1644,7 @@ static void apply_rule_properties(Client *c, const ConfigWinRule *r) {
 	APPLY_INT_PROP(c, r, idleinhibit_when_focus);
 	APPLY_INT_PROP(c, r, vrr_only_fullscreen);
 	APPLY_INT_PROP(c, r, force_render);
+	APPLY_INT_PROP(c, r, activation_bypass);
 	APPLY_INT_PROP(c, r, isunglobal);
 	APPLY_INT_PROP(c, r, noblur);
 	APPLY_INT_PROP(c, r, allow_shortcuts_inhibit);
@@ -2692,7 +2694,6 @@ void cleanuplisteners(void) {
 	wl_list_remove(&output_mgr_apply.link);
 	wl_list_remove(&output_mgr_test.link);
 	wl_list_remove(&output_power_mgr_set_mode.link);
-	wl_list_remove(&request_activate.link);
 	wl_list_remove(&request_cursor.link);
 	wl_list_remove(&request_set_psel.link);
 	wl_list_remove(&request_set_sel.link);
@@ -4767,6 +4768,7 @@ void init_client_properties(Client *c) {
 	c->ov_card_tree = NULL;
 	wl_list_init(&c->ov_card_surfaces);
 	c->force_render = 0;
+	c->activation_bypass = 0;
 	c->scroller_proportion_single = 0.0f;
 	c->float_geom.width = 0;
 	c->float_geom.height = 0;
@@ -6437,9 +6439,7 @@ void setup(void) {
 	wl_signal_add(&ext_image_copy_capture_mgr->events.new_session,
 				  &ext_image_copy_capture_mgr_new_session);
 
-	/* Initializes the interface used to implement urgency hints */
-	activation = wlr_xdg_activation_v1_create(dpy);
-	wl_signal_add(&activation->events.request_activate, &request_activate);
+	xdg_activation_init();
 
 	wlr_scene_set_gamma_control_manager_v1(
 		scene, wlr_gamma_control_manager_v1_create(dpy));

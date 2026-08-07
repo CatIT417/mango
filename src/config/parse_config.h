@@ -89,6 +89,7 @@ typedef struct {
 	int32_t idleinhibit_when_focus;
 	int32_t vrr_only_fullscreen;
 	int32_t force_render;
+	int32_t activation_bypass;
 	char *monitor;
 	int32_t offsetx;
 	int32_t offsety;
@@ -2521,6 +2522,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		rule->idleinhibit_when_focus = -1;
 		rule->vrr_only_fullscreen = -1;
 		rule->force_render = -1;
+		rule->activation_bypass = -1;
 		rule->isterm = -1;
 		rule->allow_csd = -1;
 		rule->force_fakemaximize = -1;
@@ -2639,6 +2641,8 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 					rule->vrr_only_fullscreen = atoi(val);
 				} else if (strcmp(key, "force_render") == 0) {
 					rule->force_render = atoi(val);
+				} else if (strcmp(key, "activation_bypass") == 0) {
+					rule->activation_bypass = atoi(val);
 				} else if (strcmp(key, "isterm") == 0) {
 					rule->isterm = atoi(val);
 				} else if (strcmp(key, "allow_csd") == 0) {

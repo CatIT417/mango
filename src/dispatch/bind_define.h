@@ -1073,11 +1073,17 @@ void spawn_shell(const Arg *arg) {
 	if (!arg->v)
 		return;
 
+	// hand the child an activation token so it can request activation
+	const char *activation_token = xdg_activation_v1_export_token();
+
 	if (fork() == 0) {
 		signal(SIGSEGV, SIG_DFL);
 		signal(SIGABRT, SIG_DFL);
 		signal(SIGILL, SIG_DFL);
 		signal(SIGCHLD, SIG_DFL);
+
+		if (activation_token)
+			setenv("XDG_ACTIVATION_TOKEN", activation_token, 1);
 
 		int fd_max = sysconf(_SC_OPEN_MAX);
 		for (int i = 3; i < fd_max; i++) {
@@ -1102,11 +1108,17 @@ void spawn(const Arg *arg) {
 	if (!arg->v)
 		return;
 
+	// hand the child an activation token so it can request activation
+	const char *activation_token = xdg_activation_v1_export_token();
+
 	if (fork() == 0) {
 		signal(SIGSEGV, SIG_DFL);
 		signal(SIGABRT, SIG_DFL);
 		signal(SIGILL, SIG_DFL);
 		signal(SIGCHLD, SIG_DFL);
+
+		if (activation_token)
+			setenv("XDG_ACTIVATION_TOKEN", activation_token, 1);
 
 		// close all file descriptors inherited from the parent process to
 		// prevent IPC handle leakage that can block clients
