@@ -72,7 +72,10 @@ static void handle_xdg_activation_request_activate(struct wl_listener *listener,
 	if (xdg_activation_token_can_activate(event->token)) {
 		urgent(listener, data);
 	} else {
-		/* valid token, just not usable for activation; flag urgent */
+		/* valid token, just not usable for activation; flag urgent,
+		 * but leave the focused window alone */
+		if (c == focustop(selmon))
+			return;
 		c->isurgent = 1;
 		if (client_surface(c)->mapped)
 			setborder_color(c);
