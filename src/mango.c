@@ -78,6 +78,7 @@
 #include <wlr/types/wlr_tablet_pad.h>
 #include <wlr/types/wlr_tablet_tool.h>
 #include <wlr/types/wlr_tablet_v2.h>
+#include <wlr/types/wlr_touch.h>
 #include <wlr/types/wlr_viewporter.h>
 #include <wlr/types/wlr_virtual_keyboard_v1.h>
 #include <wlr/types/wlr_virtual_pointer_v1.h>
@@ -1216,6 +1217,7 @@ static struct wl_event_source *sync_keymap;
 #include "dispatch/bind_define.h"
 #include "ext-protocol/all.h"
 #include "fetch/fetch.h"
+#include "input/touch.h"
 #include "ipc/ipc.h"
 #include "layout/arrange.h"
 #include "layout/dwindle.h"
@@ -2697,6 +2699,10 @@ void cleanuplisteners(void) {
 	wl_list_remove(&cursor_frame.link);
 	wl_list_remove(&cursor_motion.link);
 	wl_list_remove(&cursor_motion_absolute.link);
+	wl_list_remove(&cursor_touch_down.link);
+	wl_list_remove(&cursor_touch_up.link);
+	wl_list_remove(&cursor_touch_motion.link);
+	wl_list_remove(&cursor_touch_frame.link);
 	wl_list_remove(&tablet_tool_proximity.link);
 	wl_list_remove(&tablet_tool_axis.link);
 	wl_list_remove(&tablet_tool_button.link);
@@ -4348,6 +4354,9 @@ void inputdevice(struct wl_listener *listener, void *data) {
 	case WLR_INPUT_DEVICE_POINTER:
 		createpointer(wlr_pointer_from_input_device(device));
 		break;
+	case WLR_INPUT_DEVICE_TOUCH:
+		createtouch(wlr_touch_from_input_device(device));
+		break;
 	case WLR_INPUT_DEVICE_SWITCH:
 		createswitch(wlr_switch_from_input_device(device));
 		break;
@@ -4361,7 +4370,7 @@ void inputdevice(struct wl_listener *listener, void *data) {
 	 * there are no pointer devices, so we always include that capability.
 	 */
 	/* TODO do we actually require a cursor? */
-	caps = WL_SEAT_CAPABILITY_POINTER;
+	caps = WL_SEAT_CAPABILITY_POINTER | WL_SEAT_CAPABILITY_TOUCH;
 	if (!wl_list_empty(&kb_group->wlr_group->devices))
 		caps |= WL_SEAT_CAPABILITY_KEYBOARD;
 	wlr_seat_set_capabilities(seat, caps);
@@ -6708,6 +6717,13 @@ void setup(void) {
 	LISTEN_STATIC(&cursor->events.pinch_end, pinch_end);
 	LISTEN_STATIC(&cursor->events.hold_begin, hold_begin);
 	LISTEN_STATIC(&cursor->events.hold_end, hold_end);
+
+	/* 触摸支持：初始化触点链表并连接 cursor 触摸事件 */
+	wl_list_init(&touch_points);
+	wl_signal_add(&cursor->events.touch_down, &cursor_touch_down);
+	wl_signal_add(&cursor->events.touch_up, &cursor_touch_up);
+	wl_signal_add(&cursor->events.touch_motion, &cursor_touch_motion);
+	wl_signal_add(&cursor->events.touch_frame, &cursor_touch_frame);
 
 	seat = wlr_seat_create(dpy, "seat0");
 

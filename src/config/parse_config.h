@@ -349,6 +349,9 @@ typedef struct {
 	int32_t drag_lock;
 	uint32_t button_map;
 
+	/* touch */
+	int32_t touch_enable_mouse_emulation;
+
 	/* window effects */
 	int32_t blur;
 	int32_t blur_layer;
@@ -1915,6 +1918,8 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->repeat_delay = atoi(value);
 	} else if (strcmp(key, "disable_trackpad") == 0) {
 		config->disable_trackpad = atoi(value);
+	} else if (strcmp(key, "touch_enable_mouse_emulation") == 0) {
+		config->touch_enable_mouse_emulation = atoi(value);
 	} else if (strcmp(key, "tap_to_click") == 0) {
 		config->tap_to_click = atoi(value);
 	} else if (strcmp(key, "tap_and_drag") == 0) {
@@ -4013,6 +4018,8 @@ void override_config(void) {
 	config.repeat_delay = CLAMP_INT(config.repeat_delay, 1, 20000);
 	config.numlockon = CLAMP_INT(config.numlockon, 0, 1);
 	config.disable_trackpad = CLAMP_INT(config.disable_trackpad, 0, 1);
+	config.touch_enable_mouse_emulation =
+		CLAMP_INT(config.touch_enable_mouse_emulation, 0, 1);
 	config.tap_to_click = CLAMP_INT(config.tap_to_click, 0, 1);
 	config.tap_and_drag = CLAMP_INT(config.tap_and_drag, 0, 1);
 	config.drag_lock = CLAMP_INT(config.drag_lock, 0, 1);
@@ -4202,6 +4209,7 @@ void set_value_default() {
 	config.repeat_delay = 600;
 
 	config.disable_trackpad = 0;
+	config.touch_enable_mouse_emulation = 1;
 	config.tap_to_click = 1;
 	config.tap_and_drag = 1;
 	config.drag_lock = 1;
