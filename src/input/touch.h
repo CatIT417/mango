@@ -18,6 +18,7 @@ static void touch_emulate_button(uint32_t button,
 								 uint32_t time);
 static void touch_apply_xwayland_scale(struct wlr_surface *surface, double *sx,
 									   double *sy);
+static void touch_finish_all(void);
 
 struct touch_point {
 	int32_t touch_id;
@@ -126,6 +127,12 @@ void touch_down(struct wl_listener *listener, void *data) {
 	double x_offset = 0.0, y_offset = 0.0;
 	Client *c = NULL;
 
+	// 全局禁用触屏时忽略触摸事件；若正在指针模拟则一并清理结束
+	if (!config.touch_enable) {
+		touch_finish_all();
+		return;
+	}
+
 	wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
 	point->surface = touch_get_coords(event->touch, event->x, event->y,
@@ -183,6 +190,11 @@ void touch_motion(struct wl_listener *listener, void *data) {
 	struct wlr_touch_motion_event *event = data;
 	struct touch_point *point;
 
+	if (!config.touch_enable) {
+		touch_finish_all();
+		return;
+	}
+
 	wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
 	wl_list_for_each(point, &touch_points, link) {
@@ -214,6 +226,11 @@ void touch_up(struct wl_listener *listener, void *data) {
 	struct wlr_touch_up_event *event = data;
 	struct touch_point *point, *tmp;
 
+	if (!config.touch_enable) {
+		touch_finish_all();
+		return;
+	}
+
 	wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
 	wl_list_for_each_safe(point, tmp, &touch_points, link) {
@@ -243,6 +260,11 @@ void touch_up(struct wl_listener *listener, void *data) {
 void touch_cancel(struct wl_listener *listener, void *data) {
 	struct wlr_touch_cancel_event *event = data;
 	struct touch_point *point, *tmp;
+
+	if (!config.touch_enable) {
+		touch_finish_all();
+		return;
+	}
 
 	wlr_idle_notifier_v1_notify_activity(idle_notifier, seat);
 
@@ -275,4 +297,21 @@ void touch_frame(struct wl_listener *listener, void *data) {
 		wlr_seat_pointer_notify_frame(seat);
 	else
 		wlr_seat_touch_notify_frame(seat);
+}
+
+// 清空所有进行中的触摸点；正在指针模拟时先释放鼠标左键
+void touch_finish_all(void) {
+	struct touch_point *point, *tmp;
+
+	if (simulating_pointer_from_touch && config.touch_enable_mouse_emulation)
+		touch_emulate_button(BTN_LEFT, WL_POINTER_BUTTON_STATE_RELEASED, 0);
+	simulating_pointer_from_touch = false;
+	pointer_touch_id = -1;
+
+	wl_list_for_each_safe(point, tmp, &touch_points, link) {
+		if (point->touch_protocol && point->surface)
+			wl_list_remove(&point->surface_destroy.link);
+		wl_list_remove(&point->link);
+		free(point);
+	}
 }
