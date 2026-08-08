@@ -391,6 +391,11 @@ struct Client {
 	float xwayland_scale;	 /* X11 坐标相对逻辑坐标的缩放 */
 	struct wlr_box xwl_clip; /* XWayland 根 surface 最近一次逻辑裁剪区 */
 	bool xwl_clip_active;	 /* 是否处于 source_box 裁剪状态 */
+	/* X11 configure 去重：客户端尚未 ack 时 surface->current 不更新，
+	 * 多次 arrange 会重复发相同参数的 configure，导致客户端反复重渲染/
+	 * 上传。这里记录最近一次请求的物理尺寸/位置，相同参数不再重复发送。 */
+	int32_t xwl_req_x, xwl_req_y, xwl_req_w, xwl_req_h;
+	bool xwl_req_valid;
 #endif
 	uint32_t bw;
 	uint32_t tags, oldtags, mini_restore_tag;
@@ -4729,6 +4734,11 @@ static void iter_xdg_scene_buffers(struct wlr_scene_buffer *buffer, int32_t sx,
 }
 
 void init_client_properties(Client *c) {
+	c->xwl_req_valid = false;
+	c->xwl_req_x = 0;
+	c->xwl_req_y = 0;
+	c->xwl_req_w = 0;
+	c->xwl_req_h = 0;
 	c->blur_opacity = 1.0f;
 	c->is_logic_hide = false;
 	c->isgroupfocusing = false;

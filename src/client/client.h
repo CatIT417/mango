@@ -406,6 +406,18 @@ static inline uint32_t client_set_size(Client *c, uint32_t width,
 			return 0;
 		}
 
+		/* 客户端尚未 ack 时 state 不更新，用已请求参数去重，
+		 * 避免重复发相同 configure 导致客户端反复重渲染/上传 */
+		if (c->xwl_req_valid && c->xwl_req_x == xx && c->xwl_req_y == xy &&
+			c->xwl_req_w == xw && c->xwl_req_h == xh) {
+			return 0;
+		}
+		c->xwl_req_valid = true;
+		c->xwl_req_x = xx;
+		c->xwl_req_y = xy;
+		c->xwl_req_w = xw;
+		c->xwl_req_h = xh;
+
 		xcb_size_hints_t *size_hints = surface->size_hints;
 		int32_t width = xw;
 		int32_t height = xh;
