@@ -4734,11 +4734,13 @@ static void iter_xdg_scene_buffers(struct wlr_scene_buffer *buffer, int32_t sx,
 }
 
 void init_client_properties(Client *c) {
+#ifdef XWAYLAND
 	c->xwl_req_valid = false;
 	c->xwl_req_x = 0;
 	c->xwl_req_y = 0;
 	c->xwl_req_w = 0;
 	c->xwl_req_h = 0;
+#endif
 	c->blur_opacity = 1.0f;
 	c->is_logic_hide = false;
 	c->isgroupfocusing = false;
