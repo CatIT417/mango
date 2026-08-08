@@ -4916,6 +4916,8 @@ mapnotify(struct wl_listener *listener, void *data) {
 	if (client_is_unmanaged(c)) {
 		/* Unmanaged clients always are floating */
 		xwayland_apply_scale(c);
+		/* 应用 scale 后重新计算 c->geom（逻辑尺寸）*/
+		client_get_geometry(c, &c->geom);
 		struct wlr_box geo = c->geom;
 		fix_xwayland_coordinate(&geo);
 		struct wlr_box xgeo = geo;
@@ -4923,6 +4925,9 @@ mapnotify(struct wl_listener *listener, void *data) {
 		wlr_scene_node_set_position(&c->scene->node, geo.x, geo.y);
 		wlr_xwayland_surface_configure(c->surface.xwayland, xgeo.x, xgeo.y,
 									   xgeo.width, xgeo.height);
+		/* 立即按 buffer 实际尺寸设置 dest_size（逻辑尺寸 = buffer/scale），
+		 * 避免弹出第一帧以物理尺寸显示导致内容被缩放，再等 commit 才纠正 */
+		client_update_xwayland_dest_size(c);
 		LISTEN(&c->surface.xwayland->events.set_geometry, &c->set_geometry,
 			   setgeometrynotify);
 		wlr_scene_node_reparent(&c->scene->node, layers[LyrOverlay]);
