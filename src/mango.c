@@ -2701,6 +2701,7 @@ void cleanuplisteners(void) {
 	wl_list_remove(&cursor_motion_absolute.link);
 	wl_list_remove(&cursor_touch_down.link);
 	wl_list_remove(&cursor_touch_up.link);
+	wl_list_remove(&cursor_touch_cancel.link);
 	wl_list_remove(&cursor_touch_motion.link);
 	wl_list_remove(&cursor_touch_frame.link);
 	wl_list_remove(&tablet_tool_proximity.link);
@@ -6727,6 +6728,7 @@ void setup(void) {
 	wl_list_init(&touch_points);
 	wl_signal_add(&cursor->events.touch_down, &cursor_touch_down);
 	wl_signal_add(&cursor->events.touch_up, &cursor_touch_up);
+	wl_signal_add(&cursor->events.touch_cancel, &cursor_touch_cancel);
 	wl_signal_add(&cursor->events.touch_motion, &cursor_touch_motion);
 	wl_signal_add(&cursor->events.touch_frame, &cursor_touch_frame);
 
