@@ -262,6 +262,182 @@ void overview_scale(Monitor *m) {
 	free(feas);
 }
 
+// ov_tab_mode 的 overview 布局：聚焦窗口居中（约一半屏宽），其余窗口分列两侧
+static void overview_layout_column(Monitor *m, Client **items, int cnt, float x,
+								   float top, float col_w, float col_h,
+								   float gap) {
+	if (cnt <= 0)
+		return;
+
+	float *ws = calloc(cnt, sizeof(float));
+	float *hs = calloc(cnt, sizeof(float));
+	if (!ws || !hs) {
+		free(ws);
+		free(hs);
+		return;
+	}
+
+	// 宽度占满列宽，高度按比例
+	float total_h = 0.0f;
+	for (int i = 0; i < cnt; i++) {
+		float ow = items[i]->overview_backup_geom.width;
+		float oh = items[i]->overview_backup_geom.height;
+		if (ow <= 0 || oh <= 0) {
+			ow = 100.0f;
+			oh = 100.0f;
+		}
+		ws[i] = col_w;
+		hs[i] = col_w * (oh / ow);
+		total_h += hs[i];
+	}
+
+	// 超高则整体缩小
+	float gap_total = gap * (cnt - 1);
+	if (total_h + gap_total > col_h) {
+		float s = (col_h - gap_total) / total_h;
+		if (s < 0.0f)
+			s = 0.01f;
+		for (int i = 0; i < cnt; i++) {
+			ws[i] *= s;
+			hs[i] *= s;
+		}
+		total_h *= s;
+	}
+
+	// 不足则垂直居中
+	float y = top;
+	if (total_h + gap_total < col_h)
+		y = top + (col_h - (total_h + gap_total)) / 2.0f;
+
+	for (int i = 0; i < cnt; i++) {
+		int ix = (int)(x + (col_w - ws[i]) / 2.0f + 0.5f);
+		int iy = (int)(y + 0.5f);
+		client_tile_resize(items[i],
+						   (struct wlr_box){ix, iy, (int)ws[i], (int)hs[i]}, 0);
+		y += hs[i] + gap;
+	}
+
+	free(ws);
+	free(hs);
+}
+
+void overview_scale_tab(Monitor *m) {
+	int32_t target_gappo = config.overviewgappo;
+	int32_t target_gappi = config.overviewgappi;
+
+	if (m->visible_clients <= 0)
+		return;
+
+	Client **items = calloc(m->visible_clients, sizeof(Client *));
+	if (!items)
+		return;
+
+	int n = 0;
+	Client *c;
+	wl_list_for_each(c, &clients, link) {
+		if (c->mon != m)
+			continue;
+		if (VISIBLEON(c, m) && !c->isunglobal && !client_is_x11_popup(c)) {
+			items[n++] = c;
+		}
+	}
+
+	if (n == 0) {
+		free(items);
+		return;
+	}
+
+	// 焦点窗口的下标（无则取第一个）
+	Client *sel = m->sel;
+	int focus_idx = 0;
+	for (int i = 0; i < n; i++) {
+		if (items[i] == sel) {
+			focus_idx = i;
+			break;
+		}
+	}
+
+	// 列间取大 gap，贴边取小 gap
+	float gap_mid = (float)target_gappo;
+	float gap_edge = (float)target_gappi;
+	if (gap_mid < gap_edge) {
+		float tmp = gap_mid;
+		gap_mid = gap_edge;
+		gap_edge = tmp;
+	}
+	gap_mid *= 0.5f; /* 列间间隙减半 */
+
+	float avail_w = fmaxf(1.0f, m->w.width - 2 * gap_edge);
+	float avail_h = fmaxf(1.0f, m->w.height - 2 * gap_edge);
+
+	// 中列 50%，两侧各 25%
+	float center_w = avail_w * 0.5f;
+	float side_w = (avail_w - center_w - 2.0f * gap_mid) * 0.5f;
+	if (side_w < 1.0f)
+		side_w = 1.0f;
+
+	float base_x = m->w.x + gap_edge;
+	float base_y = m->w.y + gap_edge;
+
+	float left_x = base_x;
+	float center_x = base_x + side_w + gap_mid;
+	float right_x = center_x + center_w + gap_mid;
+
+	// 焦点窗口居中
+	Client *focus = items[focus_idx];
+	{
+		float ow = focus->overview_backup_geom.width;
+		float oh = focus->overview_backup_geom.height;
+		if (ow <= 0 || oh <= 0) {
+			ow = 100.0f;
+			oh = 100.0f;
+		}
+		float w = center_w;
+		float h = w * (oh / ow);
+		if (h > avail_h) {
+			float s = avail_h / h;
+			w *= s;
+			h *= s;
+		}
+		int ix = (int)(center_x + (center_w - w) / 2.0f + 0.5f);
+		int iy = (int)(base_y + (avail_h - h) / 2.0f + 0.5f);
+		client_tile_resize(focus, (struct wlr_box){ix, iy, (int)w, (int)h}, 0);
+	}
+
+	// 其余窗口对半入左右两列，焦点切换时环形流动（转圈）
+	Client **left = calloc(n, sizeof(Client *));
+	Client **right = calloc(n, sizeof(Client *));
+	if (!left || !right) {
+		free(items);
+		free(left);
+		free(right);
+		return;
+	}
+	int rest = n - 1;
+	int right_cnt = (rest + 1) / 2;
+	int left_cnt = rest - right_cnt;
+
+	int nr = 0;
+	for (int k = 0; k < right_cnt; k++) {
+		int idx = (focus_idx + 1 + k) % n;
+		right[nr++] = items[idx];
+	}
+	int nl = 0;
+	for (int k = 0; k < left_cnt; k++) {
+		int idx = (focus_idx - 1 - k + n) % n;
+		left[nl++] = items[idx];
+	}
+
+	overview_layout_column(m, left, nl, left_x, base_y, side_w, avail_h,
+						   gap_edge);
+	overview_layout_column(m, right, nr, right_x, base_y, side_w, avail_h,
+						   gap_edge);
+
+	free(items);
+	free(left);
+	free(right);
+}
+
 void create_jump_hints(Monitor *m) {
 	// 未配置 jump_labels 时使用静态默认序列
 	const char *jump_labels =
@@ -315,8 +491,11 @@ void finish_jump_mode(Monitor *m) {
 }
 
 void overview(Monitor *m) {
-
-	overview_scale(m);
+	if (config.ov_tab_mode && !m->is_jump_mode && !m->ov_normal_mode) {
+		overview_scale_tab(m);
+	} else {
+		overview_scale(m);
+	}
 
 	if (m->is_jump_mode) {
 		create_jump_hints(m);

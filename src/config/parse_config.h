@@ -4148,7 +4148,7 @@ void set_value_default() {
 	config.log_level = WLR_ERROR;
 	config.numlockon = 0;
 	config.capslock = 0;
-	config.ov_tab_mode = 0;
+	config.ov_tab_mode = 1;
 	config.hotarea_size = 10;
 	config.hotarea_corner = BOTTOM_LEFT;
 	config.enable_hotarea = 0;

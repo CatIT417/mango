@@ -1891,8 +1891,9 @@ void toggleoverview(const Arg *arg) {
 	Client *sel = arg->tc ? arg->tc : selmon->sel;
 
 	if (selmon->isoverview && config.ov_tab_mode && !selmon->is_jump_mode &&
-		arg->i != 1 && sel) {
+		!selmon->ov_normal_mode && arg->i != 1 && sel) {
 		focusstack(&(Arg){.i = 1});
+		arrange(selmon, true, false);
 		return;
 	}
 
@@ -1944,10 +1945,18 @@ void toggleoverview(const Arg *arg) {
 				!client_is_x11_popup(c) && !c->isunglobal && !c->isminimized &&
 				client_surface(c)->mapped) {
 				c->animation.overining = true;
+				if (config.ov_tab_mode && !selmon->is_jump_mode &&
+					!selmon->ov_normal_mode)
+					/* ov_tab：先跳过 view 排布，等 focusstack 后再设 */
+					c->animation.overview_enter_anim_set = true;
+				else
+					/* 其余模式：view 排布时设置放大 */
+					c->animation.overview_enter_anim_set = false;
 				overview_backup(c);
 			}
 		}
 	} else {
+		selmon->ov_normal_mode = 0; /* 退出 overview 清除热区普通模式 */
 
 		selmon->tagset[selmon->seltags] = target;
 		wl_list_for_each(c, &clients, link) {
@@ -1961,8 +1970,17 @@ void toggleoverview(const Arg *arg) {
 
 	view(&(Arg){.ui = target}, false);
 
-	if (selmon->isoverview && config.ov_tab_mode && !selmon->is_jump_mode) {
+	/* ov_tab：进入后自动切到下一焦点并重排 */
+	if (selmon->isoverview && config.ov_tab_mode && !selmon->is_jump_mode &&
+		!selmon->ov_normal_mode) {
 		focusstack(&(Arg){.i = 1});
+		Client *cc = NULL;
+		wl_list_for_each(cc, &clients, link) {
+			if (cc && cc->mon == selmon && !client_is_unmanaged(cc) &&
+				!client_is_x11_popup(cc))
+				cc->animation.overview_enter_anim_set = false;
+		}
+		arrange(selmon, true, false);
 	}
 
 	fix_mon_tagset_from_overview(selmon);

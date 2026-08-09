@@ -1297,6 +1297,10 @@ void client_set_pending_state(Client *c) {
 		c->animation.should_animate = false;
 	else if (config.animations && c->animation.tagining)
 		c->animation.should_animate = true;
+	else if (config.animations && c->animation.action == OVERVIEW &&
+			 c->animation.overview_enter_anim_set)
+		/* overview 进入动画：设置放大后强制启动，预排阶段不强制，避免抖动 */
+		c->animation.should_animate = true;
 	else if (c == grabc || (!c->is_pending_open_animation &&
 							wlr_box_equal(&c->current, &c->pending)))
 		c->animation.should_animate = false;
@@ -1445,12 +1449,20 @@ void resize(Client *c, struct wlr_box geo, int32_t interact) {
 	if (c->scratchpad_switching_mon && c->isfloating)
 		c->animainit_geom = c->geom;
 
-	if (config.animations && c->mon->isoverview && c != c->mon->sel &&
-		c->animation.action == OVERVIEW)
-		set_overview_enter_animation(c);
+	/* 清除进入动画标志（含焦点窗口），避免切换焦点时重复放大 */
+	if (config.animations && c->mon->isoverview && c->animation.overining &&
+		!c->animation.overview_enter_anim_set)
+		c->animation.overining = false;
 
-	if (!config.animations && c->mon->isoverview)
-		c->animainit_geom = c->geom;
+	/* 设置进入放大动画：ov_tab 所有窗口，其余除 sel 外 */
+	bool is_ov_tab =
+		config.ov_tab_mode && !c->mon->is_jump_mode && !c->mon->ov_normal_mode;
+	if (config.animations && c->mon->isoverview &&
+		(is_ov_tab || c != c->mon->sel) && c->animation.action == OVERVIEW &&
+		!c->animation.overview_enter_anim_set) {
+		c->animation.overview_enter_anim_set = true;
+		set_overview_enter_animation(c);
+	}
 
 	client_set_pending_state(c);
 	setborder_color(c);
