@@ -129,6 +129,9 @@ void exchange_stack_client(const Arg *arg) {
 	return;
 }
 
+static bool view_shift_tag(const Arg *arg, int dir);
+static bool view_shift_tag_have_client(const Arg *arg, int dir);
+
 void focusdir(const Arg *arg) {
 
 	if (!selmon)
@@ -146,9 +149,9 @@ void focusdir(const Arg *arg) {
 	} else {
 		if (config.focus_cross_tag) {
 			if (arg->i == LEFT || arg->i == UP)
-				viewtoleft_have_client(&(Arg){0});
+				view_shift_tag_have_client(&(Arg){0}, -1);
 			if (arg->i == RIGHT || arg->i == DOWN)
-				viewtoright_have_client(&(Arg){0});
+				view_shift_tag_have_client(&(Arg){0}, 1);
 		} else if (config.focus_cross_monitor) {
 			focusmon(arg);
 		}
@@ -178,9 +181,11 @@ void focus_window_or_workspace(const Arg *arg) {
 	int dir = arg->i;
 
 	if (dir == LEFT || dir == UP) {
-		viewtoleft(&(Arg){0});
+		if (!view_shift_tag_have_client(&(Arg){0}, -1))
+			view_shift_tag(&(Arg){0}, -1);
 	} else if (dir == RIGHT || dir == DOWN) {
-		viewtoright(&(Arg){0});
+		if (!view_shift_tag_have_client(&(Arg){0}, 1))
+			view_shift_tag(&(Arg){0}, 1);
 	}
 
 	return;
@@ -1652,130 +1657,114 @@ void toggleview(const Arg *arg) {
 	return;
 }
 
-void viewtoleft(const Arg *arg) {
+static bool view_shift_tag(const Arg *arg, int dir) {
 	if (!selmon)
-		return;
+		return false;
 
 	if (selmon->isoverview || selmon->pertag->curtag == 0)
-		return;
+		return false;
 
 	uint32_t target = selmon->tagset[selmon->seltags];
-	target >>= 1;
+	if (dir < 0) {
+		target >>= 1;
 
-	if (target == 0) {
-		if (!config.tag_carousel)
-			return;
-		target = (1 << (config.tag_num - 1)) & TAGMASK;
-		selmon->carousel_anim_dir = -1;
+		if (target == 0) {
+			if (!config.tag_carousel)
+				return false;
+			target = (1 << (config.tag_num - 1)) & TAGMASK;
+			selmon->carousel_anim_dir = -1;
+		}
+	} else {
+		target <<= 1;
+
+		if (!(target & TAGMASK)) {
+			if (!config.tag_carousel)
+				return false;
+			target = 1;
+			selmon->carousel_anim_dir = 1;
+		}
 	}
 
 	if (target == selmon->tagset[selmon->seltags])
-		return;
+		return false;
 
 	view(&(Arg){.ui = target & TAGMASK, .i = arg->i}, true);
 	selmon->carousel_anim_dir = 0;
-	return;
+	return true;
+}
+
+static bool view_shift_tag_have_client(const Arg *arg, int dir) {
+	if (!selmon)
+		return false;
+
+	if (selmon->isoverview)
+		return false;
+
+	uint32_t n;
+	uint32_t current = get_tags_first_tag_num(selmon->tagset[selmon->seltags]);
+	bool found = false;
+	bool wrapped = false;
+
+	if (dir < 0) {
+		for (n = current - 1; n >= 1; n--) {
+			if (get_tag_status(n, selmon)) {
+				found = true;
+				break;
+			}
+		}
+
+		if (!found && config.tag_carousel) {
+			for (n = (uint32_t)config.tag_num; n > current; n--) {
+				if (get_tag_status(n, selmon)) {
+					found = true;
+					wrapped = true;
+					break;
+				}
+			}
+		}
+	} else {
+		for (n = current + 1; n <= (uint32_t)config.tag_num; n++) {
+			if (get_tag_status(n, selmon)) {
+				found = true;
+				break;
+			}
+		}
+
+		if (!found && config.tag_carousel) {
+			for (n = 1; n < current; n++) {
+				if (get_tag_status(n, selmon)) {
+					found = true;
+					wrapped = true;
+					break;
+				}
+			}
+		}
+	}
+
+	if (found) {
+		if (wrapped)
+			selmon->carousel_anim_dir = (dir < 0) ? -1 : 1;
+		view(&(Arg){.ui = (1 << (n - 1)) & TAGMASK, .i = arg->i}, true);
+		selmon->carousel_anim_dir = 0;
+		return true;
+	}
+	return false;
+}
+
+void viewtoleft(const Arg *arg) {
+	view_shift_tag(arg, -1);
 }
 
 void viewtoright(const Arg *arg) {
-	if (!selmon)
-		return;
-
-	if (selmon->isoverview || selmon->pertag->curtag == 0)
-		return;
-
-	uint32_t target = selmon->tagset[selmon->seltags];
-	target <<= 1;
-
-	if (!(target & TAGMASK)) {
-		if (!config.tag_carousel)
-			return;
-		target = 1;
-		selmon->carousel_anim_dir = 1;
-	}
-
-	if (target == selmon->tagset[selmon->seltags])
-		return;
-
-	view(&(Arg){.ui = target & TAGMASK, .i = arg->i}, true);
-	selmon->carousel_anim_dir = 0;
-	return;
+	view_shift_tag(arg, 1);
 }
 
 void viewtoleft_have_client(const Arg *arg) {
-	if (!selmon)
-		return;
-
-	if (selmon->isoverview)
-		return;
-
-	uint32_t n;
-	uint32_t current = get_tags_first_tag_num(selmon->tagset[selmon->seltags]);
-	bool found = false;
-	bool wrapped = false;
-
-	for (n = current - 1; n >= 1; n--) {
-		if (get_tag_status(n, selmon)) {
-			found = true;
-			break;
-		}
-	}
-
-	if (!found && config.tag_carousel) {
-		for (n = (uint32_t)config.tag_num; n > current; n--) {
-			if (get_tag_status(n, selmon)) {
-				found = true;
-				wrapped = true;
-				break;
-			}
-		}
-	}
-
-	if (found) {
-		if (wrapped)
-			selmon->carousel_anim_dir = -1;
-		view(&(Arg){.ui = (1 << (n - 1)) & TAGMASK, .i = arg->i}, true);
-		selmon->carousel_anim_dir = 0;
-	}
-	return;
+	view_shift_tag_have_client(arg, -1);
 }
 
 void viewtoright_have_client(const Arg *arg) {
-	if (!selmon)
-		return;
-
-	if (selmon->isoverview)
-		return;
-
-	uint32_t n;
-	uint32_t current = get_tags_first_tag_num(selmon->tagset[selmon->seltags]);
-	bool found = false;
-	bool wrapped = false;
-
-	for (n = current + 1; n <= (uint32_t)config.tag_num; n++) {
-		if (get_tag_status(n, selmon)) {
-			found = true;
-			break;
-		}
-	}
-
-	if (!found && config.tag_carousel) {
-		for (n = 1; n < current; n++) {
-			if (get_tag_status(n, selmon)) {
-				found = true;
-				wrapped = true;
-				break;
-			}
-		}
-	}
-
-	if (found) {
-		if (wrapped)
-			selmon->carousel_anim_dir = 1;
-		view(&(Arg){.ui = (1 << (n - 1)) & TAGMASK, .i = arg->i}, true);
-		selmon->carousel_anim_dir = 0;
-	}
-	return;
+	view_shift_tag_have_client(arg, 1);
 }
 
 void viewcrossmon(const Arg *arg) {
