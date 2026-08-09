@@ -995,8 +995,7 @@ static void output_state_setup_hdr(Monitor *m, bool silent,
 static void output_enable_hdr(Monitor *m, struct wlr_output_state *os,
 							  bool enabled, bool silent);
 static bool mango_scene_output_commit(struct wlr_scene_output *scene_output,
-									  struct wlr_output_state *state,
-									  bool force);
+									  struct wlr_output_state *state);
 static bool mango_output_commit(Monitor *m);
 static bool check_tearing_frame_allow(Monitor *m);
 static void client_set_group_config(Client *c);
@@ -5691,7 +5690,7 @@ void rendermon(struct wl_listener *listener, void *data) {
 		monitor_stop_skip_frame_timer(m);
 	}
 
-	mango_scene_output_commit(m->scene_output, &m->pending, need_more_frames);
+	mango_scene_output_commit(m->scene_output, &m->pending);
 
 skip:
 	// 发送帧完成通知
