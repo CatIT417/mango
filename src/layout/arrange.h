@@ -762,8 +762,7 @@ void resize_tile_grid_fair(Client *grabc, bool isdrag, int32_t offsetx,
 void resize_tile_scroller(Client *grabc, bool isdrag, int32_t offsetx,
 						  int32_t offsety, uint32_t time, bool isvertical) {
 
-	if (!grabc || grabc->isfullscreen || grabc->ismaximizescreen ||
-		!grabc->mon)
+	if (!grabc || grabc->isfullscreen || grabc->ismaximizescreen || !grabc->mon)
 		return;
 	if (grabc->mon->isoverview)
 		return;
@@ -973,8 +972,7 @@ void resize_tile_scroller(Client *grabc, bool isdrag, int32_t offsetx,
 void resize_tile_client(Client *grabc, bool isdrag, int32_t offsetx,
 						int32_t offsety, uint32_t time) {
 
-	if (!grabc || grabc->isfullscreen || grabc->ismaximizescreen ||
-		!grabc->mon)
+	if (!grabc || grabc->isfullscreen || grabc->ismaximizescreen || !grabc->mon)
 		return;
 
 	if (grabc->mon->isoverview)

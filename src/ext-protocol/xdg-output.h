@@ -26,6 +26,16 @@ struct MangoXDGOutput {
 	struct {
 		struct wl_listener description;
 	};
+	/* 最近一次发送给普通客户端（非 XWayland）的逻辑值，用于
+	 * 判断是否需要重发，避免 reload_config 等无实际变化时打扰
+	 * 按 xdg-output 调整 DPI/窗口大小的客户端 */
+	int32_t last_lx, last_ly, last_lw, last_lh;
+	bool sent;
+	/* 最近一次发送给 XWayland 的物理值，用于判断 XWayland 视角
+	 * 是否需要收 wl_output.done（例如切换 xwayland_ignore_scale
+	 * 而布局未变时，逻辑值不变但 XWayland 收到的值变了） */
+	int32_t last_px, last_py, last_pw, last_ph;
+	bool xwl_sent;
 };
 
 static struct wl_global *xdg_output_global;
@@ -103,16 +113,52 @@ static void xdg_output_send_details(struct MangoXDGOutput *output,
 	if (wl_resource_get_version(resource) <
 		MANGO_XDG_OUTPUT_DONE_DEPRECATED_SINCE_VERSION)
 		zxdg_output_v1_send_done(resource);
+
+	/* 同步已发送的逻辑值，供 xdg_output_update() 做变化判断 */
+	output->last_lx = lx;
+	output->last_ly = ly;
+	output->last_lw = lw;
+	output->last_lh = lh;
+	output->sent = true;
+	if (xdg_output_resource_is_xwayland(resource)) {
+		output->last_px = px;
+		output->last_py = py;
+		output->last_pw = pw;
+		output->last_ph = ph;
+		output->xwl_sent = true;
+	}
 }
 
-/* 无条件向该输出的所有资源重发详情。
- * 注意：不要改成"仅值变化时才发"。mango 的 XWayland 坐标模型依赖每次
- * 布局/配置变化后都收到 position/size + wl_output.done，即使数值未变，
- * 跳过重发会让 XWayland 的几何与 mango 实际摆放脱节（坐标混乱、无法点击）。 */
+/* 普通客户端视角的逻辑值是否与上次发送时不同 */
+static bool xdg_output_logical_changed(struct MangoXDGOutput *output) {
+	int32_t lx, ly, lw, lh, px, py, pw, ph;
+	xdg_output_get_values(output, &lx, &ly, &lw, &lh, &px, &py, &pw, &ph);
+
+	return !output->sent || output->last_lx != lx || output->last_ly != ly ||
+		   output->last_lw != lw || output->last_lh != lh;
+}
+
+/* XWayland 视角的物理值是否与上次发送时不同 */
+static bool xdg_output_xwayland_changed(struct MangoXDGOutput *output) {
+	int32_t lx, ly, lw, lh, px, py, pw, ph;
+	xdg_output_get_values(output, &lx, &ly, &lw, &lh, &px, &py, &pw, &ph);
+
+	return !output->xwl_sent || output->last_px != px ||
+		   output->last_py != py || output->last_pw != pw ||
+		   output->last_ph != ph;
+}
+
+/* 更新该输出的 xdg-output 详情,XWayland 资源无条件重发（mango 的
+ * XWayland 坐标模型依赖每次布局/配置变化后都收到 position/size，即使
+ * 数值未变）；普通客户端仅在逻辑值变化时重发，与 wlroots 标准实现一致。 */
 static void xdg_output_update(struct MangoXDGOutput *output) {
+	bool logical_changed = xdg_output_logical_changed(output);
 	struct MangoXDGOutputResource *res;
-	wl_list_for_each(res, &output->resources, link)
+	wl_list_for_each(res, &output->resources, link) {
+		if (!xdg_output_resource_is_xwayland(res->resource) && !logical_changed)
+			continue;
 		xdg_output_send_details(output, res->resource);
+	}
 }
 
 static void xdg_output_resource_handle_destroy(struct wl_resource *resource) {
@@ -263,15 +309,32 @@ static const struct zxdg_output_manager_v1_interface xdg_output_manager_impl = {
 	.get_xdg_output = xdg_output_manager_handle_get_xdg_output,
 };
 
-/* 更新所有输出的 xdg-output 详情，并为每个输出调度一次 wl_output.done。
- * done 是客户端(尤其 XWayland)应用 wl_output/xdg-output 变更的事务边界：
- * wlroots 只在 mode/scale/geometry 变化时自行调度，纯布局移动时需要这里补上，
- * 因此这里始终调度，不能只依赖"值变化"。 */
+/* 更新所有输出的 xdg-output 详情，并在值真正变化时调度 wl_output.done。
+ * done 是客户端应用 wl_output/xdg-output 变更的事务边界：wlroots 只在
+ * mode/scale/geometry 变化时自行调度，纯布局移动时需要这里补上。
+ * 注意 done 会广播给该输出上的所有 wl_output 客户端，因此只在值变化时才发；
+ * 若只有 XWayland 视角的值变了（逻辑布局没变），则只给 XWayland 的 wl_output
+ * 资源补 done， 避免无谓打扰普通客户端。 */
 static void xdg_output_update_all(void) {
 	struct MangoXDGOutput *output, *tmp;
 	wl_list_for_each_safe(output, tmp, &xdg_outputs, link) {
+		bool logical_changed = xdg_output_logical_changed(output);
+		bool xwayland_changed = xdg_output_xwayland_changed(output);
+
 		xdg_output_update(output);
-		wlr_output_schedule_done(output->wlr_output);
+
+		if (logical_changed) {
+			wlr_output_schedule_done(output->wlr_output);
+		} else if (xwayland_changed) {
+			struct wl_resource *wl_res;
+			wl_resource_for_each(wl_res, &output->wlr_output->resources) {
+				if (wl_resource_get_version(wl_res) >=
+						WL_OUTPUT_DONE_SINCE_VERSION &&
+					xwayland && xwayland->server &&
+					xwayland->server->client == wl_resource_get_client(wl_res))
+					wl_output_send_done(wl_res);
+			}
+		}
 	}
 }
 

@@ -4871,15 +4871,11 @@ void reset_tag(int old_tag_num) {
 	}
 }
 
-static void xdg_output_update_all(void);
-
 void reload_config(const Arg *arg) {
 	int old_tag_num = config.tag_num;
 	parse_config();
 	reset_tag(old_tag_num);
 	reset_option();
-	/* 配置变化后更新 xdg-output */
-	xdg_output_update_all();
 	printstatus(IPC_WATCH_ARRANGGE);
 	return;
 }
