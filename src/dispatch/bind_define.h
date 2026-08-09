@@ -168,7 +168,7 @@ void focus_window_or_workspace(const Arg *arg) {
 	c = direction_select(arg);
 	if (!selmon->isoverview)
 		c = get_focused_stack_client(c, arg->tc);
-	if (c) {
+	if (c && c->mon == selmon) {
 		focusclient(c, 1);
 		if (config.warpcursor)
 			warp_cursor(c);
