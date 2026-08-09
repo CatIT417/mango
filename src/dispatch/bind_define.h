@@ -1751,13 +1751,9 @@ static bool view_shift_tag_have_client(const Arg *arg, int dir) {
 	return false;
 }
 
-void viewtoleft(const Arg *arg) {
-	view_shift_tag(arg, -1);
-}
+void viewtoleft(const Arg *arg) { view_shift_tag(arg, -1); }
 
-void viewtoright(const Arg *arg) {
-	view_shift_tag(arg, 1);
-}
+void viewtoright(const Arg *arg) { view_shift_tag(arg, 1); }
 
 void viewtoleft_have_client(const Arg *arg) {
 	view_shift_tag_have_client(arg, -1);
