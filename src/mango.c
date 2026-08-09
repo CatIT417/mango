@@ -1498,7 +1498,7 @@ bool switch_scratchpad_client_state(Client *c) {
 		}
 	}
 
-	if (c->is_in_scratchpad && c->is_scratchpad_show &&
+	if (c->is_in_scratchpad && c->is_scratchpad_show && c->mon &&
 		(c->mon->tagset[c->mon->seltags] & c->tags) == 0) {
 		c->tags = c->mon->tagset[c->mon->seltags];
 		arrange(c->mon, false, false);
@@ -2539,7 +2539,7 @@ bool handle_buttonpress(struct wlr_pointer_button_event *event) {
 
 		xytonode(cursor->x, cursor->y, &surface, NULL, NULL, &gb, NULL, NULL);
 		if (toplevel_from_wlr_surface(surface, &c, &l) >= 0) {
-			if (c && c->scene->node.enabled &&
+			if (c && c->scene && c->scene->node.enabled &&
 				(!client_is_unmanaged(c) || client_wants_focus(c)))
 				focusclient(c, 1);
 
@@ -6333,14 +6333,16 @@ void setsel(struct wl_listener *listener, void *data) {
 void show_hide_client(Client *c) {
 	uint32_t target = 1;
 
-	set_size_per(c->mon, c);
+	if (c->mon)
+		set_size_per(c->mon, c);
 	target = get_tags_first_tag(c->oldtags);
 
 	if (!c->is_in_scratchpad) {
 		tag_client(&(Arg){.ui = target}, c);
 	} else {
 		c->tags = c->oldtags;
-		arrange(c->mon, false, false);
+		if (c->mon)
+			arrange(c->mon, false, false);
 	}
 	client_pending_minimized_state(c, 0);
 	focusclient(c, 1);

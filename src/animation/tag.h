@@ -72,7 +72,7 @@ void set_arrange_visible(Monitor *m, Client *c, bool want_animation) {
 	c->animation.tagouting = false;
 	c->animation.tagouted = false;
 	/* 预排时几何未变不启动动画，放大初始位置留给真正排布阶段 */
-	bool ov_skip_enter_set = c->mon->isoverview;
+	bool ov_skip_enter_set = c->mon && c->mon->isoverview;
 	bool ov_orig_enter_set = c->animation.overview_enter_anim_set;
 	if (ov_skip_enter_set)
 		c->animation.overview_enter_anim_set = true;

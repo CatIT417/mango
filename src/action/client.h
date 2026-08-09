@@ -54,7 +54,7 @@ static void finish_exchange_arrange_and_focus(Client *c1, Client *c2,
 }
 
 void client_tile_resize(Client *c, struct wlr_box geo, int32_t interact) {
-	if (!ISFAKETILED(c))
+	if (!ISFAKETILED(c) || !c->mon)
 		return;
 
 	if (!c->mon->isoverview && !c->isfullscreen &&
