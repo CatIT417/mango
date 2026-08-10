@@ -1314,11 +1314,6 @@ void client_set_pending_state(Client *c) {
 		c->animation.action == OPEN)
 		c->animation.duration = 0;
 
-	if (c->istagswitching) {
-		c->animation.duration = 0;
-		c->istagswitching = 0;
-	}
-
 	if (start_drag_window) {
 		c->animation.should_animate = false;
 		c->animation.duration = 0;

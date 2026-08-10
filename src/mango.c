@@ -445,7 +445,6 @@ struct Client {
 	int32_t isopensilent;
 	int32_t istagsilent;
 	int32_t iskilling;
-	int32_t istagswitching;
 	int32_t isnamedscratchpad;
 	int32_t shield_when_capture;
 	bool is_pending_open_animation;
@@ -4783,7 +4782,6 @@ void init_client_properties(Client *c) {
 	c->isfullscreen = 0;
 	c->need_float_size_reduce = 0;
 	c->iskilling = 0;
-	c->istagswitching = 0;
 	c->isglobal = 0;
 	c->isminimized = 0;
 	c->isoverlay = 0;
@@ -6846,7 +6844,6 @@ void tag_client(const Arg *arg, Client *target_client) {
 	if (target_client && arg->ui & TAGMASK) {
 
 		target_client->tags = arg->ui & TAGMASK;
-		target_client->istagswitching = 1;
 
 		wl_list_for_each(fc, &clients, link) {
 			if (fc && fc != target_client && target_client->tags & fc->tags &&
