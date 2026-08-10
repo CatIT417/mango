@@ -107,6 +107,8 @@ void client_pending_force_kill(Client *c) {
 void client_add_jump_label_node(Client *c) {
 	c->jump_label_node =
 		mango_jump_label_node_create(c->scene, config.jumplabeldata);
+	if (!c->jump_label_node)
+		return;
 	/* overview 里 label 要显示在卡片树之上 */
 	if (c->ov_card_tree)
 		wlr_scene_node_raise_to_top(&c->jump_label_node->scene_buffer->node);
@@ -273,8 +275,9 @@ void client_set_group_config(Client *c) {
 
 	Client *cur = head;
 	while (cur) {
-		mango_jump_label_node_apply_config(cur->jump_label_node,
-										   &config.jumplabeldata);
+		if (cur->jump_label_node)
+			mango_jump_label_node_apply_config(cur->jump_label_node,
+											   &config.jumplabeldata);
 		wlr_scene_rect_set_color(cur->droparea, config.dropcolor);
 		wlr_scene_rect_set_color(cur->splitindicator[0], config.splitcolor);
 		wlr_scene_rect_set_color(cur->splitindicator[1], config.splitcolor);
