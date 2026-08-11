@@ -7060,6 +7060,16 @@ void unmapnotify(struct wl_listener *listener, void *data) {
 		}
 	}
 
+#ifdef XWAYLAND
+	if (client_is_x11(c)) {
+		if (c->scene_commit.link.prev && c->scene_commit.link.next &&
+			c->scene_commit.link.prev != &c->scene_commit.link) {
+			wl_list_remove(&c->scene_commit.link);
+			wl_list_init(&c->scene_commit.link);
+		}
+	}
+#endif
+
 	if (client_is_unmanaged(c)) {
 #ifdef XWAYLAND
 		if (client_is_x11(c)) {
@@ -7730,7 +7740,6 @@ void dissociatex11(struct wl_listener *listener, void *data) {
 	wl_list_remove(&c->map.link);
 	wl_list_remove(&c->unmap.link);
 	wl_list_remove(&c->commmitx11.link);
-	wl_list_remove(&c->scene_commit.link);
 	c->xwl_root_buffer = NULL;
 	c->xwl_clip_active = false;
 }
