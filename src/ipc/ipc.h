@@ -197,6 +197,8 @@ static cJSON *build_monitor_json(Monitor *m) {
 							m->pertag->ltidxs[m->pertag->curtag]->symbol);
 	cJSON_AddStringToObject(resp, "last_open_surface", m->last_open_surface);
 	cJSON_AddItemToObject(resp, "tag_num", cJSON_CreateNumber(config.tag_num));
+	cJSON_AddItemToObject(resp, "hide_clients",
+						  cJSON_CreateNumber(m->hide_clients));
 	cJSON_AddItemToObject(resp, "tags", build_tags_json(m));
 	cJSON_AddItemToObject(resp, "active_tags", monitor_active_tags(m));
 	cJSON_AddItemToObject(resp, "active_client", monitor_active_client(m));

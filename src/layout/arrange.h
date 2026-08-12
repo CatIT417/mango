@@ -1113,6 +1113,7 @@ void pre_calculate_before_arrange(Monitor *m, bool want_animation,
 	m->visible_tiling_clients = 0;
 	m->visible_scroll_tiling_clients = 0;
 	m->visible_fake_tiling_clients = 0;
+	m->hide_clients = 0;
 
 	uint32_t tag = m->pertag->curtag;
 	struct TagScrollerState *st = m->pertag->scroller_state[tag];
@@ -1142,6 +1143,10 @@ void pre_calculate_before_arrange(Monitor *m, bool want_animation,
 
 		if (from_view && m->sel == NULL && c->isglobal && VISIBLEON(c, m)) {
 			focusclient(c, 1);
+		}
+
+		if (c->isminimized) {
+			m->hide_clients++;
 		}
 
 		if (VISIBLEON(c, m)) {
