@@ -4472,7 +4472,8 @@ keybinding(uint32_t state, bool locked, uint32_t mods, xkb_keysym_t sym,
 			k->func(&k->arg);
 
 			// only match the first keybind
-			break;
+			if (!k->isallowconflict)
+				break;
 		}
 	}
 	return handled;

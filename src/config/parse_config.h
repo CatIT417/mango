@@ -50,6 +50,7 @@ typedef struct {
 	bool islockapply;
 	bool isreleaseapply;
 	bool ispassapply;
+	bool isallowconflict;
 	int line_number;
 	int file_index;
 } KeyBinding;
@@ -584,6 +585,9 @@ void parse_bind_flags(const char *str, KeyBinding *kb) {
 			break;
 		case 'p':
 			kb->ispassapply = true;
+			break;
+		case 'c':
+			kb->isallowconflict = true;
 			break;
 		default:
 			mango_error(false, WLR_ERROR, "Unknown bind flag: %c\n", suffix[i]);
@@ -2810,7 +2814,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 
 		config->exec_once_count++;
 
-	} else if (regex_match("^bind[s|l|r|p]*$", key)) {
+	} else if (regex_match("^bind[s|l|r|p|c]*$", key)) {
 		config->key_bindings =
 			realloc(config->key_bindings,
 					(config->key_bindings_count + 1) * sizeof(KeyBinding));
@@ -3444,7 +3448,10 @@ bool check_key_binding_conflicts(Config *config) {
 				bool same_mode = (strcmp(binds[a].mode, binds[b].mode) == 0);
 				bool any_common =
 					binds[a].iscommonmode || binds[b].iscommonmode;
-				if (same_mode || any_common) {
+				bool allow_conflict =
+					binds[a].isallowconflict && binds[b].isallowconflict;
+
+				if ((same_mode || any_common) && !allow_conflict) {
 
 					const char *file_a = (binds[a].file_index >= 0)
 											 ? file_paths[binds[a].file_index]
