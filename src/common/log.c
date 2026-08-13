@@ -1,9 +1,9 @@
 #define _GNU_SOURCE
 #include "log.h"
+#include "util.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "util.h"
 
 void mango_log_init(enum wlr_log_importance verbosity,
 					wlr_log_func_t callback) {

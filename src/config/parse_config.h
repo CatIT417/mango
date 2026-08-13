@@ -353,6 +353,7 @@ typedef struct {
 	/* touch */
 	int32_t touch_enable;
 	int32_t touch_enable_mouse_emulation;
+	char *touch_map_to_mon;
 
 	/* window effects */
 	int32_t blur;
@@ -1924,6 +1925,10 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->touch_enable = atoi(value);
 	} else if (strcmp(key, "touch_enable_mouse_emulation") == 0) {
 		config->touch_enable_mouse_emulation = atoi(value);
+	} else if (strcmp(key, "touch_map_to_mon") == 0) {
+		if (config->touch_map_to_mon)
+			free(config->touch_map_to_mon);
+		config->touch_map_to_mon = value[0] ? strdup(value) : NULL;
 	} else if (strcmp(key, "tap_to_click") == 0) {
 		config->tap_to_click = atoi(value);
 	} else if (strcmp(key, "tap_and_drag") == 0) {
@@ -3906,6 +3911,11 @@ void free_config(void) {
 		config.tablet_map_to_mon = NULL;
 	}
 
+	if (config.touch_map_to_mon) {
+		free(config.touch_map_to_mon);
+		config.touch_map_to_mon = NULL;
+	}
+
 	if (config.jump_labels) {
 		free(config.jump_labels);
 		config.jump_labels = NULL;
@@ -4473,6 +4483,7 @@ bool parse_config(void) {
 	config.jumplabeldata.font_desc = NULL;
 	config.groupbardata.font_desc = NULL;
 	config.tablet_map_to_mon = NULL;
+	config.touch_map_to_mon = NULL;
 	config.jump_labels = NULL;
 	strcpy(config.keymode, "default");
 
