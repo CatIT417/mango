@@ -32,6 +32,7 @@ static void usage(void) {
 	printf("  get all-monitors                         List all monitors\n");
 	printf("  get all-tags                             List all tags (all "
 		   "monitors)\n");
+	printf("  get layouts                              List all available layouts\n");
 	printf(
 		"  get tags <monitor>                       List tags for a monitor\n");
 	printf("  dispatch <func>[,arg...] [client,<id>]   Call a compositor "

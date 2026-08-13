@@ -233,6 +233,19 @@ static cJSON *build_monitor_tags_response(Monitor *m) {
 	return resp;
 }
 
+static cJSON *build_layouts_response(void) {
+	cJSON *arr = cJSON_CreateArray();
+	for (size_t i = 0; i < LENGTH(layouts); i++) {
+		cJSON *entry = cJSON_CreateObject();
+		cJSON_AddStringToObject(entry, "symbol", layouts[i].symbol);
+		cJSON_AddStringToObject(entry, "name", layouts[i].name);
+		cJSON_AddItemToArray(arr, entry);
+	}
+	cJSON *resp = cJSON_CreateObject();
+	cJSON_AddItemToObject(resp, "layouts", arr);
+	return resp;
+}
+
 static void send_static_json(int fd, const char *json_str) {
 	size_t len = strlen(json_str);
 	send(fd, json_str, len, 0);
@@ -367,6 +380,8 @@ static void handle_command(int client_fd, const char *cmd_raw) {
 			return;
 		}
 		resp = build_monitor_tags_response(m);
+	} else if (strcmp(cmd, "get layouts") == 0) {
+		resp = build_layouts_response();
 	} else if (strncmp(cmd, "dispatch ", 9) == 0) {
 		char *dispatch_copy = strdup(cmd_raw + 9);
 		char *out = dispatch_copy, *ptr = dispatch_copy;
