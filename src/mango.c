@@ -5881,14 +5881,14 @@ run(char *startup_cmd, int readiness_fd) {
 	run_exec();
 	run_exec_once();
 
-    /*
-     * If running inside supervision suite like s6, notify about successfull startup
-     * by writing \n to the provided file descriptor and closing it
-     */
-    if (readiness_fd > 2){
-        write(readiness_fd, "\n", 1);
-        close(readiness_fd);
-    }
+	/*
+	 * If running inside supervision suite like s6, notify about successfull
+	 * startup by writing \n to the provided file descriptor and closing it
+	 */
+	if (readiness_fd > 2) {
+		write(readiness_fd, "\n", 1);
+		close(readiness_fd);
+	}
 
 	/* Run the Wayland event loop. This does not return until you exit the
 	 * compositor. Starting the backend rigged up all of the necessary event
@@ -7802,7 +7802,7 @@ static void setgeometrynotify(struct wl_listener *listener, void *data) {
 int32_t main(int32_t argc, char *argv[]) {
 	char *startup_cmd = NULL;
 	int32_t c;
-    int readiness_fd = 0;
+	int readiness_fd = 0;
 
 	while ((c = getopt(argc, argv, "s:c:r:hdvp")) != -1) {
 		if (c == 's') {
@@ -7816,11 +7816,11 @@ int32_t main(int32_t argc, char *argv[]) {
 			snprintf(cli_config_path, sizeof(cli_config_path), "%s", optarg);
 		} else if (c == 'p') {
 			return parse_config() ? EXIT_SUCCESS : EXIT_FAILURE;
-        } else if (c == 'r') {
-            readiness_fd = atoi(optarg);
-            if (readiness_fd < 3) {
-                goto usage;
-            }
+		} else if (c == 'r') {
+			readiness_fd = atoi(optarg);
+			if (readiness_fd < 3) {
+				goto usage;
+			}
 		} else {
 			goto usage;
 		}
@@ -7845,7 +7845,8 @@ usage:
 		   "  -d             Enable debug log\n"
 		   "  -c <file>      Use custom configuration file\n"
 		   "  -s <command>   Execute startup command\n"
-           "  -r <fdnum>     When WM is ready, write '\\n' to the given file descriptor and close it. fdnum >= 3\n"
+		   "  -r <fdnum>     When WM is ready, write '\\n' to the given file "
+		   "descriptor and close it. fdnum >= 3\n"
 		   "  -p             Check configuration file error\n");
 	return EXIT_SUCCESS;
 }

@@ -283,7 +283,8 @@ typedef struct {
 	uint32_t new_is_master;
 	float default_mfact;
 	uint32_t default_nmaster;
-	int32_t tag_num; // 可配置的 tag 数量,范围 1..tag_num_MAX
+	int32_t tag_num;	// 可配置的 tag 数量,范围 1..tag_num_MAX
+	int32_t tag_gather; // Compact tags to remove gaps
 	int32_t center_master_overspread;
 	int32_t center_when_single_stack;
 
@@ -1857,6 +1858,8 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->default_nmaster = atoi(value);
 	} else if (strcmp(key, "tag_num") == 0) {
 		config->tag_num = atoi(value);
+	} else if (strcmp(key, "tag_gather") == 0) {
+		config->tag_gather = atoi(value);
 	} else if (strcmp(key, "center_master_overspread") == 0) {
 		config->center_master_overspread = atoi(value);
 	} else if (strcmp(key, "center_when_single_stack") == 0) {
@@ -3977,6 +3980,7 @@ void override_config(void) {
 	config.default_mfact = CLAMP_FLOAT(config.default_mfact, 0.1f, 0.9f);
 	config.default_nmaster = CLAMP_INT(config.default_nmaster, 1, 1000);
 	config.tag_num = CLAMP_INT(config.tag_num, 1, tag_num_MAX);
+	config.tag_gather = CLAMP_INT(config.tag_gather, 0, 1);
 	config.center_master_overspread =
 		CLAMP_INT(config.center_master_overspread, 0, 1);
 	config.center_when_single_stack =
@@ -4159,6 +4163,7 @@ void set_value_default() {
 	config.default_mfact = 0.55f;
 	config.default_nmaster = 1;
 	config.tag_num = 9;
+	config.tag_gather = 0;
 	config.center_master_overspread = 0;
 	config.center_when_single_stack = 1;
 
@@ -4729,93 +4734,89 @@ void reapply_master(void) {
 	}
 }
 
-void parse_tagrule(Monitor *m) {
-	int32_t i, jk;
-	ConfigTagRule tr;
-	Client *c = NULL;
-	bool match_rule = false;
+// Reset a pertag slot to defaults.
+static void tag_slot_set_defaults(Monitor *m, uint32_t tag) {
+	m->pertag->nmasters[tag] = config.default_nmaster;
+	m->pertag->mfacts[tag] = config.default_mfact;
+	m->pertag->ltidxs[tag] = &layouts[0];
+	m->pertag->scroller_default_proportion[tag] =
+		config.scroller_default_proportion;
+	m->pertag->scroller_default_proportion_single[tag] =
+		config.scroller_default_proportion_single;
+	m->pertag->scroller_ignore_proportion_single[tag] =
+		config.scroller_ignore_proportion_single;
+}
 
-	// 初始化每个 tag 的默认值
-	for (i = 0; i <= config.tag_num; i++) {
-		m->pertag->nmasters[i] = config.default_nmaster;
-		m->pertag->mfacts[i] = config.default_mfact;
-		m->pertag->ltidxs[i] = &layouts[0];
-		m->pertag->scroller_default_proportion[i] =
-			config.scroller_default_proportion;
-		m->pertag->scroller_default_proportion_single[i] =
-			config.scroller_default_proportion_single;
-		m->pertag->scroller_ignore_proportion_single[i] =
-			config.scroller_ignore_proportion_single;
+// Does this tag rule match the monitor?
+static bool tag_rule_matches_monitor(const ConfigTagRule *tr, Monitor *m) {
+	if (tr->monitor_name != NULL &&
+		!regex_match(tr->monitor_name, m->wlr_output->name))
+		return false;
+	if (tr->monitor_make != NULL &&
+		(m->wlr_output->make == NULL ||
+		 strcmp(tr->monitor_make, m->wlr_output->make) != 0))
+		return false;
+	if (tr->monitor_model != NULL &&
+		(m->wlr_output->model == NULL ||
+		 strcmp(tr->monitor_model, m->wlr_output->model) != 0))
+		return false;
+	if (tr->monitor_serial != NULL &&
+		(m->wlr_output->serial == NULL ||
+		 strcmp(tr->monitor_serial, m->wlr_output->serial) != 0))
+		return false;
+	return true;
+}
+
+// Apply one tag rule to a slot (caller checks coverage).
+static void tag_rule_apply_to_slot(Monitor *m, const ConfigTagRule *tr,
+								   uint32_t tag) {
+	int32_t jk;
+
+	for (jk = 0; jk < LENGTH(layouts); jk++) {
+		if (tr->layout_name && strcmp(layouts[jk].name, tr->layout_name) == 0)
+			m->pertag->ltidxs[tag] = &layouts[jk];
 	}
 
+	if (tr->no_hide >= 0)
+		m->pertag->no_hide[tag] = tr->no_hide;
+	if (tr->nmaster >= 1)
+		m->pertag->nmasters[tag] = tr->nmaster;
+	if (tr->mfact > 0.0f)
+		m->pertag->mfacts[tag] = tr->mfact;
+	if (tr->no_render_border >= 0)
+		m->pertag->no_render_border[tag] = tr->no_render_border;
+	if (tr->open_as_floating >= 0)
+		m->pertag->open_as_floating[tag] = tr->open_as_floating;
+	if (tr->scroller_default_proportion > 0.0f)
+		m->pertag->scroller_default_proportion[tag] =
+			tr->scroller_default_proportion;
+	if (tr->scroller_default_proportion_single > 0.0f)
+		m->pertag->scroller_default_proportion_single[tag] =
+			tr->scroller_default_proportion_single;
+	if (tr->scroller_ignore_proportion_single >= 0)
+		m->pertag->scroller_ignore_proportion_single[tag] =
+			tr->scroller_ignore_proportion_single;
+}
+
+void parse_tagrule(Monitor *m) {
+	int32_t i;
+	Client *c = NULL;
+
+	// Set defaults for every tag.
+	for (i = 0; i <= config.tag_num; i++)
+		tag_slot_set_defaults(m, i);
+
 	for (i = 0; i < config.tag_rules_count; i++) {
+		const ConfigTagRule *tr = &config.tag_rules[i];
 
-		tr = config.tag_rules[i];
-
-		match_rule = true;
-
-		if (tr.monitor_name != NULL) {
-			if (!regex_match(tr.monitor_name, m->wlr_output->name)) {
-				match_rule = false;
-			}
-		}
-
-		if (tr.monitor_make != NULL) {
-			if (m->wlr_output->make == NULL ||
-				strcmp(tr.monitor_make, m->wlr_output->make) != 0) {
-				match_rule = false;
-			}
-		}
-
-		if (tr.monitor_model != NULL) {
-			if (m->wlr_output->model == NULL ||
-				strcmp(tr.monitor_model, m->wlr_output->model) != 0) {
-				match_rule = false;
-			}
-		}
-
-		if (tr.monitor_serial != NULL) {
-			if (m->wlr_output->serial == NULL ||
-				strcmp(tr.monitor_serial, m->wlr_output->serial) != 0) {
-				match_rule = false;
-			}
-		}
-
-		if (config.tag_rules_count > 0 && match_rule &&
-			(tr.id_wildcard || tr.id <= config.tag_num)) {
-
-			int32_t tag_id_start = tr.id_wildcard ? 0 : tr.id;
-			int32_t tag_id_end = tr.id_wildcard ? config.tag_num : tr.id;
+		if (tag_rule_matches_monitor(tr, m) &&
+			(tr->id_wildcard || tr->id <= config.tag_num)) {
+			int32_t tag_id_start = tr->id_wildcard ? 0 : tr->id;
+			int32_t tag_id_end = tr->id_wildcard ? config.tag_num : tr->id;
 			int32_t ti;
 
-			for (ti = tag_id_start; ti <= tag_id_end; ti++) {
-				for (jk = 0; jk < LENGTH(layouts); jk++) {
-					if (tr.layout_name &&
-						strcmp(layouts[jk].name, tr.layout_name) == 0) {
-						m->pertag->ltidxs[ti] = &layouts[jk];
-					}
-				}
-
-				if (tr.no_hide >= 0)
-					m->pertag->no_hide[ti] = tr.no_hide;
-				if (tr.nmaster >= 1)
-					m->pertag->nmasters[ti] = tr.nmaster;
-				if (tr.mfact > 0.0f)
-					m->pertag->mfacts[ti] = tr.mfact;
-				if (tr.no_render_border >= 0)
-					m->pertag->no_render_border[ti] = tr.no_render_border;
-				if (tr.open_as_floating >= 0)
-					m->pertag->open_as_floating[ti] = tr.open_as_floating;
-				if (tr.scroller_default_proportion > 0.0f)
-					m->pertag->scroller_default_proportion[ti] =
-						tr.scroller_default_proportion;
-				if (tr.scroller_default_proportion_single > 0.0f)
-					m->pertag->scroller_default_proportion_single[ti] =
-						tr.scroller_default_proportion_single;
-				if (tr.scroller_ignore_proportion_single >= 0)
-					m->pertag->scroller_ignore_proportion_single[ti] =
-						tr.scroller_ignore_proportion_single;
-			}
+			for (ti = tag_id_start; ti <= tag_id_end; ti++)
+				tag_rule_apply_to_slot(m, tr, ti);
 		}
 	}
 
