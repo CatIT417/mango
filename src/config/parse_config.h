@@ -4230,7 +4230,7 @@ void set_value_default() {
 
 	config.disable_trackpad = 0;
 	config.touch_enable = 1;
-	config.touch_enable_mouse_emulation = 1;
+	config.touch_enable_mouse_emulation = 0;
 	config.tap_to_click = 1;
 	config.tap_and_drag = 1;
 	config.drag_lock = 1;
