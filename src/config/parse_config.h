@@ -1,5 +1,6 @@
 #include <ctype.h>
 #include <libgen.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
@@ -132,6 +133,53 @@ typedef struct {
 	int32_t hdr_force;			 // ignore EDID-derived HDR capability checks
 	int32_t disable;			 // prefer disable
 } ConfigMonitorRule;
+
+typedef struct {
+	/* 匹配条件：name 匹配设备名或 vendor:product:name 标识符；
+	 * type 匹配 keyboard/pointer/touchpad/touch/switch/tablet/pad */
+	char *name;
+	char type[32];
+
+	/* 键盘参数（-1 / 空串 表示未设置，沿用全局默认） */
+	int32_t repeat_rate;
+	int32_t repeat_delay;
+	char kb_rules[128];
+	char kb_model[128];
+	char kb_layout[128];
+	char kb_variant[128];
+	char kb_options[128];
+
+	/* 鼠标/触摸板 libinput 参数 */
+	int32_t natural_scrolling;
+	int32_t accel_profile;
+	double accel_speed;
+	int32_t left_handed;
+	int32_t middle_button_emulation;
+	uint32_t scroll_method;
+	uint32_t scroll_button;
+	uint32_t click_method;
+	uint32_t send_events_mode;
+	int32_t tap_to_click;
+	int32_t tap_and_drag;
+	int32_t drag_lock;
+	uint32_t button_map;
+	int32_t disable_while_typing;
+} ConfigDeviceRule;
+
+static ConfigDeviceRule *find_device_rule(struct wlr_input_device *device);
+static bool device_rule_has_keyboard_settings(ConfigDeviceRule *rule);
+static void standalone_keyboard_apply_config(KeyboardGroup *group,
+											 ConfigDeviceRule *rule);
+static void create_standalone_keyboard(InputDevice *input_dev,
+									   struct wlr_keyboard *keyboard,
+									   ConfigDeviceRule *rule);
+static void destroy_standalone_keyboard(struct wl_listener *listener,
+										void *data);
+static void create_standalone_keyboard(InputDevice *input_dev,
+									   struct wlr_keyboard *keyboard,
+									   ConfigDeviceRule *rule);
+static void destroy_standalone_keyboard(struct wl_listener *listener,
+										void *data);
 
 // 修改后的宏定义
 #define CHVT(n)                                                                \
@@ -323,12 +371,6 @@ typedef struct {
 	uint32_t numlockon;
 
 	/* common pointer */
-	int32_t disable_while_typing;
-	int32_t left_handed;
-	int32_t middle_button_emulation;
-	uint32_t scroll_method;
-	uint32_t scroll_button;
-	uint32_t click_method;
 	uint32_t send_events_mode;
 
 	/* mouse */
@@ -336,6 +378,13 @@ typedef struct {
 	uint32_t mouse_accel_profile;
 	double mouse_accel_speed;
 	double axis_scroll_factor;
+	/* 鼠标独立参数 */
+	int32_t mouse_left_handed;
+	int32_t mouse_middle_button_emulation;
+	uint32_t mouse_scroll_method;
+	uint32_t mouse_scroll_button;
+	uint32_t mouse_click_method;
+	uint32_t mouse_send_events_mode;
 
 	/* tablet */
 	char *tablet_map_to_mon;
@@ -350,6 +399,14 @@ typedef struct {
 	int32_t tap_and_drag;
 	int32_t drag_lock;
 	uint32_t button_map;
+	/* 触摸板独立参数 */
+	int32_t trackpad_left_handed;
+	int32_t trackpad_middle_button_emulation;
+	int32_t trackpad_disable_while_typing;
+	uint32_t trackpad_scroll_method;
+	uint32_t trackpad_scroll_button;
+	uint32_t trackpad_click_method;
+	uint32_t trackpad_send_events_mode;
 
 	/* touch */
 	int32_t touch_enable;
@@ -407,6 +464,9 @@ typedef struct {
 
 	ConfigMonitorRule *monitor_rules; // 动态数组
 	int32_t monitor_rules_count;	  // 条数
+
+	ConfigDeviceRule *device_rules; // 动态数组
+	int32_t device_rules_count;		// 条数
 
 	KeyBinding *key_bindings;
 	int32_t key_bindings_count;
@@ -2092,12 +2152,6 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->jumplabeldata.padding_x = CLAMP_INT(atoi(value), 0, 100);
 	} else if (strcmp(key, "jump_label_decorate_padding_y") == 0) {
 		config->jumplabeldata.padding_y = CLAMP_INT(atoi(value), 0, 100);
-	} else if (strcmp(key, "disable_while_typing") == 0) {
-		config->disable_while_typing = atoi(value);
-	} else if (strcmp(key, "left_handed") == 0) {
-		config->left_handed = atoi(value);
-	} else if (strcmp(key, "middle_button_emulation") == 0) {
-		config->middle_button_emulation = atoi(value);
 	} else if (strcmp(key, "mouse_accel_profile") == 0) {
 		config->mouse_accel_profile = atoi(value);
 	} else if (strcmp(key, "mouse_accel_speed") == 0) {
@@ -2106,12 +2160,32 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->trackpad_accel_profile = atoi(value);
 	} else if (strcmp(key, "trackpad_accel_speed") == 0) {
 		config->trackpad_accel_speed = atof(value);
-	} else if (strcmp(key, "scroll_method") == 0) {
-		config->scroll_method = atoi(value);
-	} else if (strcmp(key, "scroll_button") == 0) {
-		config->scroll_button = atoi(value);
-	} else if (strcmp(key, "click_method") == 0) {
-		config->click_method = atoi(value);
+	} else if (strcmp(key, "mouse_left_handed") == 0) {
+		config->mouse_left_handed = atoi(value);
+	} else if (strcmp(key, "mouse_middle_button_emulation") == 0) {
+		config->mouse_middle_button_emulation = atoi(value);
+	} else if (strcmp(key, "mouse_scroll_method") == 0) {
+		config->mouse_scroll_method = atoi(value);
+	} else if (strcmp(key, "mouse_scroll_button") == 0) {
+		config->mouse_scroll_button = atoi(value);
+	} else if (strcmp(key, "mouse_click_method") == 0) {
+		config->mouse_click_method = atoi(value);
+	} else if (strcmp(key, "mouse_send_events_mode") == 0) {
+		config->mouse_send_events_mode = atoi(value);
+	} else if (strcmp(key, "trackpad_left_handed") == 0) {
+		config->trackpad_left_handed = atoi(value);
+	} else if (strcmp(key, "trackpad_middle_button_emulation") == 0) {
+		config->trackpad_middle_button_emulation = atoi(value);
+	} else if (strcmp(key, "trackpad_disable_while_typing") == 0) {
+		config->trackpad_disable_while_typing = atoi(value);
+	} else if (strcmp(key, "trackpad_scroll_method") == 0) {
+		config->trackpad_scroll_method = atoi(value);
+	} else if (strcmp(key, "trackpad_scroll_button") == 0) {
+		config->trackpad_scroll_button = atoi(value);
+	} else if (strcmp(key, "trackpad_click_method") == 0) {
+		config->trackpad_click_method = atoi(value);
+	} else if (strcmp(key, "trackpad_send_events_mode") == 0) {
+		config->trackpad_send_events_mode = atoi(value);
 	} else if (strcmp(key, "send_events_mode") == 0) {
 		config->send_events_mode = atoi(value);
 	} else if (strcmp(key, "button_map") == 0) {
@@ -2746,6 +2820,114 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 			token = strtok(NULL, ",");
 		}
 		config->window_rules_count++;
+		return !parse_error;
+	} else if (strcmp(key, "devicerule") == 0) {
+		config->device_rules =
+			realloc(config->device_rules, (config->device_rules_count + 1) *
+											  sizeof(ConfigDeviceRule));
+		if (!config->device_rules) {
+			mango_error(false, WLR_ERROR,
+						"Failed to allocate "
+						"memory for device rules\n");
+			return false;
+		}
+
+		ConfigDeviceRule *rule =
+			&config->device_rules[config->device_rules_count];
+		memset(rule, 0, sizeof(ConfigDeviceRule));
+
+		// 默认值：-1 / UINT32_MAX / 空串 表示未设置，沿用全局配置
+		rule->repeat_rate = -1;
+		rule->repeat_delay = -1;
+		rule->natural_scrolling = -1;
+		rule->accel_profile = -1;
+		rule->left_handed = -1;
+		rule->middle_button_emulation = -1;
+		rule->scroll_method = UINT32_MAX;
+		rule->scroll_button = UINT32_MAX;
+		rule->click_method = UINT32_MAX;
+		rule->send_events_mode = UINT32_MAX;
+		rule->tap_to_click = -1;
+		rule->tap_and_drag = -1;
+		rule->drag_lock = -1;
+		rule->button_map = UINT32_MAX;
+		rule->disable_while_typing = -1;
+		rule->accel_speed = NAN;
+
+		bool parse_error = false;
+		char *token = strtok(value, ",");
+		while (token != NULL) {
+			char *colon = strchr(token, ':');
+			if (colon != NULL) {
+				*colon = '\0';
+				char *key = token;
+				char *val = colon + 1;
+
+				trim_whitespace(key);
+				trim_whitespace(val);
+
+				if (strcmp(key, "name") == 0) {
+					rule->name = strdup(val);
+				} else if (strcmp(key, "type") == 0) {
+					snprintf(rule->type, sizeof(rule->type), "%s", val);
+				} else if (strcmp(key, "repeat_rate") == 0) {
+					rule->repeat_rate = CLAMP_INT(atoi(val), 0, 1000);
+				} else if (strcmp(key, "repeat_delay") == 0) {
+					rule->repeat_delay = CLAMP_INT(atoi(val), 0, 10000);
+				} else if (strcmp(key, "kb_rules") == 0) {
+					snprintf(rule->kb_rules, sizeof(rule->kb_rules), "%s", val);
+				} else if (strcmp(key, "kb_model") == 0) {
+					snprintf(rule->kb_model, sizeof(rule->kb_model), "%s", val);
+				} else if (strcmp(key, "kb_layout") == 0) {
+					snprintf(rule->kb_layout, sizeof(rule->kb_layout), "%s",
+							 val);
+				} else if (strcmp(key, "kb_variant") == 0) {
+					snprintf(rule->kb_variant, sizeof(rule->kb_variant), "%s",
+							 val);
+				} else if (strcmp(key, "kb_options") == 0) {
+					snprintf(rule->kb_options, sizeof(rule->kb_options), "%s",
+							 val);
+				} else if (strcmp(key, "natural_scrolling") == 0) {
+					rule->natural_scrolling = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "accel_profile") == 0) {
+					rule->accel_profile = CLAMP_INT(atoi(val), 0, 2);
+				} else if (strcmp(key, "accel_speed") == 0) {
+					rule->accel_speed = CLAMP_FLOAT(atof(val), -1.0, 1.0);
+				} else if (strcmp(key, "left_handed") == 0) {
+					rule->left_handed = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "middle_button_emulation") == 0) {
+					rule->middle_button_emulation = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "scroll_method") == 0) {
+					rule->scroll_method = (uint32_t)atoi(val);
+				} else if (strcmp(key, "scroll_button") == 0) {
+					rule->scroll_button = (uint32_t)atoi(val);
+				} else if (strcmp(key, "click_method") == 0) {
+					rule->click_method = (uint32_t)atoi(val);
+				} else if (strcmp(key, "send_events_mode") == 0) {
+					rule->send_events_mode = (uint32_t)atoi(val);
+				} else if (strcmp(key, "tap_to_click") == 0) {
+					rule->tap_to_click = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "tap_and_drag") == 0) {
+					rule->tap_and_drag = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "drag_lock") == 0) {
+					rule->drag_lock = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "button_map") == 0) {
+					rule->button_map = (uint32_t)atoi(val);
+				} else if (strcmp(key, "disable_while_typing") == 0) {
+					rule->disable_while_typing = CLAMP_INT(atoi(val), 0, 1);
+				} else {
+					mango_error(false, WLR_ERROR,
+								"Unknown device rule option: %s\n", key);
+					parse_error = true;
+				}
+			} else {
+				mango_error(false, WLR_ERROR,
+							"Invalid device rule format: %s\n", token);
+				parse_error = true;
+			}
+			token = strtok(NULL, ",");
+		}
+		config->device_rules_count++;
 		return !parse_error;
 	} else if (strncmp(key, "env", 3) == 0) {
 
@@ -3695,6 +3877,17 @@ void free_config(void) {
 		config.window_rules_count = 0;
 	}
 
+	// 释放 device_rules
+	if (config.device_rules) {
+		for (i = 0; i < config.device_rules_count; i++) {
+			if (config.device_rules[i].name)
+				free(config.device_rules[i].name);
+		}
+		free(config.device_rules);
+		config.device_rules = NULL;
+		config.device_rules_count = 0;
+	}
+
 	// 释放 key_bindings
 	if (config.key_bindings) {
 		for (i = 0; i < config.key_bindings_count; i++) {
@@ -4059,10 +4252,6 @@ void override_config(void) {
 	config.drag_lock = CLAMP_INT(config.drag_lock, 0, 1);
 	config.trackpad_natural_scrolling =
 		CLAMP_INT(config.trackpad_natural_scrolling, 0, 1);
-	config.disable_while_typing = CLAMP_INT(config.disable_while_typing, 0, 1);
-	config.left_handed = CLAMP_INT(config.left_handed, 0, 1);
-	config.middle_button_emulation =
-		CLAMP_INT(config.middle_button_emulation, 0, 1);
 	config.swipe_min_threshold = CLAMP_INT(config.swipe_min_threshold, 1, 1000);
 	config.mouse_natural_scrolling =
 		CLAMP_INT(config.mouse_natural_scrolling, 0, 1);
@@ -4073,11 +4262,30 @@ void override_config(void) {
 		CLAMP_INT(config.trackpad_accel_profile, 0, 2);
 	config.trackpad_accel_speed =
 		CLAMP_FLOAT(config.trackpad_accel_speed, -1.0f, 1.0f);
-	config.scroll_method = CLAMP_INT(config.scroll_method, 0, 4);
-	config.scroll_button = CLAMP_INT(config.scroll_button, 272, 279);
-	config.click_method = CLAMP_INT(config.click_method, 0, 2);
 	config.send_events_mode = CLAMP_INT(config.send_events_mode, 0, 2);
 	config.button_map = CLAMP_INT(config.button_map, 0, 1);
+	config.mouse_left_handed = CLAMP_INT(config.mouse_left_handed, 0, 1);
+	config.mouse_middle_button_emulation =
+		CLAMP_INT(config.mouse_middle_button_emulation, 0, 1);
+	config.mouse_scroll_method = CLAMP_INT(config.mouse_scroll_method, 0, 4);
+	config.mouse_scroll_button =
+		CLAMP_INT(config.mouse_scroll_button, 272, 279);
+	config.mouse_click_method = CLAMP_INT(config.mouse_click_method, 0, 2);
+	config.mouse_send_events_mode =
+		CLAMP_INT(config.mouse_send_events_mode, 0, 2);
+	config.trackpad_left_handed = CLAMP_INT(config.trackpad_left_handed, 0, 1);
+	config.trackpad_middle_button_emulation =
+		CLAMP_INT(config.trackpad_middle_button_emulation, 0, 1);
+	config.trackpad_disable_while_typing =
+		CLAMP_INT(config.trackpad_disable_while_typing, 0, 1);
+	config.trackpad_scroll_method =
+		CLAMP_INT(config.trackpad_scroll_method, 0, 4);
+	config.trackpad_scroll_button =
+		CLAMP_INT(config.trackpad_scroll_button, 272, 279);
+	config.trackpad_click_method =
+		CLAMP_INT(config.trackpad_click_method, 0, 2);
+	config.trackpad_send_events_mode =
+		CLAMP_INT(config.trackpad_send_events_mode, 0, 2);
 	config.axis_scroll_factor =
 		CLAMP_FLOAT(config.axis_scroll_factor, 0.1f, 10.0f);
 	config.trackpad_scroll_factor =
@@ -4252,18 +4460,25 @@ void set_value_default() {
 	config.mouse_natural_scrolling = 0;
 	config.cursor_size = 24;
 	config.trackpad_natural_scrolling = 0;
-	config.disable_while_typing = 1;
-	config.left_handed = 0;
-	config.middle_button_emulation = 0;
 	config.mouse_accel_profile = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
 	config.mouse_accel_speed = 0.0;
 	config.trackpad_accel_profile = LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE;
 	config.trackpad_accel_speed = 0.0;
-	config.scroll_method = LIBINPUT_CONFIG_SCROLL_2FG;
-	config.scroll_button = 274;
-	config.click_method = LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
 	config.send_events_mode = LIBINPUT_CONFIG_SEND_EVENTS_ENABLED;
 	config.button_map = LIBINPUT_CONFIG_TAP_MAP_LRM;
+	config.mouse_left_handed = 0;
+	config.mouse_middle_button_emulation = 0;
+	config.mouse_scroll_method = LIBINPUT_CONFIG_SCROLL_2FG;
+	config.mouse_scroll_button = 274;
+	config.mouse_click_method = LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
+	config.mouse_send_events_mode = LIBINPUT_CONFIG_SEND_EVENTS_ENABLED;
+	config.trackpad_left_handed = 0;
+	config.trackpad_middle_button_emulation = 0;
+	config.trackpad_disable_while_typing = 1;
+	config.trackpad_scroll_method = LIBINPUT_CONFIG_SCROLL_2FG;
+	config.trackpad_scroll_button = 274;
+	config.trackpad_click_method = LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
+	config.trackpad_send_events_mode = LIBINPUT_CONFIG_SEND_EVENTS_ENABLED;
 
 	config.blur = 0;
 	config.blur_layer = 0;
@@ -4462,6 +4677,8 @@ bool parse_config(void) {
 	config.window_rules_count = 0;
 	config.monitor_rules = NULL;
 	config.monitor_rules_count = 0;
+	config.device_rules = NULL;
+	config.device_rules_count = 0;
 	config.key_bindings = NULL;
 	config.key_bindings_count = 0;
 	config.mouse_bindings = NULL;
@@ -4690,12 +4907,52 @@ void reapply_property(void) {
 
 void reapply_keyboard(void) {
 	InputDevice *id;
+	KeyboardGroup *g;
+	ConfigDeviceRule *rule;
+	bool want_standalone;
+
+	wlr_keyboard_set_repeat_info(&kb_group->wlr_group->keyboard,
+								 config.repeat_rate, config.repeat_delay);
 	wl_list_for_each(id, &inputdevices, link) {
 		if (id->wlr_device->type != WLR_INPUT_DEVICE_KEYBOARD) {
 			continue;
 		}
-		wlr_keyboard_set_repeat_info((struct wlr_keyboard *)id->device_data,
-									 config.repeat_rate, config.repeat_delay);
+
+		rule = find_device_rule(id->wlr_device);
+		want_standalone = rule && device_rule_has_keyboard_settings(rule);
+
+		if (want_standalone && !id->standalone) {
+			/* 命中规则：拆出为独立键盘 */
+			struct wlr_keyboard *kb = (struct wlr_keyboard *)id->device_data;
+			if (!kb)
+				continue;
+			wlr_keyboard_group_remove_keyboard(kb_group->wlr_group, kb);
+			id->standalone = true;
+			create_standalone_keyboard(id, kb, rule);
+		} else if (!want_standalone && id->standalone) {
+			/* 规则失效：并回默认键盘组 */
+			g = (KeyboardGroup *)id->device_data;
+			struct wlr_keyboard *kb = g ? g->keyboard : NULL;
+			if (g)
+				destroy_standalone_keyboard(&g->destroy, NULL);
+			id->standalone = false;
+			id->device_data = kb;
+			if (kb) {
+				wlr_keyboard_set_keymap(kb, kb_group->keyboard->keymap);
+				wlr_keyboard_notify_modifiers(kb, 0, 0, locked_mods, 0);
+				wlr_keyboard_group_add_keyboard(kb_group->wlr_group, kb);
+				wlr_keyboard_set_repeat_info(kb, config.repeat_rate,
+											 config.repeat_delay);
+			}
+		} else if (want_standalone) {
+			g = (KeyboardGroup *)id->device_data;
+			if (g)
+				standalone_keyboard_apply_config(g, rule);
+		} else {
+			wlr_keyboard_set_repeat_info((struct wlr_keyboard *)id->device_data,
+										 config.repeat_rate,
+										 config.repeat_delay);
+		}
 	}
 }
 
@@ -4710,7 +4967,7 @@ void reapply_pointer(void) {
 
 		device = id->libinput_device;
 		if (wlr_input_device_is_libinput(id->wlr_device) && device) {
-			configure_pointer(device);
+			configure_pointer(id->wlr_device, device);
 		}
 	}
 }

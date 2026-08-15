@@ -30,6 +30,8 @@ static void usage(void) {
 		   "(1‑based index)\n");
 	printf("  get all-clients                          List all clients\n");
 	printf("  get all-monitors                         List all monitors\n");
+	printf("  get all-devices                          List physical input "
+		   "devices\n");
 	printf("  get all-tags                             List all tags (all "
 		   "monitors)\n");
 	printf("  get layouts                              List all available "
@@ -60,6 +62,8 @@ static void usage(void) {
 		"  watch all-tags                           Stream all tags changes\n");
 	printf("  watch all-clients                        Stream all clients "
 		   "changes\n");
+	printf("  watch all-devices                        Stream the last input "
+		   "device that triggered an event\n");
 	printf(
 		"  watch keymode                            Stream keymode changes\n");
 	printf("  watch keyboardlayout                     Stream keyboard layout "

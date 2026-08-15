@@ -145,6 +145,8 @@ void touch_down(struct wl_listener *listener, void *data) {
 	double x_offset = 0.0, y_offset = 0.0;
 	Client *c = NULL;
 
+	ipc_notify_device_event(&event->touch->base);
+
 	// 全局禁用触屏时忽略触摸事件；若正在指针模拟则一并清理结束
 	if (!config.touch_enable) {
 		touch_finish_all();
@@ -210,6 +212,8 @@ void touch_motion(struct wl_listener *listener, void *data) {
 	struct wlr_touch_motion_event *event = data;
 	struct touch_point *point;
 
+	ipc_notify_device_event(&event->touch->base);
+
 	if (!config.touch_enable) {
 		touch_finish_all();
 		return;
@@ -246,6 +250,8 @@ void touch_up(struct wl_listener *listener, void *data) {
 	struct wlr_touch_up_event *event = data;
 	struct touch_point *point, *tmp;
 
+	ipc_notify_device_event(&event->touch->base);
+
 	if (!config.touch_enable) {
 		touch_finish_all();
 		return;
@@ -280,6 +286,8 @@ void touch_up(struct wl_listener *listener, void *data) {
 void touch_cancel(struct wl_listener *listener, void *data) {
 	struct wlr_touch_cancel_event *event = data;
 	struct touch_point *point, *tmp;
+
+	ipc_notify_device_event(&event->touch->base);
 
 	if (!config.touch_enable) {
 		touch_finish_all();
