@@ -70,14 +70,15 @@ static void xdg_output_get_values(struct MangoXDGOutput *output, int32_t *lx,
 	float scale =
 		output->wlr_output->scale > 0.f ? output->wlr_output->scale : 1.f;
 
-	/* 逻辑尺寸直接取自 wlr_output 当前状态（物理分辨率 ÷ scale），
-	 * 与 wl_output.mode/scale 严格一致，避免依赖 m->m（布局缓存）。 */
-	int32_t w = (int32_t)roundf(output->wlr_output->width / scale);
-	int32_t h = (int32_t)roundf(output->wlr_output->height / scale);
-
-	/* 物理尺寸必须考虑输出旋转，否则旋转 90/270 时宽高未交换 */
+	/* 逻辑尺寸 = 变换后（含旋转）的有效分辨率 ÷ scale，与
+	 * wl_output.mode/transform/scale 严格一致，避免依赖 m->m（布局缓存）。
+	 * 注意不能直接用 wlr_output->width/height：它们是未旋转的模式尺寸，
+	 * 旋转 90/270 时会导致逻辑宽高不交换，grim/slurp 等按 xdg-output
+	 * 逻辑尺寸计算截图/选区就会得到未旋转的缓冲区。 */
 	int32_t tw, th;
 	wlr_output_transformed_resolution(output->wlr_output, &tw, &th);
+	int32_t w = (int32_t)roundf(tw / scale);
+	int32_t h = (int32_t)roundf(th / scale);
 
 	*lx = x;
 	*ly = y;
@@ -85,6 +86,7 @@ static void xdg_output_get_values(struct MangoXDGOutput *output, int32_t *lx,
 	*lh = h;
 	*px = (int32_t)roundf(x * scale);
 	*py = (int32_t)roundf(y * scale);
+	/* 物理尺寸同样必须考虑输出旋转，否则旋转 90/270 时宽高未交换 */
 	*pw = tw;
 	*ph = th;
 }
