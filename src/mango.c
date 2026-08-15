@@ -3168,6 +3168,7 @@ void destroydecoration(struct wl_listener *listener, void *data) {
 
 	wl_list_remove(&c->destroy_decoration.link);
 	wl_list_remove(&c->set_decoration_mode.link);
+	c->decoration = NULL;
 }
 
 static bool popup_unconstrain(Popup *popup) {
@@ -4111,6 +4112,13 @@ destroynotify(struct wl_listener *listener, void *data) {
 		wl_list_remove(&c->commit.link);
 		wl_list_remove(&c->map.link);
 		wl_list_remove(&c->unmap.link);
+	}
+	/* decoration 监听器挂在 deco->events 上，toplevel 销毁时（wlroots 会
+	 * 同步销毁 decoration 资源并发 destroy 信号）client 可能先被释放，
+	 * 不摘掉会导致 decoration destroy 信号遍历到已释放的监听器而崩溃 */
+	if (c->decoration) {
+		wl_list_remove(&c->destroy_decoration.link);
+		wl_list_remove(&c->set_decoration_mode.link);
 	}
 	free(c);
 }
