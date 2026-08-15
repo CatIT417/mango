@@ -91,7 +91,10 @@ static Client *client_by_id(uint32_t id) {
 }
 
 static const char *ipc_get_layout_str(void) {
-	struct wlr_keyboard *keyboard = &kb_group->wlr_group->keyboard;
+	struct wlr_keyboard *keyboard =
+		kb_group ? kb_group->keyboard : NULL;
+	if (!keyboard || !keyboard->keymap || !keyboard->xkb_state)
+		return "";
 	xkb_layout_index_t current = xkb_state_serialize_layout(
 		keyboard->xkb_state, XKB_STATE_LAYOUT_EFFECTIVE);
 	static char layout[32];

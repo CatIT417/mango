@@ -3494,11 +3494,18 @@ static void standalone_keyboard_apply_config(KeyboardGroup *group,
 		}
 		xkb_context_unref(context);
 	}
+	/* 全局布局也编译失败时，回退到默认键盘组的 keymap */
+	bool borrowed = false;
+	if (!keymap && kb_group && kb_group->keyboard && kb_group->keyboard->keymap) {
+		keymap = kb_group->keyboard->keymap;
+		borrowed = true;
+	}
 	if (!keymap)
 		return;
 
 	wlr_keyboard_set_keymap(group->keyboard, keymap);
-	xkb_keymap_unref(keymap);
+	if (!borrowed)
+		xkb_keymap_unref(keymap);
 	wlr_keyboard_notify_modifiers(group->keyboard, 0, 0, locked_mods, 0);
 }
 
@@ -3549,9 +3556,22 @@ KeyboardGroup *createkeyboardgroup(void) {
 	wl_list_init(&group->link);
 
 	context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-	if (!(keymap = xkb_keymap_new_from_names(context, &config.xkb_rules,
-											 XKB_KEYMAP_COMPILE_NO_FLAGS)))
-		die("failed to compile keymap");
+	if (!context)
+		die("failed to create xkb context");
+	keymap = xkb_keymap_new_from_names(context, &config.xkb_rules,
+									   XKB_KEYMAP_COMPILE_NO_FLAGS);
+	if (!keymap) {
+		mango_error(false, WLR_ERROR,
+					"Failed to compile keymap (layout=\"%s\" variant=\"%s\" "
+					"options=\"%s\"), falling back to the default layout",
+					config.xkb_rules.layout ? config.xkb_rules.layout : "",
+					config.xkb_rules.variant ? config.xkb_rules.variant : "",
+					config.xkb_rules.options ? config.xkb_rules.options : "");
+		keymap = xkb_keymap_new_from_names(context, &xkb_fallback_rules,
+										   XKB_KEYMAP_COMPILE_NO_FLAGS);
+		if (!keymap)
+			die("failed to compile keymap");
+	}
 
 	wlr_keyboard_set_keymap(group->keyboard, keymap);
 
@@ -6498,9 +6518,9 @@ void reset_keyboard_layout(void) {
 	struct xkb_keymap *new_keymap = xkb_keymap_new_from_names(
 		context, &config.xkb_rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
 	if (!new_keymap) {
-		// 理论上这里不应该失败，因为前面已经验证过了
 		mango_error(true, WLR_ERROR,
-					"Unexpected failure to create keymap after validation");
+					"Failed to compile keymap (invalid layout?), keeping the "
+					"current keymap");
 		goto cleanup_context;
 	}
 
