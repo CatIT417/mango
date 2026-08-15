@@ -3496,7 +3496,8 @@ static void standalone_keyboard_apply_config(KeyboardGroup *group,
 	}
 	/* 全局布局也编译失败时，回退到默认键盘组的 keymap */
 	bool borrowed = false;
-	if (!keymap && kb_group && kb_group->keyboard && kb_group->keyboard->keymap) {
+	if (!keymap && kb_group && kb_group->keyboard &&
+		kb_group->keyboard->keymap) {
 		keymap = kb_group->keyboard->keymap;
 		borrowed = true;
 	}
