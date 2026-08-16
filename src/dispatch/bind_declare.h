@@ -17,6 +17,7 @@ void tagtoright(const Arg *arg);
 void tagcrossmon(const Arg *arg);
 void viewtoleft(const Arg *arg);
 void viewtoright(const Arg *arg);
+void view_insert(const Arg *arg);
 void viewtoleft_have_client(const Arg *arg);
 void viewtoright_have_client(const Arg *arg);
 void viewcrossmon(const Arg *arg);

@@ -935,6 +935,7 @@ static Client *get_client_by_id_or_title(const char *arg_id,
 static bool switch_scratchpad_client_state(Client *c);
 static bool check_trackpad_disabled(struct wlr_pointer *pointer);
 static uint32_t get_tag_status(uint32_t tag, Monitor *m);
+static void view_insert_shift_tags(Monitor *m, uint32_t target);
 static void enable_adaptive_sync(Monitor *m, struct wlr_output_state *state);
 static Client *get_next_stack_client(Client *c, bool reverse);
 static void set_float_malposition(Client *tc);
@@ -1243,6 +1244,48 @@ static void ipc_notify_device_event(struct wlr_input_device *device);
 #include "layout/scroll.h"
 #include "layout/vertical.h"
 #include "overview/overview.h"
+
+static void view_insert_shift_tags(Monitor *m, uint32_t target) {
+	Client *c;
+	uint32_t map[tag_num_MAX + 1] = {0};
+	uint32_t i;
+
+	if (!m || target < 1 || target >= (uint32_t)config.tag_num)
+		return;
+
+	if (get_tag_status((uint32_t)config.tag_num, m))
+		return;
+
+	for (i = 1; i <= (uint32_t)config.tag_num; i++) {
+		if (i < target)
+			map[i] = i;
+		else if (i < (uint32_t)config.tag_num)
+			map[i] = i + 1;
+		else
+			map[i] = i;
+	}
+
+	wl_list_for_each(c, &clients, link) {
+		if (c->mon != m || c->iskilling || c->is_logic_hide)
+			continue;
+		c->tags = tag_remap_mask(c->tags, map);
+	}
+
+	m->tagset[m->seltags] = tag_remap_mask(m->tagset[m->seltags], map);
+	m->tagset[m->seltags ^ 1] = tag_remap_mask(m->tagset[m->seltags ^ 1], map);
+	m->ovbk_current_tagset = tag_remap_mask(m->ovbk_current_tagset, map);
+	m->ovbk_prev_tagset = tag_remap_mask(m->ovbk_prev_tagset, map);
+
+	if (m->pertag->curtag <= (uint32_t)config.tag_num && map[m->pertag->curtag])
+		m->pertag->curtag = map[m->pertag->curtag];
+	if (m->pertag->prevtag <= (uint32_t)config.tag_num &&
+		map[m->pertag->prevtag])
+		m->pertag->prevtag = map[m->pertag->prevtag];
+
+	for (i = (uint32_t)config.tag_num - 1; i >= target; i--) {
+		tag_gather_move_pertag(m, i + 1, i);
+	}
+}
 
 void client_change_mon(Client *c, Monitor *m) {
 	setmon(c, m, c->tags, true);

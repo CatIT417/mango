@@ -1757,6 +1757,47 @@ void viewtoleft(const Arg *arg) { view_shift_tag(arg, -1); }
 
 void viewtoright(const Arg *arg) { view_shift_tag(arg, 1); }
 
+void view_insert(const Arg *arg) {
+	uint32_t cur, curmask, target;
+
+	if (!selmon || selmon->isoverview)
+		return;
+
+	curmask = selmon->tagset[selmon->seltags] & TAGMASK;
+	if (!curmask || (curmask & (curmask - 1)))
+		return;
+	cur = get_tags_first_tag_num(curmask);
+	if (!cur)
+		return;
+
+	if (arg->i == NEXT) {
+		if (cur >= (uint32_t)config.tag_num)
+			return;
+		target = cur + 1;
+	} else if (cur == 1) {
+		target = cur;
+	} else if (get_tag_status(cur - 1, selmon) == 0) {
+		target = cur - 1;
+	} else {
+		target = cur;
+	}
+
+	if (get_tag_status(target, selmon) == 0) {
+		view(&(Arg){.ui = (1u << (target - 1)) & TAGMASK}, true);
+		return;
+	}
+
+	if (target >= (uint32_t)config.tag_num ||
+		get_tag_status((uint32_t)config.tag_num, selmon))
+		return;
+
+	view_insert_shift_tags(selmon, target);
+	int32_t tag_gather_bak = config.tag_gather;
+	config.tag_gather = 0;
+	view(&(Arg){.ui = (1u << (target - 1)) & TAGMASK}, true);
+	config.tag_gather = tag_gather_bak;
+}
+
 void viewtoleft_have_client(const Arg *arg) {
 	view_shift_tag_have_client(arg, -1);
 }

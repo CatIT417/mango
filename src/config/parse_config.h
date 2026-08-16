@@ -1252,6 +1252,9 @@ FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,
 	} else if (strcmp(func_name, "viewtoright") == 0) {
 		func = viewtoright;
 		(*arg).i = atoi(arg_value);
+	} else if (strcmp(func_name, "view_insert") == 0) {
+		func = view_insert;
+		(*arg).i = strcmp(arg_value, "next") == 0 ? NEXT : PREV;
 	} else if (strcmp(func_name, "tagsilent") == 0) {
 		func = tagsilent;
 		(*arg).ui = parse_tag_mask(arg_value);
