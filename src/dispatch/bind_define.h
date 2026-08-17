@@ -2001,7 +2001,11 @@ void toggleoverview(const Arg *arg) {
 	/* ov_tab：进入后自动切到下一焦点并重排 */
 	if (selmon->isoverview && config.ov_tab_mode && !selmon->is_jump_mode &&
 		!selmon->ov_normal_mode) {
-		focusstack(&(Arg){.i = 1});
+
+		if (config.ov_tab_mode_launch_next) {
+			focusstack(&(Arg){.i = 1});
+		}
+
 		Client *cc = NULL;
 		wl_list_for_each(cc, &clients, link) {
 			if (cc && cc->mon == selmon && !client_is_unmanaged(cc) &&
