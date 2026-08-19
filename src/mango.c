@@ -3587,6 +3587,32 @@ static bool device_rule_has_keyboard_settings(ConfigDeviceRule *rule) {
 }
 
 /* 应用独立键盘的 keymap 与重复率，未设置项回退全局默认 */
+/* 按 devicerule 编译 keymap：字段完全自包含，不继承全局 xkb_rules_* */
+static struct xkb_keymap *compile_rule_keymap(ConfigDeviceRule *rule) {
+	struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+	if (!context)
+		return NULL;
+
+	struct xkb_rule_names names = {0};
+	if (rule) {
+		if (rule->kb_rules[0])
+			names.rules = rule->kb_rules;
+		if (rule->kb_model[0])
+			names.model = rule->kb_model;
+		if (rule->kb_layout[0])
+			names.layout = rule->kb_layout;
+		if (rule->kb_variant[0])
+			names.variant = rule->kb_variant;
+		if (rule->kb_options[0])
+			names.options = rule->kb_options;
+	}
+
+	struct xkb_keymap *keymap = xkb_keymap_new_from_names(
+		context, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
+	xkb_context_unref(context);
+	return keymap;
+}
+
 static void standalone_keyboard_apply_config(KeyboardGroup *group,
 											 ConfigDeviceRule *rule) {
 	if (!group || !group->keyboard)
@@ -3599,46 +3625,19 @@ static void standalone_keyboard_apply_config(KeyboardGroup *group,
 		rule && rule->repeat_delay != -1 ? rule->repeat_delay
 										 : config.repeat_delay);
 
-	struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-	struct xkb_keymap *keymap = NULL;
-	if (context) {
-		struct xkb_rule_names names = config.xkb_rules;
-		bool has_override = false;
-		if (rule) {
-			if (rule->kb_rules[0]) {
-				names.rules = rule->kb_rules;
-				has_override = true;
-			}
-			if (rule->kb_model[0]) {
-				names.model = rule->kb_model;
-				has_override = true;
-			}
-			if (rule->kb_layout[0]) {
-				names.layout = rule->kb_layout;
-				has_override = true;
-			}
-			if (rule->kb_variant[0]) {
-				names.variant = rule->kb_variant;
-				has_override = true;
-			}
-			if (rule->kb_options[0]) {
-				names.options = rule->kb_options;
-				has_override = true;
-			}
+	struct xkb_keymap *keymap = compile_rule_keymap(rule);
+	if (!keymap && rule) {
+		mango_error(false, WLR_ERROR,
+					"Failed to compile devicerule keymap for %s, "
+					"falling back to the global layout",
+					group->keyboard->base.name ? group->keyboard->base.name
+											   : "unknown device");
+		struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+		if (context) {
+			keymap = xkb_keymap_new_from_names(
+				context, &config.xkb_rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+			xkb_context_unref(context);
 		}
-		keymap = xkb_keymap_new_from_names(context, &names,
-										   XKB_KEYMAP_COMPILE_NO_FLAGS);
-		if (!keymap && has_override) {
-			/* 规则 keymap 编译失败：回退全局默认 */
-			mango_error(false, WLR_ERROR,
-						"Failed to compile devicerule keymap for %s, "
-						"falling back to the global layout",
-						group->keyboard->base.name ? group->keyboard->base.name
-												   : "unknown device");
-			keymap = xkb_keymap_new_from_names(context, &config.xkb_rules,
-											   XKB_KEYMAP_COMPILE_NO_FLAGS);
-		}
-		xkb_context_unref(context);
 	}
 	/* 全局布局也编译失败时，回退到默认键盘组的 keymap */
 	bool borrowed = false;
@@ -7958,6 +7957,21 @@ void virtualkeyboard(struct wl_listener *listener, void *data) {
 							  seat->capabilities | WL_SEAT_CAPABILITY_KEYBOARD);
 	KeyboardGroup *group = createkeyboardgroup();
 	group->virtual_keyboard = &kb->keyboard;
+	/* 虚拟键盘也应用 devicerule 的独立 keymap/重复率 */
+	ConfigDeviceRule *rule = find_device_rule(&kb->keyboard.base);
+	if (rule && device_rule_has_keyboard_settings(rule)) {
+		struct xkb_keymap *keymap = compile_rule_keymap(rule);
+		if (keymap) {
+			wlr_keyboard_set_keymap(group->keyboard, keymap);
+			xkb_keymap_unref(keymap);
+			wlr_keyboard_set_repeat_info(
+				group->keyboard,
+				rule->repeat_rate != -1 ? rule->repeat_rate
+										: config.repeat_rate,
+				rule->repeat_delay != -1 ? rule->repeat_delay
+										 : config.repeat_delay);
+		}
+	}
 	/* Set the keymap to match the group keymap */
 	wlr_keyboard_set_keymap(&kb->keyboard, group->keyboard->keymap);
 	LISTEN(&kb->keyboard.base.events.destroy, &group->destroy,
