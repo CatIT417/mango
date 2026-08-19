@@ -816,8 +816,12 @@ void switch_proportion_preset(const Arg *arg) {
 		return;
 
 	Client *tc = arg->tc ? arg->tc : selmon->sel;
+
 	if (!tc)
 		return;
+
+	if (tc->isfloating)
+		return; // Do not switch scroller proportions for floating windows
 
 	tc = scroll_get_stack_head_client(tc);
 	if (!tc)
