@@ -91,7 +91,9 @@ static Client *client_by_id(uint32_t id) {
 }
 
 static const char *ipc_get_layout_str(void) {
-	struct wlr_keyboard *keyboard = kb_group ? kb_group->keyboard : NULL;
+	struct wlr_keyboard *keyboard =
+		last_active_keyboard ? last_active_keyboard
+							 : (kb_group ? kb_group->keyboard : NULL);
 	if (!keyboard || !keyboard->keymap || !keyboard->xkb_state)
 		return "";
 	xkb_layout_index_t current = xkb_state_serialize_layout(
@@ -487,6 +489,30 @@ static void handle_command(int client_fd, const char *cmd_raw) {
 			if (rule)
 				cJSON_AddStringToObject(obj, "matched_rule",
 										rule->name ? rule->name : rule->type);
+			cJSON_AddItemToArray(arr, obj);
+		}
+
+		/* 虚拟键盘没有 libinput 设备组，单独追加 */
+		KeyboardGroup *vg;
+		wl_list_for_each(vg, &virtual_keyboards, link) {
+			struct wlr_input_device *dev = &vg->keyboard->base;
+			cJSON *obj = cJSON_CreateObject();
+			cJSON_AddStringToObject(obj, "name", dev->name ? dev->name : "");
+			cJSON *types = cJSON_CreateArray();
+			cJSON_AddItemToArray(types, cJSON_CreateString("keyboard"));
+			cJSON_AddItemToObject(obj, "types", types);
+			cJSON_AddNumberToObject(obj, "vendor", 0);
+			cJSON_AddNumberToObject(obj, "product", 0);
+			cJSON_AddStringToObject(obj, "identifier",
+									dev->name ? dev->name : "");
+			cJSON_AddNumberToObject(obj, "interfaces", 1);
+			cJSON_AddBoolToObject(obj, "virtual", true);
+			ConfigDeviceRule *rule = find_device_rule(dev);
+			cJSON_AddBoolToObject(obj, "matched", rule != NULL);
+			if (rule)
+				cJSON_AddStringToObject(
+					obj, "matched_rule",
+					rule->name ? rule->name : rule->type);
 			cJSON_AddItemToArray(arr, obj);
 		}
 		resp = cJSON_CreateObject();
