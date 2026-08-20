@@ -1071,7 +1071,8 @@ static struct wlr_pointer_constraint_v1 *active_constraint;
 
 static struct wlr_seat *seat;
 static KeyboardGroup *kb_group;
-static struct wlr_keyboard *last_active_keyboard; /* 最后按键的键盘，get keyboardlayout 用 */
+static struct wlr_keyboard
+	*last_active_keyboard; /* 最后按键的键盘，get keyboardlayout 用 */
 static struct wl_list inputdevices;
 static struct wl_list standalone_keyboards; /* 独立键盘链表 */
 static struct wl_list keyboard_shortcut_inhibitors;
@@ -3608,8 +3609,8 @@ static struct xkb_keymap *compile_rule_keymap(ConfigDeviceRule *rule) {
 			names.options = rule->kb_options;
 	}
 
-	struct xkb_keymap *keymap = xkb_keymap_new_from_names(
-		context, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
+	struct xkb_keymap *keymap =
+		xkb_keymap_new_from_names(context, &names, XKB_KEYMAP_COMPILE_NO_FLAGS);
 	xkb_context_unref(context);
 	return keymap;
 }
@@ -3635,8 +3636,8 @@ static void standalone_keyboard_apply_config(KeyboardGroup *group,
 											   : "unknown device");
 		struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
 		if (context) {
-			keymap = xkb_keymap_new_from_names(
-				context, &config.xkb_rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+			keymap = xkb_keymap_new_from_names(context, &config.xkb_rules,
+											   XKB_KEYMAP_COMPILE_NO_FLAGS);
 			xkb_context_unref(context);
 		}
 	}

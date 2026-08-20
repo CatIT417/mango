@@ -1290,7 +1290,9 @@ void client_commit(Client *c) {
 		c->animation.running = true;
 		c->animation.should_animate = false;
 	} else {
-		c->animation.current = c->geom;
+		if (!c->animation.running) {
+			c->animation.current = c->geom;
+		}
 	}
 	request_fresh_all_monitors();
 }
