@@ -3688,6 +3688,8 @@ static void create_standalone_keyboard(InputDevice *input_dev,
 
 void destroy_standalone_keyboard(struct wl_listener *listener, void *data) {
 	KeyboardGroup *group = wl_container_of(listener, group, destroy);
+	if (group->keyboard == last_active_keyboard)
+		last_active_keyboard = NULL;
 	wl_list_remove(&group->key.link);
 	wl_list_remove(&group->modifiers.link);
 	wl_list_remove(&group->destroy.link);
@@ -4655,6 +4657,8 @@ void destroysessionlock(struct wl_listener *listener, void *data) {
 
 void destroykeyboardgroup(struct wl_listener *listener, void *data) {
 	KeyboardGroup *group = wl_container_of(listener, group, destroy);
+	if (group->keyboard == last_active_keyboard)
+		last_active_keyboard = NULL;
 	wl_event_source_remove(group->key_repeat_source);
 	wl_list_remove(&group->key.link);
 	wl_list_remove(&group->modifiers.link);
