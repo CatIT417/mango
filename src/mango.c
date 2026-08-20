@@ -528,8 +528,7 @@ typedef struct {
 	struct wl_listener destroy;
 
 	uint32_t layout_index;
-	struct wl_list link; /* standalone_keyboards / virtual_keyboards */
-	struct wl_listener key_watch; /* 虚拟键盘：记录最后按键的设备 */
+	struct wl_list link; /* standalone_keyboards */
 } KeyboardGroup;
 
 typedef struct {
@@ -1075,7 +1074,6 @@ static KeyboardGroup *kb_group;
 static struct wlr_keyboard *last_active_keyboard; /* 最后按键的键盘，get keyboardlayout 用 */
 static struct wl_list inputdevices;
 static struct wl_list standalone_keyboards; /* 独立键盘链表 */
-static struct wl_list virtual_keyboards;	 /* 虚拟键盘链表 */
 static struct wl_list keyboard_shortcut_inhibitors;
 static uint32_t cursor_mode;
 static Client *grabc, *dropc;
@@ -3470,11 +3468,6 @@ static void ipc_key_watch_notify(struct wl_listener *listener, void *data) {
 	ipc_notify_device_event(id->wlr_device);
 }
 
-static void ipc_group_key_watch_notify(struct wl_listener *listener, void *data) {
-	KeyboardGroup *group = wl_container_of(listener, group, key_watch);
-	ipc_notify_device_event(&group->keyboard->base);
-}
-
 void createkeyboard(struct wlr_keyboard *keyboard) {
 
 	struct libinput_device *device = NULL;
@@ -4663,9 +4656,6 @@ void destroykeyboardgroup(struct wl_listener *listener, void *data) {
 	wl_list_remove(&group->key.link);
 	wl_list_remove(&group->modifiers.link);
 	wl_list_remove(&group->destroy.link);
-	if (group->virtual_keyboard)
-		wl_list_remove(&group->key_watch.link);
-	wl_list_remove(&group->link);
 	wlr_keyboard_group_destroy(group->wlr_group);
 	free(group);
 }
@@ -7230,7 +7220,6 @@ void setup(void) {
 	 */
 	wl_list_init(&inputdevices);
 	wl_list_init(&standalone_keyboards);
-	wl_list_init(&virtual_keyboards);
 	wl_list_init(&tablets);
 	wl_list_init(&tablet_pads);
 	wl_list_init(&keyboard_shortcut_inhibitors);
@@ -7976,9 +7965,6 @@ void virtualkeyboard(struct wl_listener *listener, void *data) {
 							  seat->capabilities | WL_SEAT_CAPABILITY_KEYBOARD);
 	KeyboardGroup *group = createkeyboardgroup();
 	group->virtual_keyboard = &kb->keyboard;
-	wl_list_insert(&virtual_keyboards, &group->link);
-	group->key_watch.notify = ipc_group_key_watch_notify;
-	wl_signal_add(&kb->keyboard.events.key, &group->key_watch);
 	/* 虚拟键盘也应用 devicerule 的独立 keymap/重复率 */
 	ConfigDeviceRule *rule = find_device_rule(&kb->keyboard.base);
 	if (rule && device_rule_has_keyboard_settings(rule)) {
