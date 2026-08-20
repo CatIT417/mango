@@ -2954,9 +2954,57 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		trim_whitespace(env_value);
 
 		ConfigEnv *env = calloc(1, sizeof(ConfigEnv));
-		env->type = strdup(env_type);
-		env->value = strdup(env_value);
 
+		const char *needle = "~/";
+		
+		if (strstr(env_value, needle)) {
+			const char *home = getenv("HOME");
+
+			size_t rlen = 1; // replace only ~
+
+			if (!home) {
+				free(env);
+				mango_error(false, WLR_ERROR,
+							"HOME environment "
+							"variable not set.\n");
+				return false;
+			}
+
+			size_t hlen = strlen(home);
+			size_t len = strlen(env_value) + 1;
+
+			for (char *p = strstr(env_value, needle); p;
+				p = strstr(p + rlen, needle))
+				len += hlen - rlen;
+
+			env->value = malloc(len);
+			if (!env->value) {
+				free(env);
+				mango_error(false, WLR_ERROR,
+							"Failed to "
+							"allocate memory while expanding $HOME\n");
+				return false;
+			}
+
+			char *substr;
+			char *src = env_value;
+			char *dst = env->value;
+
+			while ((substr = strstr(src, needle))) {
+				size_t n = substr - src;
+				memcpy(dst, src, n);
+				dst += n;
+				memcpy(dst, home, hlen);
+				dst += hlen;
+				src = substr + rlen;
+			}
+
+			strcpy(dst, src);
+		} else {
+			env->value = strdup(env_value);
+		}
+
+		env->type = strdup(env_type);
 		config->env = realloc(config->env,
 							  (config->env_count + 1) * sizeof(*config->env));
 		if (!config->env) {
