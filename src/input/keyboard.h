@@ -354,9 +354,6 @@ keybinding(uint32_t state, bool locked, uint32_t mods, xkb_keysym_t sym,
 	}
 
 	for (ji = 0; ji < config.key_bindings_count; ji++) {
-		if (config.key_bindings_count < 1)
-			break;
-
 		if (locked && config.key_bindings[ji].islockapply == false)
 			continue;
 
@@ -418,8 +415,6 @@ bool keypressglobal(struct wlr_surface *last_surface,
 	const ConfigWinRule *r;
 
 	for (ji = 0; ji < config.window_rules_count; ji++) {
-		if (config.window_rules_count < 1)
-			break;
 		r = &config.window_rules[ji];
 
 		if (!r->globalkeybinding.mod ||

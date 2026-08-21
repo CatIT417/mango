@@ -492,9 +492,6 @@ void createmon(struct wl_listener *listener, void *data) {
 	wlr_output_state_set_transform(&pending, rr);
 
 	for (ji = 0; ji < config.monitor_rules_count; ji++) {
-		if (config.monitor_rules_count < 1)
-			break;
-
 		r = &config.monitor_rules[ji];
 
 		if (monitor_matches_rule(m, r)) {

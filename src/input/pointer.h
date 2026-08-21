@@ -117,8 +117,6 @@ axisnotify(struct wl_listener *listener, void *data) {
 		adir = event->delta > 0 ? AxisRight : AxisLeft;
 
 	for (ji = 0; ji < config.axis_bindings_count; ji++) {
-		if (config.axis_bindings_count < 1)
-			break;
 		a = &config.axis_bindings[ji];
 		if ((a->iscommonmode || (a->isdefaultmode && keymode.isdefault) ||
 			 (strcmp(keymode.mode, a->mode) == 0)) &&
@@ -191,8 +189,6 @@ int32_t ongesture(struct wlr_pointer_swipe_end_event *event) {
 	mods = mods | hard_mods;
 
 	for (ji = 0; ji < config.gesture_bindings_count; ji++) {
-		if (config.gesture_bindings_count < 1)
-			break;
 		g = &config.gesture_bindings[ji];
 		if ((g->iscommonmode || (g->isdefaultmode && keymode.isdefault) ||
 			 (strcmp(keymode.mode, g->mode) == 0)) &&
@@ -490,8 +486,6 @@ bool handle_buttonpress(struct wlr_pointer_button_event *event) {
 		mods = mods | hard_mods;
 
 		for (ji = 0; ji < config.mouse_bindings_count; ji++) {
-			if (config.mouse_bindings_count < 1)
-				break;
 			m = &config.mouse_bindings[ji];
 
 			if ((m->iscommonmode || (m->isdefaultmode && keymode.isdefault) ||
