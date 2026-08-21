@@ -689,8 +689,7 @@ bool check_hit_no_border(Client *c) {
 	}
 
 	if (config.no_border_when_single && c && c->mon &&
-		((ISSCROLLTILED(c) && c->mon->visible_scroll_tiling_clients == 1) ||
-		 c->mon->visible_clients == 1)) {
+		c->mon->visible_clients == 1) {
 		hit_no_border = true;
 	}
 	return hit_no_border;
