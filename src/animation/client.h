@@ -1278,6 +1278,18 @@ void init_fadeout_client(Client *c) {
 	request_fresh_all_monitors();
 }
 
+/* 无动画时应用窗口最终状态：位置、裁剪/可见性以及几何状态同步 */
+static void client_apply_finish_geometry(Client *c) {
+	if (!c || !c->scene)
+		return;
+
+	wlr_scene_node_set_position(&c->scene->node, c->pending.x, c->pending.y);
+	c->animation.current = c->animainit_geom = c->animation.initial =
+		c->pending = c->current = c->geom;
+	client_apply_clip(c, 1.0);
+	c->need_output_flush = false;
+}
+
 void client_commit(Client *c) {
 	c->current = c->pending;
 
@@ -1294,6 +1306,12 @@ void client_commit(Client *c) {
 			c->animation.current = c->geom;
 		}
 	}
+
+	// 禁用动画后提前设置surface位置和大小，
+	// 避免motionnotify 的指针聚焦在上一帧的surface上
+	if (!config.animations)
+		client_apply_finish_geometry(c);
+
 	request_fresh_all_monitors();
 }
 
@@ -1654,12 +1672,7 @@ bool client_draw_frame(Client *c) {
 		need_next_tick = true;
 		client_animation_next_tick(c);
 	} else {
-		wlr_scene_node_set_position(&c->scene->node, c->pending.x,
-									c->pending.y);
-		c->animation.current = c->animainit_geom = c->animation.initial =
-			c->pending = c->current = c->geom;
-		client_apply_clip(c, 1.0);
-		c->need_output_flush = false;
+		client_apply_finish_geometry(c);
 	}
 
 	bool need_fade_focus = client_apply_focus_opacity(c);
