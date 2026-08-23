@@ -237,6 +237,8 @@ KeyboardGroup *createkeyboardgroup(void) {
 	group->wlr_group = wlr_keyboard_group_create();
 	group->wlr_group->data = group;
 	group->keyboard = &group->wlr_group->keyboard;
+	group->virtual_keyboard = NULL;
+
 	wl_list_init(&group->link);
 
 	context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
@@ -499,7 +501,8 @@ void keypress(struct wl_listener *listener, void *data) {
 
 	// ov tab mode detect moe key release
 	if (config.ov_tab_mode && selmon && !selmon->is_jump_mode &&
-		selmon->isoverview && selmon->sel && !locked && group == kb_group &&
+		selmon->isoverview && selmon->sel && !locked &&
+		!group->virtual_keyboard &&
 		event->state == WL_KEYBOARD_KEY_STATE_RELEASED &&
 		ISMODEKEYCODE(keycode)) {
 		toggleoverview(&(Arg){.i = 1});
