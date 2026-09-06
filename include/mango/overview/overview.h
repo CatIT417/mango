@@ -1,7 +1,9 @@
 #ifndef __OVERVIEW_OVERVIEW_H__
 #define __OVERVIEW_OVERVIEW_H__ 1
 
-#include "mango/mango.h"
+#include "mango/common/types.h"
+#include "mango/dispatch/bind.h"
+#include <scenefx/types/fx/clipped_region.h>
 #include <stdint.h>
 
 // Overview preview: each client gets its own card tree; walk its surface tree
