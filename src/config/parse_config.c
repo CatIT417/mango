@@ -7,20 +7,20 @@
 #include <stdint.h>
 #include <string.h>
 
+#include "mango/animation/common.h"
 #include "mango/common/log.h"
-#include "mango/dispatch/bind.h"
 #include "mango/common/server.h"
+#include "mango/common/util.h"
+#include "mango/dispatch/bind.h"
 #include "mango/ext-protocol/hdr.h"
+#include "mango/input/device.h"
+#include "mango/input/keyboard.h"
+#include "mango/input/pointer.h"
+#include "mango/ipc/ipc.h"
 #include "mango/layout/arrange.h"
 #include "mango/layout/layout.h"
-#include "mango/animation/common.h"
 #include "mango/manage/client.h"
-#include "mango/common/util.h"
-#include "mango/input/pointer.h"
-#include "mango/input/keyboard.h"
 #include "mango/manage/monitor.h"
-#include "mango/ipc/ipc.h"
-#include "mango/input/device.h"
 #include "mango/switcher/switcher.h"
 #include <linux/input-event-codes.h>
 #include <scenefx/types/wlr_scene.h>

@@ -1,10 +1,10 @@
 #include "mango/overview/overview.h"
-#include "mango/layout/layout.h"
+#include "mango/animation/client.h"
 #include "mango/common/server.h"
+#include "mango/common/util.h"
+#include "mango/layout/layout.h"
 #include "mango/manage/client.h"
 #include "mango/manage/monitor.h"
-#include "mango/animation/client.h"
-#include "mango/common/util.h"
 #include <scenefx/types/wlr_scene.h>
 #include <wlr/types/wlr_compositor.h>
 #include <wlr/types/wlr_xdg_shell.h>

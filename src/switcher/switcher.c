@@ -1,8 +1,8 @@
 #include "mango/switcher/switcher.h"
-#include "mango/manage/client.h"
 #include "mango/common/server.h"
-#include "mango/manage/monitor.h"
 #include "mango/common/util.h"
+#include "mango/manage/client.h"
+#include "mango/manage/monitor.h"
 #include <scenefx/types/wlr_scene.h>
 #include <wlr/types/wlr_alpha_modifier_v1.h>
 #include <wlr/types/wlr_color_management_v1.h>
