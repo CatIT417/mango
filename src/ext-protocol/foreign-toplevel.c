@@ -46,7 +46,6 @@ void handle_foreign_minimize_request(struct wl_listener *listener, void *data) {
 	if (c->isminimized && !event->minimized) {
 		c->is_in_scratchpad = 0;
 		c->isnamedscratchpad = 0;
-		c->is_scratchpad_show = 0;
 		client_update_border_color(c);
 		show_hide_client(c);
 		arrange(c->mon, true, false);

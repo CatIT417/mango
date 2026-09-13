@@ -1900,7 +1900,6 @@ void init_client_properties(Client *c) {
 	c->isunglobal = 0;
 	c->is_in_scratchpad = 0;
 	c->isnamedscratchpad = 0;
-	c->is_scratchpad_show = 0;
 	c->need_float_size_reduce = 0;
 	c->is_clip_to_hide = 0;
 	c->is_restoring_from_ov = 0;
@@ -2764,7 +2763,6 @@ void client_active(Client *c) {
 	if (c->isminimized) {
 		c->is_in_scratchpad = 0;
 		c->isnamedscratchpad = 0;
-		c->is_scratchpad_show = 0;
 		client_update_border_color(c);
 		show_hide_client(c);
 		arrange(c->mon, true, false);
@@ -2884,17 +2882,18 @@ void tag_client(const Arg *arg, Client *target_client) {
 void show_hide_client(Client *c) {
 	uint32_t target = 1;
 
-	if (c->mon)
-		set_size_per(c->mon, c);
+	if (!c || !c->mon)
+		return;
+
+	set_size_per(c->mon, c);
 	target = get_tags_first_tag(c->oldtags);
 
 	if (!c->is_in_scratchpad) {
 		tag_client(&(Arg){.ui = target}, c);
 	} else {
-		c->tags = c->mini_restore_tag ? c->mini_restore_tag : c->oldtags;
+		c->tags = c->mon->tagset[c->mon->seltags];
 		c->isminimized = 0;
-		if (c->mon)
-			arrange(c->mon, false, false);
+		arrange(c->mon, false, false);
 	}
 	client_pending_minimized_state(c, 0);
 	client_focus(c, 1);
@@ -3047,7 +3046,6 @@ void client_set_floating(Client *c, int32_t floating) {
 		c->need_float_size_reduce = 0;
 	} else {
 		c->need_float_size_reduce = 1;
-		c->is_scratchpad_show = 0;
 		c->is_in_scratchpad = 0;
 		c->isnamedscratchpad = 0;
 		// Makes fullscreen windows on the current tag exit fullscreen so they
@@ -3218,11 +3216,9 @@ void set_minimized(Client *c) {
 	c->isglobal = 0;
 
 	c->oldtags = c->mon->tagset[c->mon->seltags];
-	c->mini_restore_tag = c->tags;
 	c->tags = 0;
 	client_pending_minimized_state(c, 1);
 	c->is_in_scratchpad = 1;
-	c->is_scratchpad_show = 0;
 	client_reparent_group(c);
 
 	client_focus(client_focus_top(server.selected_monitor), 1);
@@ -3237,9 +3233,11 @@ void set_minimized(Client *c) {
 }
 
 void unminimize(Client *c) {
-	if (c && c->is_in_scratchpad && c->is_scratchpad_show) {
+	if (!c || !c->mon)
+		return;
+
+	if (SCRATCHPAD_SHOWN(c)) {
 		client_pending_minimized_state(c, 0);
-		c->is_scratchpad_show = 0;
 		c->is_in_scratchpad = 0;
 		c->isnamedscratchpad = 0;
 		client_reparent_group(c);
@@ -3247,14 +3245,19 @@ void unminimize(Client *c) {
 		return;
 	}
 
-	if (c && c->isminimized) {
-		show_hide_client(c);
-		c->is_scratchpad_show = 0;
+	if (c->isminimized) {
+		set_size_per(c->mon, c);
+		c->tags = c->mon->tagset[c->mon->seltags];
 		c->is_in_scratchpad = 0;
 		c->isnamedscratchpad = 0;
+		client_pending_minimized_state(c, 0);
 		client_reparent_group(c);
 		client_update_border_color(c);
 		arrange(c->mon, false, false);
+		client_focus(c, 1);
+		if (c->foreign_toplevel)
+			wlr_foreign_toplevel_handle_v1_set_activated(c->foreign_toplevel,
+														 true);
 		return;
 	}
 }
@@ -3325,7 +3328,6 @@ void client_pending_minimized_state(Client *c, int32_t isminimized) {
 }
 
 void show_scratchpad(Client *c) {
-	c->is_scratchpad_show = 1;
 	if (c->isfullscreen || c->ismaximizescreen) {
 		client_pending_fullscreen_state(c, 0);
 		client_pending_maximized_state(c, 0);
@@ -3356,6 +3358,8 @@ void show_scratchpad(Client *c) {
 }
 
 bool switch_scratchpad_client_state(Client *c) {
+	if (!c || !c->mon)
+		return false;
 
 	if (config.scratchpad_cross_monitor && server.selected_monitor &&
 		c->mon != server.selected_monitor && c->is_in_scratchpad) {
@@ -3375,7 +3379,7 @@ bool switch_scratchpad_client_state(Client *c) {
 		c->float_geom = client_center_geometry(c, c->mon, c->float_geom, 0, 0);
 
 		// Only a visible scratchpad needs focus and returns true.
-		if (c->is_scratchpad_show) {
+		if (SCRATCHPAD_SHOWN(c)) {
 			c->tags = get_tags_first_tag(
 				server.selected_monitor
 					->tagset[server.selected_monitor->seltags]);
@@ -3391,16 +3395,14 @@ bool switch_scratchpad_client_state(Client *c) {
 	}
 
 	// visible on this tag -> hide
-	if (c->is_in_scratchpad && c->is_scratchpad_show && c->mon &&
-		(c->mon->tagset[c->mon->seltags] & c->tags)) {
+	if (SCRATCHPAD_SHOWN(c) && (c->mon->tagset[c->mon->seltags] & c->tags)) {
 		set_minimized(c);
 		return true;
-	} else if (c->is_in_scratchpad && c->mon) {
+	} else if (c->is_in_scratchpad) {
 		// not visible on this tag: move the scratchpad here and show it
 		c->tags = c->mon->tagset[c->mon->seltags];
 		c->oldtags = c->tags;
-		c->mini_restore_tag = c->tags;
-		if (c->is_scratchpad_show) {
+		if (SCRATCHPAD_SHOWN(c)) {
 			arrange(c->mon, false, false);
 			client_focus(c, 1);
 		} else {
@@ -3421,8 +3423,8 @@ void apply_named_scratchpad(Client *target_client) {
 			continue;
 		}
 
-		if (config.single_scratchpad && c->is_in_scratchpad &&
-			c->is_scratchpad_show && c != target_client) {
+		if (config.single_scratchpad && SCRATCHPAD_SHOWN(c) &&
+			c != target_client) {
 			set_minimized(c);
 		}
 	}
@@ -3514,7 +3516,6 @@ void client_replace(Client *c, Client *w, bool is_group_change_member,
 	c->isfloating = w->isfloating;
 	c->isurgent = w->isurgent;
 	c->is_in_scratchpad = w->is_in_scratchpad;
-	c->is_scratchpad_show = w->is_scratchpad_show;
 	c->tags = w->tags;
 	c->geom = w->geom;
 	c->float_geom = w->float_geom;
@@ -3785,8 +3786,7 @@ uint32_t client_target_layer(Client *c) {
 		return LyrOverlay;
 
 	bool special_overlay = (c->tags & TAG0_MASK) ||
-						   (is_special_active(c->mon) && c->is_in_scratchpad &&
-							c->is_scratchpad_show && !c->isminimized);
+						   (is_special_active(c->mon) && SCRATCHPAD_SHOWN(c));
 
 	if (special_overlay)
 		return c->isfullscreen		 ? LyrSpecialFullscreen
@@ -4114,7 +4114,8 @@ void handle_xwayland_surface_request_activate(struct wl_listener *listener,
 	Client *c = wl_container_of(listener, c, activate);
 	bool need_arrange = false;
 
-	if (!c || c->iskilling || !c->foreign_toplevel || client_is_unmanaged(c))
+	if (!c || c->iskilling || !c->mon || !c->foreign_toplevel ||
+		client_is_unmanaged(c))
 		return;
 
 	if (c && c->swallowdby)
@@ -4122,8 +4123,7 @@ void handle_xwayland_surface_request_activate(struct wl_listener *listener,
 
 	if (c->isminimized) {
 		client_pending_minimized_state(c, 0);
-		c->tags = c->mini_restore_tag;
-		c->is_scratchpad_show = 0;
+		c->tags = c->mon->tagset[c->mon->seltags];
 		c->is_in_scratchpad = 0;
 		c->isnamedscratchpad = 0;
 		client_update_border_color(c);

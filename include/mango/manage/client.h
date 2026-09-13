@@ -53,6 +53,7 @@ enum { UP, DOWN, LEFT, RIGHT, UNDIR, ALLDIR }; /* smartmovewin */
 #define TAGMATCH(C, M)                                                         \
 	((C) && (M) && (C)->mon == (M) && !(C)->isminimized &&                     \
 	 (((C)->tags & (M)->tagset[(M)->seltags])))
+#define SCRATCHPAD_SHOWN(C) ((C) && (C)->is_in_scratchpad && !(C)->isminimized)
 #define ISFULLSCREEN(A)                                                        \
 	((A)->isfullscreen || (A)->ismaximizescreen ||                             \
 	 (A)->overview_ismaximizescreenbak || (A)->overview_isfullscreenbak)
@@ -118,7 +119,7 @@ struct Client {
 	bool xwl_req_valid;
 #endif
 	uint32_t bw;
-	uint32_t tags, oldtags, mini_restore_tag;
+	uint32_t tags, oldtags;
 	bool dirty;
 	int32_t xdg_geo_x, xdg_geo_y;
 	uint32_t configure_serial;
@@ -155,7 +156,6 @@ struct Client {
 	int32_t iscustompos;
 	int32_t iscustom_scroller_proportion;
 	int32_t iscustom_scroller_proportion_single;
-	int32_t is_scratchpad_show;
 	int32_t isglobal;
 	int32_t isnoborder;
 	int32_t isnoshadow;

@@ -70,8 +70,8 @@ void set_arrange_visible(Monitor *m, Client *c, bool want_animation) {
 	}
 
 	/* Scratchpad clients slide in from above the monitor when shown */
-	if (c->is_in_scratchpad && c->is_scratchpad_show &&
-		(!was_enabled || c->animation.tagouting) && !tag_switch_return) {
+	if (SCRATCHPAD_SHOWN(c) && (!was_enabled || c->animation.tagouting) &&
+		!tag_switch_return) {
 		c->animation.tag_from_rule = false;
 		c->animation.tagouted = false;
 		/* Reverse an in-flight hide instead of restarting from the top. */
@@ -178,8 +178,7 @@ void set_arrange_hidden(Monitor *m, Client *c, bool want_animation) {
 	}
 
 	/* Scratchpad windows slide up and out when hidden */
-	if (!(c->tags & TAG0_MASK) && c->is_in_scratchpad &&
-		!c->is_scratchpad_show) {
+	if (!(c->tags & TAG0_MASK) && c->is_in_scratchpad && c->isminimized) {
 		c->scratchpad_tag_hidden = false;
 		if (client_animations_enabled(c) && !c->animation.tagouted &&
 			c->scene->node.enabled) {
@@ -220,8 +219,7 @@ void set_arrange_hidden(Monitor *m, Client *c, bool want_animation) {
 		return;
 	}
 
-	if (!(c->tags & TAG0_MASK) && c->is_in_scratchpad &&
-		c->is_scratchpad_show) {
+	if (!(c->tags & TAG0_MASK) && SCRATCHPAD_SHOWN(c)) {
 		c->scratchpad_tag_hidden = true;
 	}
 

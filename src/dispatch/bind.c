@@ -822,14 +822,14 @@ void restore_minimized(const Arg *arg) {
 		focused = client_focus_top(server.selected_monitor);
 
 	/* 1. If focused window or any shown scratchpad exists, evict it */
-	if (focused && focused->is_in_scratchpad && focused->is_scratchpad_show) {
+	if (focused && SCRATCHPAD_SHOWN(focused)) {
 		c = focused;
 	} else {
 		Client *tc = NULL;
 		wl_list_for_each(tc, &server.clients, link) {
 			if ((tc->mon == server.selected_monitor ||
 				 config.scratchpad_cross_monitor) &&
-				tc->is_in_scratchpad && tc->is_scratchpad_show) {
+				SCRATCHPAD_SHOWN(tc)) {
 				c = tc;
 				break;
 			}
@@ -850,10 +850,8 @@ void restore_minimized(const Arg *arg) {
 		return;
 
 	/* Clear scratchpad & minimized state */
-	c->is_scratchpad_show = 0;
 	c->is_in_scratchpad = 0;
 	c->isnamedscratchpad = 0;
-	c->isminimized = 0;
 	client_pending_minimized_state(c, 0);
 	c->iscustomsize = 0;
 
@@ -1775,7 +1773,6 @@ void toggle_fullscreen(const Arg *arg) {
 	if (!sel)
 		return;
 
-	sel->is_scratchpad_show = 0;
 	sel->is_in_scratchpad = 0;
 	sel->isnamedscratchpad = 0;
 
@@ -1796,7 +1793,6 @@ void toggle_global(const Arg *arg) {
 
 	if (c->is_in_scratchpad) {
 		c->is_in_scratchpad = 0;
-		c->is_scratchpad_show = 0;
 		c->isnamedscratchpad = 0;
 	}
 	c->isglobal ^= 1;
@@ -1821,7 +1817,6 @@ void toggle_maximize_screen(const Arg *arg) {
 	if (!sel)
 		return;
 
-	sel->is_scratchpad_show = 0;
 	sel->is_in_scratchpad = 0;
 	sel->isnamedscratchpad = 0;
 
