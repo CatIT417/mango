@@ -187,12 +187,15 @@ void client_get_clip(Client *c, struct wlr_box *clip) {
 void client_get_geometry(Client *c, struct wlr_box *geom) {
 #ifdef XWAYLAND
 	if (client_is_x11(c)) {
-		/* Converts X11 physical size back to logical size. */
-		float scale = c->xwayland_scale > 0.f ? c->xwayland_scale : 1.f;
-		geom->x = (int32_t)roundf(c->surface.xwayland->x / scale);
-		geom->y = (int32_t)roundf(c->surface.xwayland->y / scale);
-		geom->width = (int32_t)roundf(c->surface.xwayland->width / scale);
-		geom->height = (int32_t)roundf(c->surface.xwayland->height / scale);
+		/* Converts the X11 geometry back to logical coordinates. */
+		struct wlr_box xgeo = {
+			.x = c->surface.xwayland->x,
+			.y = c->surface.xwayland->y,
+			.width = c->surface.xwayland->width,
+			.height = c->surface.xwayland->height,
+		};
+		xwayland_x11_to_logical(&xgeo, c->xwayland_scale);
+		*geom = xgeo;
 		return;
 	}
 #endif
@@ -445,13 +448,17 @@ uint32_t client_set_size(Client *c, uint32_t width, uint32_t height) {
 
 		/* Configure uses physical sizes (logical * xscale) so X11 renders 1:1.
 		 */
-		float xscale = c->xwayland_scale > 0.f ? c->xwayland_scale : 1.f;
-		int32_t xw =
-			(int32_t)roundf((c->geom.width - 2 * (int32_t)c->bw) * xscale);
-		int32_t xh =
-			(int32_t)roundf((c->geom.height - 2 * (int32_t)c->bw) * xscale);
-		int32_t xx = (int32_t)roundf((c->geom.x + (int32_t)c->bw) * xscale);
-		int32_t xy = (int32_t)roundf((c->geom.y + (int32_t)c->bw) * xscale);
+		struct wlr_box xgeo = {
+			.x = c->geom.x + (int32_t)c->bw,
+			.y = c->geom.y + (int32_t)c->bw,
+			.width = c->geom.width - 2 * (int32_t)c->bw,
+			.height = c->geom.height - 2 * (int32_t)c->bw,
+		};
+		xwayland_logical_to_x11(&xgeo, c->xwayland_scale);
+		int32_t xw = xgeo.width;
+		int32_t xh = xgeo.height;
+		int32_t xx = xgeo.x;
+		int32_t xy = xgeo.y;
 
 		if ((int32_t)state->width == xw && (int32_t)state->height == xh &&
 			(int32_t)c->surface.xwayland->x == xx &&
@@ -4070,22 +4077,37 @@ void xwayland_apply_scale(Client *c) {
 	client_set_scale(client_surface(c), xwayland_preferred_scale(c));
 }
 
-/* Wayland logical coordinates -> X11 physical size (X11 = logical * scale). */
+/*
+ * X11 (XWayland) coordinates start at the top-left corner of the output layout.
+ * XWayland places its outputs at the positions it is told, so the X11 screen
+ * carries no dead space above or left of the layout and the root origin matches
+ * the top-left monitor, which is what X11 clients assume.
+ */
+void xwayland_screen_origin(int32_t *x, int32_t *y) {
+	*x = server.scene_geometry.x;
+	*y = server.scene_geometry.y;
+}
+
+/* Wayland logical coordinates -> X11 physical coordinates. */
 void xwayland_logical_to_x11(struct wlr_box *box, float scale) {
 	if (scale <= 0.f)
 		scale = 1.f;
-	box->x = (int32_t)roundf(box->x * scale);
-	box->y = (int32_t)roundf(box->y * scale);
+	int32_t ox, oy;
+	xwayland_screen_origin(&ox, &oy);
+	box->x = (int32_t)roundf((box->x - ox) * scale);
+	box->y = (int32_t)roundf((box->y - oy) * scale);
 	box->width = (int32_t)roundf(box->width * scale);
 	box->height = (int32_t)roundf(box->height * scale);
 }
 
-/* X11 physical size -> Wayland logical coordinates (logical = X11 / scale). */
+/* X11 physical coordinates -> Wayland logical coordinates. */
 void xwayland_x11_to_logical(struct wlr_box *box, float scale) {
 	if (scale <= 0.f)
 		scale = 1.f;
-	box->x = (int32_t)roundf(box->x / scale);
-	box->y = (int32_t)roundf(box->y / scale);
+	int32_t ox, oy;
+	xwayland_screen_origin(&ox, &oy);
+	box->x = (int32_t)roundf(box->x / scale) + ox;
+	box->y = (int32_t)roundf(box->y / scale) + oy;
 	box->width = (int32_t)roundf(box->width / scale);
 	box->height = (int32_t)roundf(box->height / scale);
 }
@@ -4240,20 +4262,21 @@ void handle_xwayland_surface_commit(struct wl_listener *listener, void *data) {
 	/* Overview card nodes are independent scene_surfaces that auto-update on
 	 * commit. */
 
-	/*
-	 * state->width/height and xwayland->x/y are X11 physical sizes (= c->geom *
-	 * scale); convert to logical before scene operations.
+	/* Compares the acked X11 geometry with the one mango configured: sizes are
+	 * physical (logical * scale), positions are relative to the screen origin.
 	 */
-	float xscale = c->xwayland_scale > 0.f ? c->xwayland_scale : 1.f;
-	int32_t xw = (int32_t)roundf((c->geom.width - 2 * (int32_t)c->bw) * xscale);
-	int32_t xh =
-		(int32_t)roundf((c->geom.height - 2 * (int32_t)c->bw) * xscale);
-	int32_t xx = (int32_t)roundf((c->geom.x + (int32_t)c->bw) * xscale);
-	int32_t xy = (int32_t)roundf((c->geom.y + (int32_t)c->bw) * xscale);
+	struct wlr_box xgeo = {
+		.x = c->geom.x + (int32_t)c->bw,
+		.y = c->geom.y + (int32_t)c->bw,
+		.width = c->geom.width - 2 * (int32_t)c->bw,
+		.height = c->geom.height - 2 * (int32_t)c->bw,
+	};
+	xwayland_logical_to_x11(&xgeo, c->xwayland_scale);
 
-	if (xw == (int32_t)state->width && xh == (int32_t)state->height &&
-		(int32_t)c->surface.xwayland->x == xx &&
-		(int32_t)c->surface.xwayland->y == xy) {
+	if (xgeo.width == (int32_t)state->width &&
+		xgeo.height == (int32_t)state->height &&
+		(int32_t)c->surface.xwayland->x == xgeo.x &&
+		(int32_t)c->surface.xwayland->y == xgeo.y) {
 		c->configure_serial = 0;
 	}
 

@@ -245,6 +245,7 @@ bool xwayland_scene_buffer_point_accepts_input(struct wlr_scene_buffer *buffer,
 void xwayland_apply_scale(Client *c);
 void xwayland_logical_to_x11(struct wlr_box *box, float scale);
 void xwayland_x11_to_logical(struct wlr_box *box, float scale);
+void xwayland_screen_origin(int32_t *x, int32_t *y);
 void fix_xwayland_coordinate(struct wlr_box *geom);
 Monitor *xwayland_monitor(Client *c);
 #endif
