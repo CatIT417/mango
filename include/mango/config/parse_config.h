@@ -386,6 +386,7 @@ typedef struct {
 	uint32_t axis_bind_apply_timeout;
 	uint32_t focus_on_activate;
 	int32_t idleinhibit_ignore_visible;
+	int32_t idleinhibit_when_fullscreen;
 	int32_t sloppyfocus;
 	int32_t warpcursor;
 	int32_t drag_corner;

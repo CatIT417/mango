@@ -51,6 +51,7 @@ description: Advanced settings for XWayland, focus behavior, and system integrat
 | `no_border_when_single` | `0` | Remove window borders when only one window is visible on the tag. |
 | `smartgaps` | `0` | Disable gaps when only one window is present. |
 | `idleinhibit_ignore_visible` | `0` | Allow invisible clients (e.g., background audio players) to inhibit idle. |
+| `idleinhibit_when_fullscreen` | `0` | Keep idle inhibited while a fullscreen window is focused. |
 | `tag_carousel` | `0` | Enable tag carousel (cycling through tags). |
 | `drag_tile_refresh_interval` | `8.0` | Interval (1.0–16.0) to refresh tiled window resize during drag. Too small may cause application lag. |
 | `drag_floating_refresh_interval` | `8.0` | Interval (1.0–16.0) to refresh floating window resize during drag. Too small may cause application lag. |

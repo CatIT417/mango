@@ -3126,6 +3126,7 @@ void client_apply_fullscreen(
 
 	client_reparent_group(c);
 	check_vrr_enable(c);
+	check_keep_idle_inhibit(c);
 
 	if (rearrange)
 		arrange(c->mon, false, false);
