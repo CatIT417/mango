@@ -54,6 +54,12 @@ void set_tagin_animation(Monitor *m, Client *c) {
 void set_arrange_visible(Monitor *m, Client *c, bool want_animation) {
 	bool was_enabled = c->scene->node.enabled;
 
+	bool tag_switch_return = !was_enabled && c->scratchpad_tag_hidden &&
+							 want_animation && m->pertag->prevtag != 0 &&
+							 m->pertag->curtag != 0 &&
+							 client_animations_enabled(c);
+	c->scratchpad_tag_hidden = false;
+
 	if (!ISTILED(c) || (!c->is_clip_to_hide || !is_scroller_layout(c->mon))) {
 		c->is_clip_to_hide = false;
 		wlr_scene_node_set_enabled(&c->scene->node, true);
@@ -64,8 +70,8 @@ void set_arrange_visible(Monitor *m, Client *c, bool want_animation) {
 	}
 
 	/* Scratchpad clients slide in from above the monitor when shown */
-	if (!(c->tags & TAG0_MASK) && c->is_in_scratchpad &&
-		c->is_scratchpad_show && (!was_enabled || c->animation.tagouting)) {
+	if (c->is_in_scratchpad && c->is_scratchpad_show &&
+		(!was_enabled || c->animation.tagouting) && !tag_switch_return) {
 		c->animation.tag_from_rule = false;
 		c->animation.tagouted = false;
 		/* Reverse an in-flight hide instead of restarting from the top. */
@@ -174,6 +180,7 @@ void set_arrange_hidden(Monitor *m, Client *c, bool want_animation) {
 	/* Scratchpad windows slide up and out when hidden */
 	if (!(c->tags & TAG0_MASK) && c->is_in_scratchpad &&
 		!c->is_scratchpad_show) {
+		c->scratchpad_tag_hidden = false;
 		if (client_animations_enabled(c) && !c->animation.tagouted &&
 			c->scene->node.enabled) {
 			c->animation.tagouting = true;
@@ -211,6 +218,11 @@ void set_arrange_hidden(Monitor *m, Client *c, bool want_animation) {
 				c->geom;
 		}
 		return;
+	}
+
+	if (!(c->tags & TAG0_MASK) && c->is_in_scratchpad &&
+		c->is_scratchpad_show) {
+		c->scratchpad_tag_hidden = true;
 	}
 
 	if ((c->tags & (1 << (m->pertag->prevtag - 1))) &&

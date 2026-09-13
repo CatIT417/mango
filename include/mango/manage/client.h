@@ -183,6 +183,7 @@ struct Client {
 	bool is_clip_to_hide;
 	bool drag_to_tile;
 	bool scratchpad_switching_mon;
+	bool scratchpad_tag_hidden;
 	bool fake_no_border;
 	int32_t nofocus;
 	int32_t nofadein;
