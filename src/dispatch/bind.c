@@ -115,15 +115,32 @@ void create_virtual_output(const Arg *arg) {
 		return;
 	}
 
+	if (arg->v != NULL) {
+		Monitor *m;
+		wl_list_for_each(m, &server.monitors, link) {
+			if (strcmp(m->wlr_output->name, arg->v) == 0) {
+				mango_error(true, WLR_ERROR, "Output '%s' already exists",
+							arg->v);
+				return;
+			}
+		}
+	}
+
 	bool done = false;
+	server.pending_headless_output_name = arg->v;
 	wlr_multi_for_each_backend(server.backend, create_output, &done);
+	server.pending_headless_output_name = NULL;
 
 	if (!done) {
 		mango_error(true, WLR_ERROR, "Failed to create virtual output");
 		return;
 	}
 
-	mango_error(true, WLR_INFO, "Virtual output created");
+	if (arg->v) {
+		mango_error(true, WLR_INFO, "Virtual output '%s' created", arg->v);
+	} else {
+		mango_error(true, WLR_INFO, "Virtual output created");
+	}
 	return;
 }
 

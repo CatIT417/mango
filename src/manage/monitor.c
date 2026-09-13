@@ -564,6 +564,11 @@ void handle_new_output(struct wl_listener *listener, void *data) {
 	Monitor *m = NULL;
 	bool custom_monitor_mode = false;
 
+	if (server.pending_headless_output_name != NULL &&
+		wlr_output_is_headless(wlr_output)) {
+		wlr_output_set_name(wlr_output, server.pending_headless_output_name);
+	}
+
 	if (!wlr_output_init_render(wlr_output, server.allocator, server.renderer))
 		return;
 
