@@ -266,14 +266,22 @@ void set_activation_env() {
 	spawn(&(Arg){.v = cmd1});
 	free(cmd1);
 
-	// second command: systemctl --user
+	/* Second command: import the environment into systemd and bring up the
+	 * session target from the same shell, so that user services with
+	 * WantedBy=graphical-session.target (portals, panels, ...) do not start
+	 * before those variables are in place. xdg-desktop-portal only starts
+	 * while graphical-session.target is active, which this target pulls in
+	 * via BindsTo. */
 	const char *action = "import-environment";
-	char *cmd2 = string_printf("systemctl --user %s %s", action, env_keys);
+	char *cmd2 = string_printf("systemctl --user %s %s; "
+							   "systemctl --user --no-block start "
+							   "mango-session.target",
+							   action, env_keys);
 	if (!cmd2) {
 		mango_error(true, WLR_ERROR, "Failed to allocate command string");
 		goto cleanup;
 	}
-	spawn(&(Arg){.v = cmd2});
+	spawn_shell(&(Arg){.v = cmd2});
 	free(cmd2);
 
 cleanup:
