@@ -1333,7 +1333,6 @@ void apply_rule_properties(Client *c, const ConfigWinRule *r) {
 	APPLY_INT_PROP(c, r, activation_bypass);
 	APPLY_INT_PROP(c, r, isunglobal);
 	APPLY_INT_PROP(c, r, noblur);
-	APPLY_INT_PROP(c, r, confine_pointer);
 	APPLY_INT_PROP(c, r, allow_shortcuts_inhibit);
 
 	APPLY_FLOAT_PROP(c, r, scroller_proportion);
@@ -2433,7 +2432,6 @@ void handle_client_destroy(struct wl_listener *listener, void *data) {
 		wl_list_remove(&c->set_decoration_mode.link);
 	}
 	switcher_remove_client(c);
-	pointer_client_destroyed(c);
 	free(c);
 }
 
@@ -2730,7 +2728,6 @@ void client_focus(Client *c, int32_t lift) {
 		if (server.active_constraint) {
 			pointer_constrain_cursor(NULL);
 		}
-		pointer_check_confine_client();
 		return;
 	}
 
@@ -2754,8 +2751,6 @@ void client_focus(Client *c, int32_t lift) {
 	}
 
 	client_ensure_constraint(c);
-
-	pointer_check_confine_client();
 }
 
 void client_active(Client *c) {

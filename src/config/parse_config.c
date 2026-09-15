@@ -1562,7 +1562,6 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		rule->vrr_only_fullscreen = -1;
 		rule->force_render = -1;
 		rule->activation_bypass = -1;
-		rule->confine_pointer = -1;
 		rule->isterm = -1;
 		rule->allow_csd = -1;
 		rule->force_fakemaximize = -1;
@@ -1697,8 +1696,6 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 					rule->noswallow = atoi(val);
 				} else if (strcmp(key, "noblur") == 0) {
 					rule->noblur = atoi(val);
-				} else if (strcmp(key, "confine_pointer") == 0) {
-					rule->confine_pointer = atoi(val);
 				} else if (strcmp(key, "scroller_proportion") == 0) {
 					rule->scroller_proportion = atof(val);
 				} else if (strcmp(key, "isfullscreen") == 0) {

@@ -70,28 +70,12 @@ windowrule=force_tearing:1,title:Counter-Strike 2
 
 ---
 
-### The cursor escapes to another monitor when playing a fullscreen game
-
-Some X11 games (typically Proton/Wine titles, e.g. Satisfactory) capture the mouse by hiding the cursor and grabbing the pointer with `confine_to`. Xwayland emulates that with a locked pointer constraint, and that lock can be dropped by Xwayland itself (when the game releases the X11 confine while keeping the mouse captured). Once the lock is gone the compositor has nothing left to confine the pointer, so the cursor can move onto another monitor.
-
-Add a window rule to force the cursor to stay inside the game window while it is focused:
-
-```ini
-windowrule=confine_pointer:1,appid:steam_app_526870
-```
-
-Use `appid:` or `title:` to match your game — see [Window Rules](/docs/window-management/rules) for the available matching options.
-
-`confine_pointer=1` keeps the cursor 5px inside the window's surface whenever that window is the focused, visible window. The confinement is released as soon as the window loses focus, gets hidden, minimized, or moved to a hidden tag. It does not rely on the pointer constraints protocol.
-
----
-
 ### A game ignores the mouse or the cursor is not hidden when using a fullscreen window rule
 
 Some games (Proton/Wine titles) open a short-lived helper window (a splash/loading window showing the app id) before the real game window. A rule like
 
 ```ini
-windowrule=confine_pointer:1,isfullscreen:1,appid:steam_app_526870
+windowrule=isfullscreen:1,appid:steam_app_526870
 ```
 
 matches **every** window of that app, including that helper window, so mango forces it to fullscreen as well. The helper window then gets `_NET_WM_STATE_FULLSCREEN` and a resize to the whole monitor, and when the real game window maps mango's "a new tiled window kicks the fullscreen window out of fullscreen" logic un-fullscreens and re-tiles it again. Wine ties its mouse capture and cursor visibility to those window states, so after this churn the game ends up with a broken capture state: the cursor is not hidden, the pointer lock is created and dropped repeatedly, and the game's own cursor and the compositor cursor disagree (e.g. the menu cursor is not where the game thinks it is).
@@ -99,7 +83,6 @@ matches **every** window of that app, including that helper window, so mango for
 Restrict `isfullscreen` to the real game window with `title:` (the helper window has no title):
 
 ```ini
-windowrule=confine_pointer:1,appid:steam_app_526870
 windowrule=isfullscreen:1,appid:steam_app_526870,title:Satisfactory
 ```
 
