@@ -154,8 +154,8 @@ bindr=Super,Super_L,spawn,rofi -show run
 | `toggletag` | `mask` | Toggle tag(s) on window. Accepts a [tag mask](/docs/bindings/keys#tag-mask-format). `0` toggles all tags. |
 | `toggleview` | `mask` | Toggle view of tag(s). Accepts a [tag mask](/docs/bindings/keys#tag-mask-format). |
 | `comboview` | `mask` | View multiple tags simultaneously. Accepts a [tag mask](/docs/bindings/keys#tag-mask-format) (typically built by pressing keys, e.g., `1|3`). |
-| `focusmon` | `left/right/up/down/monitor_spec` | Focus monitor by direction or [monitor spec](/docs/configuration/monitors#monitor-spec-format). |
-| `tagmon` | `left/right/up/down/monitor_spec,[keeptag]` | Move window to monitor by direction or [monitor spec](/docs/configuration/monitors#monitor-spec-format). `keeptag` is 0 or 1. |
+| `focusmon` | `left/right/up/down/next/prev/monitor_spec` | Focus monitor by direction, by cycling to the next or previous monitor (`next`/`prev`), or by [monitor spec](/docs/configuration/monitors#monitor-spec-format). |
+| `tagmon` | `left/right/up/down/next/prev/monitor_spec,[keeptag]` | Move window to monitor by direction, by cycling to the next or previous monitor (`next`/`prev`), or by [monitor spec](/docs/configuration/monitors#monitor-spec-format). `keeptag` is 0 or 1. |
 
 #### Tag Mask Format
 

@@ -447,7 +447,9 @@ void focus_monitor(const Arg *arg) {
 	Monitor *m = NULL;
 	Monitor *tm = NULL;
 
-	if (arg->i != UNDIR) {
+	if (arg->i == MON_NEXT || arg->i == MON_PREV) {
+		tm = monitor_from_cycle(arg->i);
+	} else if (arg->i != UNDIR) {
 		tm = monitor_from_direction(arg->i);
 	} else if (arg->v) {
 		wl_list_for_each(m, &server.monitors, link) {
@@ -1464,7 +1466,9 @@ void tag_monitor(const Arg *arg) {
 
 	oldmon = c->mon;
 
-	if (arg->i != UNDIR) {
+	if (arg->i == MON_NEXT || arg->i == MON_PREV) {
+		m = monitor_from_cycle(arg->i);
+	} else if (arg->i != UNDIR) {
 		m = monitor_from_direction(arg->i);
 	} else if (arg->v) {
 		wl_list_for_each(cm, &server.monitors, link) {

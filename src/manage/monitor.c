@@ -102,6 +102,24 @@ Monitor *monitor_from_direction(enum wlr_direction dir) {
 	return server.selected_monitor;
 }
 
+Monitor *monitor_from_cycle(int32_t dir) {
+	if (!server.selected_monitor)
+		return NULL;
+
+	Monitor *m = server.selected_monitor;
+	int32_t nmons = wl_list_length(&server.monitors);
+
+	for (int32_t i = 0; i < nmons; i++) {
+		if (dir == MON_NEXT)
+			m = wl_container_of(m->link.next, m, link);
+		else
+			m = wl_container_of(m->link.prev, m, link);
+		if (m != server.selected_monitor && m->wlr_output->enabled)
+			return m;
+	}
+	return NULL;
+}
+
 bool is_scroller_layout(Monitor *m) {
 	if (m->pertag->ltidxs[get_mon_curtag(m)]->id == SCROLLER)
 		return true;

@@ -592,6 +592,8 @@ int32_t parse_circle_direction(const char *str);
 
 int32_t parse_direction(const char *str);
 
+int32_t parse_monitor_arg(const char *str);
+
 int32_t parse_force(const char *str);
 
 int32_t parse_fold_state(const char *str);

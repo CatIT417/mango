@@ -19,6 +19,7 @@ typedef struct Arg {
 } Arg;
 
 enum { PREV, NEXT };
+enum { MON_PREV = -1, MON_NEXT = -2 };
 enum { FORCE, UNFORCE };
 enum {
 	OVERCIRCLE_PREV = PREV,

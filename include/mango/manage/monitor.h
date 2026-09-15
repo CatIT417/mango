@@ -113,6 +113,7 @@ uint32_t get_mon_curtag(const Monitor *m);
 bool special_has_clients(const Monitor *m);
 uint32_t get_monitor_active_tagset(const Monitor *m);
 Monitor *monitor_from_direction(enum wlr_direction dir);
+Monitor *monitor_from_cycle(int32_t dir);
 bool is_scroller_layout(Monitor *m);
 bool is_monocle_layout(Monitor *m);
 bool is_centertile_layout(Monitor *m);
