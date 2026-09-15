@@ -206,6 +206,8 @@ void move_client(const Arg *arg) {
 
 	if (!tc) {
 		client_jump_to_monitor(c, monitor_from_direction(arg->i), arg->i);
+	} else if (tc->mon != c->mon) {
+		client_move_to_monitor(c, tc, arg->i);
 	} else if (tc->mon->pertag->ltidxs[get_mon_curtag(tc->mon)]->id ==
 			   DWINDLE) {
 		dwindle_move_next_to(c, tc, config.dwindle_split_ratio, arg->i);

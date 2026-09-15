@@ -3654,6 +3654,24 @@ static int32_t monitor_move_direction(const Monitor *from, const Monitor *to) {
 	return dy > 0 ? DOWN : UP;
 }
 
+static void client_reassign_monitor(Client *c, Monitor *m) {
+	Monitor *old_mon = c->mon;
+
+	if (!old_mon || !m || old_mon == m)
+		return;
+
+	if (old_mon->sel == c)
+		old_mon->sel = NULL;
+	if (old_mon->prevsel == c)
+		old_mon->prevsel = NULL;
+
+	c->mon = m;
+	if (!VISIBLEON(c, m))
+		client_reset_mon_tags(c, m, 0);
+	m->sel = c;
+	set_selected_monitor(m);
+}
+
 bool client_jump_to_monitor(Client *c, Monitor *m, int32_t dir) {
 	if (!c || !c->mon || !m || c->mon == m)
 		return false;
@@ -3662,15 +3680,56 @@ bool client_jump_to_monitor(Client *c, Monitor *m, int32_t dir) {
 		return false;
 
 	Monitor *old_mon = c->mon;
-	c->mon = m;
-	if (old_mon->sel == c)
-		old_mon->sel = NULL;
-	m->sel = c;
-	set_selected_monitor(m);
+	client_reassign_monitor(c, m);
 
 	arrange(old_mon, false, false);
 	arrange(m, false, false);
 	return true;
+}
+
+void client_move_to_monitor(Client *c, Client *target, int32_t dir) {
+	if (!c || !c->mon || !target || !target->mon || c == target)
+		return;
+
+	Monitor *src_mon = c->mon;
+	Monitor *dst_mon = target->mon;
+
+	if (src_mon == dst_mon || !config.exchange_cross_monitor ||
+		monitor_move_direction(src_mon, dst_mon) != dir)
+		return;
+
+	const Layout *layout = dst_mon->pertag->ltidxs[get_mon_curtag(dst_mon)];
+
+	if (layout->id == DWINDLE) {
+		dwindle_move_next_to(c, target, config.dwindle_split_ratio, dir);
+		return;
+	}
+
+	bool insert_before = (dir == RIGHT || dir == UP);
+
+	client_reassign_monitor(c, dst_mon);
+
+	if (layout->id == SCROLLER || layout->id == VERTICAL_SCROLLER) {
+		bool along_axis = (layout->id == VERTICAL_SCROLLER)
+							  ? (dir == UP || dir == DOWN)
+							  : (dir == LEFT || dir == RIGHT);
+		if (!along_axis) {
+			scroller_insert_stack(c, target, insert_before);
+		} else if (insert_before) {
+			Client *head = scroll_get_stack_head_client(target);
+			wl_list_safe_reinsert_prev(&head->link, &c->link);
+		} else {
+			Client *tail = scroll_get_stack_tail_client(target);
+			wl_list_safe_reinsert_next(&tail->link, &c->link);
+		}
+	} else if (insert_before) {
+		wl_list_safe_reinsert_prev(&target->link, &c->link);
+	} else {
+		wl_list_safe_reinsert_next(&target->link, &c->link);
+	}
+
+	arrange(src_mon, false, false);
+	arrange(dst_mon, false, false);
 }
 
 void client_update_oldmonname_record(Client *c, Monitor *m) {

@@ -336,6 +336,11 @@ void dwindle_move_next_to(Client *c, Client *target, float ratio, int32_t dir) {
 		return;
 	}
 
+	bool crossed = c->mon != target->mon;
+	int32_t c_cx = c->geom.x + c->geom.width / 2;
+	int32_t c_cy = c->geom.y + c->geom.height / 2;
+	struct wlr_box tgeom = target->geom;
+
 	if (!client_jump_to_monitor(c, target->mon, dir) && c->mon != target->mon)
 		return;
 
@@ -346,7 +351,7 @@ void dwindle_move_next_to(Client *c, Client *target, float ratio, int32_t dir) {
 	if (!c_leaf || !target_leaf)
 		return;
 
-	if (c_leaf->parent && c_leaf->parent == target_leaf->parent) {
+	if (!crossed && c_leaf->parent && c_leaf->parent == target_leaf->parent) {
 		DwindleNode *split = c_leaf->parent;
 		DwindleNode *first = split->first;
 		split->first = split->second;
@@ -355,9 +360,9 @@ void dwindle_move_next_to(Client *c, Client *target, float ratio, int32_t dir) {
 		return;
 	}
 
-	struct wlr_box area = target->geom;
+	struct wlr_box area = tgeom;
 	DwindleNode *parent = c_leaf->parent;
-	if (parent) {
+	if (!crossed && parent) {
 		DwindleNode *sibling =
 			(parent->first == c_leaf) ? parent->second : parent->first;
 		if (parent->container_w > 0 && parent->container_h > 0 &&
@@ -370,10 +375,8 @@ void dwindle_move_next_to(Client *c, Client *target, float ratio, int32_t dir) {
 	}
 
 	bool split_h = area.width >= area.height;
-	bool as_first = split_h ? (c->geom.x + c->geom.width / 2) <
-								  (target->geom.x + target->geom.width / 2)
-							: (c->geom.y + c->geom.height / 2) <
-								  (target->geom.y + target->geom.height / 2);
+	bool as_first = split_h ? c_cx < (tgeom.x + tgeom.width / 2)
+							: c_cy < (tgeom.y + tgeom.height / 2);
 
 	dwindle_remove(root, c);
 	dwindle_insert(root, c, target, ratio, as_first, split_h, true);
