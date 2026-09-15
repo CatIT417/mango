@@ -15,6 +15,7 @@
 #include "mango/manage/layer.h"
 #include "mango/manage/misc.h"
 #include "mango/manage/monitor.h"
+#include "mango/manage/xwayland_primary.h"
 #include "mango/overview/overview.h"
 #include "mango/switcher/switcher.h"
 #include <fcntl.h>
@@ -184,6 +185,7 @@ void client_get_clip(Client *c, struct wlr_box *clip) {
 	clip->x = c->surface.xdg->geometry.x;
 	clip->y = c->surface.xdg->geometry.y;
 }
+
 void client_get_geometry(Client *c, struct wlr_box *geom) {
 #ifdef XWAYLAND
 	if (client_is_x11(c)) {
@@ -2628,7 +2630,7 @@ void client_focus(Client *c, int32_t lift) {
 
 		last_focus_client =
 			server.selected_monitor ? server.selected_monitor->sel : NULL;
-		server.selected_monitor = c->mon;
+		set_selected_monitor(c->mon);
 		server.selected_monitor->prevsel = server.selected_monitor->sel;
 		server.selected_monitor->sel = c;
 		c->isfocusing = true;
@@ -3664,7 +3666,7 @@ bool client_jump_to_monitor(Client *c, Monitor *m, int32_t dir) {
 	if (old_mon->sel == c)
 		old_mon->sel = NULL;
 	m->sel = c;
-	server.selected_monitor = m;
+	set_selected_monitor(m);
 
 	arrange(old_mon, false, false);
 	arrange(m, false, false);
@@ -4322,6 +4324,8 @@ void handle_xwayland_ready(struct wl_listener *listener, void *data) {
 
 	/* assign the one and only seat */
 	wlr_xwayland_set_seat(server.xwayland, server.seat);
+
+	xwayland_primary_init();
 
 	/* The default cursor is loaded at the monitor scale to avoid upscaling
 	 * under HiDPI. */

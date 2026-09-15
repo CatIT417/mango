@@ -114,9 +114,8 @@ pointer_constraint_hint_position(struct wlr_pointer_constraint_v1 *constraint,
 	return true;
 }
 
-static bool
-pointer_locked_constraint_applies(Client *c,
-								  struct wlr_pointer_constraint_v1 *constraint) {
+static bool pointer_locked_constraint_applies(
+	Client *c, struct wlr_pointer_constraint_v1 *constraint) {
 	if (!c || pixman_region32_empty(&constraint->region)) {
 		return true;
 	}
@@ -148,8 +147,7 @@ pointer_follow_constraint_hint(struct wlr_pointer_constraint_v1 *constraint,
 	pointer_hint_x = lx;
 	pointer_hint_y = ly;
 	wlr_cursor_warp(server.cursor, NULL, lx, ly);
-	wlr_seat_pointer_warp(constraint->seat,
-						  constraint->current.cursor_hint.x,
+	wlr_seat_pointer_warp(constraint->seat, constraint->current.cursor_hint.x,
 						  constraint->current.cursor_hint.y);
 }
 
@@ -935,7 +933,7 @@ void pointer_end_grab_client(bool follow_pointer) {
 										gc->geom.y + gc->geom.height / 2);
 	if (!target_mon)
 		target_mon = gc->mon;
-	server.selected_monitor = target_mon;
+	set_selected_monitor(target_mon);
 	client_update_oldmonname_record(gc, server.selected_monitor);
 	client_set_monitor(gc, server.selected_monitor, 0, true);
 	/* if the view changed mid-drag, drop onto the current tag

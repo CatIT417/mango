@@ -133,6 +133,7 @@ void monitor_set_icc(Monitor *m, const char *path);
 void handle_new_output(struct wl_listener *listener, void *data);
 void handle_output_destroy(struct wl_listener *listener, void *data);
 void monitor_close(Monitor *m);
+void set_selected_monitor(Monitor *m);
 void handle_output_request_state(struct wl_listener *listener, void *data);
 void create_output(struct wlr_backend *b, void *data);
 void handle_output_layout_change(struct wl_listener *listener, void *data);

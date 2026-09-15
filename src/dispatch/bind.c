@@ -464,7 +464,7 @@ void focus_monitor(const Arg *arg) {
 	if (!tm || !tm->wlr_output->enabled || tm == server.selected_monitor)
 		return;
 
-	server.selected_monitor = tm;
+	set_selected_monitor(tm);
 	if (config.warpcursor) {
 		pointer_warp_to_monitor(server.selected_monitor);
 	}
@@ -1502,7 +1502,7 @@ void tag_monitor(const Arg *arg) {
 		(int32_t)(c->float_geom.width * c->mon->w.width / oldmon->w.width);
 	c->float_geom.height =
 		(int32_t)(c->float_geom.height * c->mon->w.height / oldmon->w.height);
-	server.selected_monitor = c->mon;
+	set_selected_monitor(c->mon);
 	c->float_geom = client_center_geometry(c, c->mon, c->float_geom, 0, 0);
 
 	if (c->isfloating) {
@@ -1512,7 +1512,7 @@ void tag_monitor(const Arg *arg) {
 		client_focus(c, 1);
 		resize(c, c->geom, 1);
 	} else {
-		server.selected_monitor = c->mon;
+		set_selected_monitor(c->mon);
 		target = get_tags_first_tag(c->tags);
 		client_switch_view(&(Arg){.ui = target}, true);
 		client_focus(c, 1);
@@ -1667,7 +1667,7 @@ void toggle_special_tag_mon(Monitor *m) {
 	if (!m || m->isoverview)
 		return;
 
-	server.selected_monitor = m;
+	set_selected_monitor(m);
 	if (is_special_active(m)) {
 		/* Toggle back to previous tagset (supports multi-tag views) */
 		uint32_t prev_set = m->tagset[m->seltags ^ 1] & TAGMASK;
