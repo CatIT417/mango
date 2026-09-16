@@ -21,7 +21,9 @@
 #include "mango/manage/monitor.h"
 #include "mango/overview/overview.h"
 #include <fcntl.h>
+#ifdef __linux__
 #include <sys/syscall.h>
+#endif
 #include <unistd.h>
 #include <wlr/backend.h>
 #include <wlr/backend/headless.h>
@@ -1243,8 +1245,16 @@ void center_window(const Arg *arg) {
 }
 
 static void close_inherited_fds(void) {
+#ifdef SYS_close_range
 	extern long syscall(long number, ...);
-	syscall(SYS_close_range, 3, ~0U, 0);
+	if (syscall(SYS_close_range, 3, ~0U, 0) == 0) {
+		return;
+	}
+#endif
+	int fd_max = sysconf(_SC_OPEN_MAX);
+	for (int i = 3; i < fd_max; i++) {
+		close(i);
+	}
 }
 
 void spawn_shell(const Arg *arg) {

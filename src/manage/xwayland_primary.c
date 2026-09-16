@@ -5,6 +5,7 @@
 
 #ifdef XWAYLAND
 #include <errno.h>
+#include <fcntl.h>
 #include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,8 +50,19 @@ static bool xwayland_display_alive(const char *display) {
 	char path[64];
 	snprintf(path, sizeof(path), "/tmp/.X11-unix/X%d", atoi(display + 1));
 
-	int32_t fd = socket(AF_UNIX, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+	int32_t fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (fd < 0) {
+		return false;
+	}
+
+	int32_t flags = fcntl(fd, F_GETFL, 0);
+	if (flags < 0 || fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+		close(fd);
+		return false;
+	}
+	flags = fcntl(fd, F_GETFD, 0);
+	if (flags < 0 || fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0) {
+		close(fd);
 		return false;
 	}
 
