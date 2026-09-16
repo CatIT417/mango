@@ -4580,13 +4580,13 @@ void reset_tag(int old_tag_num) {
 	}
 }
 
-void reload_config(const Arg *arg) {
+int32_t reload_config(const Arg *arg) {
 	int old_tag_num = config.tag_num;
 	parse_config();
 	reset_tag(old_tag_num);
 	reset_option();
 	printstatus(IPC_WATCH_ARRANGGE);
-	return;
+	return 1;
 }
 
 FuncType parse_func_name(char *func_name, Arg *arg, char *arg_value,

@@ -109,7 +109,7 @@ struct SwipeDrive {
 	double drag_prev_dx;
 	double drag_prev_dy;
 	uint32_t motion;
-	void (*func)(const Arg *);
+	int32_t (*func)(const Arg *);
 	Arg arg;
 };
 
@@ -122,7 +122,7 @@ bool trackpad_gesture_drag_active(void) {
 	return swipe_active && swipe_drive.drag && swipe_drive.active;
 }
 
-static void (*view_opposite_func(void (*func)(const Arg *)))(const Arg *) {
+static FuncType view_opposite_func(FuncType func) {
 	if (func == view_to_left)
 		return view_to_right;
 	if (func == view_to_right)
@@ -138,11 +138,11 @@ static void (*view_opposite_func(void (*func)(const Arg *)))(const Arg *) {
 	return NULL;
 }
 
-static bool swipe_func_is_view(void (*func)(const Arg *)) {
+static bool swipe_func_is_view(FuncType func) {
 	return view_opposite_func(func) != NULL;
 }
 
-static bool swipe_func_is_overview(void (*func)(const Arg *)) {
+static bool swipe_func_is_overview(FuncType func) {
 	return func == toggle_overview || func == enter_overview ||
 		   func == leave_overview;
 }
@@ -166,8 +166,8 @@ static bool swipe_layout_is_scroller(Monitor *m, bool *vertical) {
 	return false;
 }
 
-static bool swipe_func_drivable(void (*func)(const Arg *), const Arg *arg,
-								uint32_t motion, Monitor *m) {
+static bool swipe_func_drivable(FuncType func, const Arg *arg, uint32_t motion,
+								Monitor *m) {
 	if (func == move_resize)
 		return true;
 
@@ -504,7 +504,7 @@ static bool swipe_drive_begin(uint32_t fingers) {
 		!swipe_func_drivable(binding->func, &binding->arg, motion, m))
 		return false;
 
-	void (*exec_func)(const Arg *) = binding->func;
+	FuncType exec_func = binding->func;
 	Arg exec_arg = binding->arg;
 
 	bool drag = exec_func == move_resize;
@@ -586,7 +586,7 @@ static bool swipe_drive_fire_opposite(void) {
 		return false;
 
 	if (swipe_func_is_view(swipe_drive.func)) {
-		void (*opposite)(const Arg *) = view_opposite_func(swipe_drive.func);
+		FuncType opposite = view_opposite_func(swipe_drive.func);
 		if (!opposite)
 			return false;
 		opposite(&swipe_drive.arg);

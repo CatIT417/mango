@@ -24,6 +24,8 @@ bind[flags]=MODIFIERS,KEY,COMMAND,PARAMETERS
 - `p`: Pass key event to client.
 - `c`: allow keybind conflict(need set in all conflict key).
 
+> **Info:** `c` has no effect on the `reload_config` and `load_config_file` dispatches, which always stop the current key event.
+
 **Examples:**
 
 ```ini
@@ -190,8 +192,8 @@ It is formed by tag numbers `1`–`9`, optionally combined with `|`.
 | `spawn` | `cmd` | Execute a command. |
 | `spawn_shell` | `cmd` | Execute shell command (supports pipes `\|`). |
 | `spawn_on_empty` | `cmd, tagmask` | Open command on empty tag.Accepts a cmd string and [tagmask](/docs/bindings/keys#tag-mask-format) |
-| `reload_config` | - | Hot-reload configuration. |
-| `load_config_file` | `file path` | Load configuration from the specified file. Empty path resets to default config location. |
+| `reload_config` | - | Hot-reload configuration. Does not support keybind conflict (`c` flag). |
+| `load_config_file` | `file path` | Load configuration from the specified file. Empty path resets to default config location. Does not support keybind conflict (`c` flag). |
 | `quit` | - | Exit mangowm. |
 | `toggleoverview` | `[1]` | Toggle overview mode. Passing `1` only shows the current tagset's windows in the overview instead of all tags. |
 | `enteroverview` | - | Enter overview mode. |

@@ -602,7 +602,8 @@ int32_t keyboard_check_keybinding(uint32_t state, bool is_locked, uint32_t mods,
 			else
 				handled = 0;
 
-			k->func(&k->arg);
+			if (k->func(&k->arg))
+				break;
 
 			// only match the first keybind
 			if (!k->isallowconflict)
@@ -649,6 +650,11 @@ void handle_keyboard_key(struct wl_listener *listener, void *data) {
 	const xkb_keysym_t *syms;
 	int32_t nsyms =
 		xkb_state_key_get_syms(group->keyboard->xkb_state, keycode, &syms);
+	if (nsyms > KEYBOARD_MAX_KEYSYMS)
+		nsyms = KEYBOARD_MAX_KEYSYMS;
+	if (nsyms > 0)
+		memcpy(group->keysyms, syms, sizeof(group->keysyms[0]) * nsyms);
+	syms = group->keysyms;
 
 	int32_t handled = 0;
 	uint32_t mods = wlr_keyboard_get_modifiers(group->keyboard);
@@ -697,7 +703,6 @@ void handle_keyboard_key(struct wl_listener *listener, void *data) {
 	if (handled && group->keyboard->repeat_info.delay > 0 &&
 		event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
 		group->mods = mods;
-		group->keysyms = syms;
 		group->keycode = keycode;
 		group->nsyms = nsyms;
 		wl_event_source_timer_update(group->key_repeat_source,
