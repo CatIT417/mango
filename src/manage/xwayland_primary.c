@@ -26,6 +26,7 @@ static struct wl_event_source *conn_source = NULL;
 static xcb_window_t root = XCB_NONE;
 static char display_name[XWL_NAME_MAX];
 static char target_name[XWL_NAME_MAX];
+static char applied_name[XWL_NAME_MAX];
 
 static char cache_name[XWL_CACHE_MAX][XWL_NAME_MAX];
 static xcb_randr_output_t cache_output[XWL_CACHE_MAX];
@@ -181,10 +182,11 @@ static int32_t xwayland_primary_ready_timer(void *data) {
 }
 
 static void xwayland_primary_apply(void) {
-	if (!target_name[0]) {
+	if (!conn) {
 		return;
 	}
-	if (!conn) {
+	if (!target_name[0]) {
+		xwayland_primary_close();
 		return;
 	}
 	if (resources_pending || info_pending) {
@@ -200,8 +202,12 @@ static void xwayland_primary_apply(void) {
 		}
 		xcb_randr_set_output_primary(conn, root, cache_output[i]);
 		xcb_flush(conn);
-		xwayland_primary_unwatch();
+		strncpy(applied_name, target_name, XWL_NAME_MAX - 1);
+		applied_name[XWL_NAME_MAX - 1] = '\0';
 		cache_refresh_attempted = false;
+		free(xcb_randr_get_output_primary_reply(
+			conn, xcb_randr_get_output_primary(conn, root), NULL));
+		xwayland_primary_close();
 		return;
 	}
 
@@ -209,11 +215,17 @@ static void xwayland_primary_apply(void) {
 		cache_refresh_attempted = true;
 		cache_valid = false;
 		xwayland_primary_build_cache();
+		return;
 	}
+	applied_name[0] = '\0';
+	xwayland_primary_close();
 }
 
 static void xwayland_primary_start(void) {
 	if (ready_pending) {
+		return;
+	}
+	if (strncmp(applied_name, target_name, XWL_NAME_MAX) == 0) {
 		return;
 	}
 	if (conn && xcb_connection_has_error(conn)) {
@@ -309,6 +321,7 @@ void xwayland_primary_init(void) {
 	xwayland_primary_close();
 	strncpy(display_name, display, XWL_NAME_MAX - 1);
 	display_name[XWL_NAME_MAX - 1] = '\0';
+	applied_name[0] = '\0';
 
 	if (server.selected_monitor && server.selected_monitor->wlr_output &&
 		server.selected_monitor->wlr_output->name) {
@@ -319,7 +332,7 @@ void xwayland_primary_init(void) {
 		target_name[0] = '\0';
 	}
 
-	ready_pending = true;
+	ready_pending = false;
 	cache_refresh_attempted = false;
 
 	if (!ready_timer) {
@@ -330,6 +343,8 @@ void xwayland_primary_init(void) {
 	if (ready_timer) {
 		wl_event_source_timer_update(ready_timer, 500);
 	}
+
+	xwayland_primary_start();
 }
 
 void xwayland_primary_set(Monitor *m) {
@@ -350,7 +365,8 @@ void xwayland_primary_set(Monitor *m) {
 	strncpy(target_name, m->wlr_output->name, XWL_NAME_MAX - 1);
 	target_name[XWL_NAME_MAX - 1] = '\0';
 
-	if (ready_pending || !conn) {
+	if (ready_pending ||
+		strncmp(applied_name, target_name, XWL_NAME_MAX) == 0) {
 		return;
 	}
 
@@ -359,8 +375,9 @@ void xwayland_primary_set(Monitor *m) {
 
 void xwayland_primary_invalidate(void) {
 	cache_refresh_attempted = false;
+	applied_name[0] = '\0';
 
-	if (!conn || ready_pending) {
+	if (ready_pending) {
 		return;
 	}
 	if (resources_pending || info_pending) {
