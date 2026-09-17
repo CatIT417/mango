@@ -5,5 +5,6 @@
 
 void xwayland_primary_init(void);
 void xwayland_primary_set(Monitor *m);
+void xwayland_primary_invalidate(void);
 
 #endif

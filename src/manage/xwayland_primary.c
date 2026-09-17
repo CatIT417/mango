@@ -38,8 +38,9 @@ static bool info_pending = false;
 static xcb_randr_get_output_info_cookie_t info_cookie;
 static xcb_randr_output_t *outputs = NULL;
 static int32_t outputs_len = 0, outputs_idx = 0;
-static struct wl_event_source *retry_timer = NULL;
-static int32_t retry_count = 0;
+static struct wl_event_source *ready_timer = NULL;
+static bool ready_pending = false;
+static bool cache_refresh_attempted = false;
 
 /* A dead XWayland accepts connections but never answers, so probe it first.
  * xcb_connect() does the handshake on this thread and would block forever. */
@@ -93,11 +94,27 @@ static bool xwayland_display_alive(const char *display) {
 	return alive;
 }
 
-static void xwayland_primary_close(void) {
+static int32_t xwayland_primary_ready(int32_t fd, uint32_t mask, void *data);
+
+static void xwayland_primary_unwatch(void) {
 	if (conn_source) {
 		wl_event_source_remove(conn_source);
 		conn_source = NULL;
 	}
+}
+
+static void xwayland_primary_watch(void) {
+	if (!conn || conn_source) {
+		return;
+	}
+	conn_source = wl_event_loop_add_fd(
+		wl_display_get_event_loop(server.display),
+		xcb_get_file_descriptor(conn), WL_EVENT_READABLE,
+		xwayland_primary_ready, NULL);
+}
+
+static void xwayland_primary_close(void) {
+	xwayland_primary_unwatch();
 	if (conn) {
 		xcb_disconnect(conn);
 		conn = NULL;
@@ -113,14 +130,8 @@ static void xwayland_primary_close(void) {
 }
 
 static void xwayland_primary_apply(void);
-
-static int32_t xwayland_primary_retry(void *data) {
-	/* XWayland may have announced its output list by now. */
-	cache_valid = false;
-	cache_len = 0;
-	xwayland_primary_apply();
-	return 0;
-}
+static void xwayland_primary_start(void);
+static int32_t xwayland_primary_ready(int32_t fd, uint32_t mask, void *data);
 
 static bool xwayland_primary_connect(void) {
 	if (conn) {
@@ -147,7 +158,6 @@ static bool xwayland_primary_connect(void) {
 	}
 	root = it.data->root;
 	cache_valid = false;
-	retry_count = 0;
 	return true;
 }
 
@@ -162,14 +172,27 @@ static void xwayland_primary_build_cache(void) {
 	xcb_flush(conn);
 }
 
+static int32_t xwayland_primary_ready_timer(void *data) {
+	struct wl_event_source *source = ready_timer;
+	ready_timer = NULL;
+	if (source) {
+		wl_event_source_remove(source);
+	}
+
+	ready_pending = false;
+
+	xwayland_primary_start();
+	return 0;
+}
+
 static void xwayland_primary_apply(void) {
 	if (!target_name[0]) {
 		return;
 	}
-	if (!xwayland_primary_connect()) {
-		if (retry_timer && retry_count++ < 5) {
-			wl_event_source_timer_update(retry_timer, 200);
-		}
+	if (!conn) {
+		return;
+	}
+	if (resources_pending || info_pending) {
 		return;
 	}
 	if (!cache_valid) {
@@ -182,15 +205,31 @@ static void xwayland_primary_apply(void) {
 		}
 		xcb_randr_set_output_primary(conn, root, cache_output[i]);
 		xcb_flush(conn);
-		retry_count = 0;
+		xwayland_primary_unwatch();
+		cache_refresh_attempted = false;
 		return;
 	}
 
-	/* The output list may have changed; rebuild it a few times. */
-	if (retry_count++ < 3) {
+	if (!cache_refresh_attempted) {
+		cache_refresh_attempted = true;
 		cache_valid = false;
 		xwayland_primary_build_cache();
 	}
+}
+
+static void xwayland_primary_start(void) {
+	if (ready_pending) {
+		return;
+	}
+	if (conn && xcb_connection_has_error(conn)) {
+		xwayland_primary_close();
+	}
+	if (!conn && !xwayland_primary_connect()) {
+		return;
+	}
+
+	xwayland_primary_watch();
+	xwayland_primary_apply();
 }
 
 static int32_t xwayland_primary_ready(int32_t fd, uint32_t mask, void *data) {
@@ -199,22 +238,30 @@ static int32_t xwayland_primary_ready(int32_t fd, uint32_t mask, void *data) {
 		return 0;
 	}
 
+	xcb_generic_event_t *event;
+	while ((event = xcb_poll_for_event(conn)) != NULL) {
+		free(event);
+	}
+
 	if (resources_pending) {
 		xcb_randr_get_screen_resources_reply_t *resources =
 			xcb_randr_get_screen_resources_reply(conn, resources_cookie, NULL);
-		if (resources) {
-			int32_t len =
-				xcb_randr_get_screen_resources_outputs_length(resources);
-			outputs = malloc(sizeof(*outputs) * (len > 0 ? len : 1));
-			if (outputs && len > 0) {
-				memcpy(outputs,
-					   xcb_randr_get_screen_resources_outputs(resources),
-					   sizeof(*outputs) * len);
-				outputs_len = len;
-			}
-			free(resources);
-			resources_pending = false;
+		if (!resources) {
+			xwayland_primary_close();
+			return 0;
 		}
+
+		int32_t len =
+			xcb_randr_get_screen_resources_outputs_length(resources);
+		outputs = malloc(sizeof(*outputs) * (len > 0 ? len : 1));
+		if (outputs && len > 0) {
+			memcpy(outputs,
+				   xcb_randr_get_screen_resources_outputs(resources),
+				   sizeof(*outputs) * len);
+			outputs_len = len;
+		}
+		free(resources);
+		resources_pending = false;
 	} else if (info_pending) {
 		xcb_randr_get_output_info_reply_t *info =
 			xcb_randr_get_output_info_reply(conn, info_cookie, NULL);
@@ -230,9 +277,9 @@ static int32_t xwayland_primary_ready(int32_t fd, uint32_t mask, void *data) {
 				cache_len++;
 			}
 			free(info);
-			info_pending = false;
-			outputs_idx++;
 		}
+		info_pending = false;
+		outputs_idx++;
 	}
 
 	if (resources_pending || info_pending) {
@@ -251,21 +298,43 @@ static int32_t xwayland_primary_ready(int32_t fd, uint32_t mask, void *data) {
 	outputs_len = outputs_idx = 0;
 	cache_valid = true;
 	xwayland_primary_apply();
-
-	/* XWayland announces its outputs shortly after the ready event. */
-	for (int32_t i = 0; i < cache_len; i++) {
-		if (strncmp(cache_name[i], target_name, XWL_NAME_MAX) == 0) {
-			return 0;
-		}
-	}
-	if (retry_count++ < 3 && retry_timer) {
-		wl_event_source_timer_update(retry_timer, 200);
+	if (!resources_pending && !info_pending) {
+		xwayland_primary_unwatch();
 	}
 	return 0;
 }
 
 void xwayland_primary_init(void) {
-	xwayland_primary_set(server.selected_monitor);
+	const char *display =
+		server.xwayland ? server.xwayland->display_name : NULL;
+	if (!display) {
+		return;
+	}
+
+	xwayland_primary_close();
+	strncpy(display_name, display, XWL_NAME_MAX - 1);
+	display_name[XWL_NAME_MAX - 1] = '\0';
+
+	if (server.selected_monitor && server.selected_monitor->wlr_output &&
+		server.selected_monitor->wlr_output->name) {
+		strncpy(target_name, server.selected_monitor->wlr_output->name,
+				XWL_NAME_MAX - 1);
+		target_name[XWL_NAME_MAX - 1] = '\0';
+	} else {
+		target_name[0] = '\0';
+	}
+
+	ready_pending = true;
+	cache_refresh_attempted = false;
+
+	if (!ready_timer) {
+		ready_timer =
+			wl_event_loop_add_timer(wl_display_get_event_loop(server.display),
+									xwayland_primary_ready_timer, NULL);
+	}
+	if (ready_timer) {
+		wl_event_source_timer_update(ready_timer, 500);
+	}
 }
 
 void xwayland_primary_set(Monitor *m) {
@@ -280,24 +349,31 @@ void xwayland_primary_set(Monitor *m) {
 		strncpy(display_name, display, XWL_NAME_MAX - 1);
 		display_name[XWL_NAME_MAX - 1] = '\0';
 	}
+	if (strncmp(target_name, m->wlr_output->name, XWL_NAME_MAX) != 0) {
+		cache_refresh_attempted = false;
+	}
 	strncpy(target_name, m->wlr_output->name, XWL_NAME_MAX - 1);
 	target_name[XWL_NAME_MAX - 1] = '\0';
-	retry_count = 0;
 
-	if (!retry_timer) {
-		retry_timer =
-			wl_event_loop_add_timer(wl_display_get_event_loop(server.display),
-									xwayland_primary_retry, NULL);
+	if (ready_pending || !conn) {
+		return;
 	}
 
-	xwayland_primary_apply();
+	xwayland_primary_start();
+}
 
-	if (conn && !conn_source) {
-		conn_source = wl_event_loop_add_fd(
-			wl_display_get_event_loop(server.display),
-			xcb_get_file_descriptor(conn), WL_EVENT_READABLE,
-			xwayland_primary_ready, NULL);
+void xwayland_primary_invalidate(void) {
+	cache_refresh_attempted = false;
+
+	if (!conn || ready_pending) {
+		return;
 	}
+	if (resources_pending || info_pending) {
+		return;
+	}
+
+	cache_valid = false;
+	xwayland_primary_start();
 }
 
 #endif

@@ -1161,6 +1161,12 @@ void handle_output_layout_change(struct wl_listener *listener, void *data) {
 
 	/* Updates xdg-output details after layout changes. */
 	xdg_output_update_all();
+
+#ifdef XWAYLAND
+	/* XWayland's output list may have changed (hotplug or DPMS). Reapply the
+	 * primary output once; the helper itself is single-flight. */
+	xwayland_primary_invalidate();
+#endif
 }
 
 void handle_output_manager_apply(struct wl_listener *listener, void *data) {
