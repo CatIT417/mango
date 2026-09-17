@@ -21,9 +21,6 @@
 #include "mango/manage/monitor.h"
 #include "mango/overview/overview.h"
 #include <fcntl.h>
-#ifdef __linux__
-#include <sys/syscall.h>
-#endif
 #include <unistd.h>
 #include <wlr/backend.h>
 #include <wlr/backend/headless.h>
@@ -1248,19 +1245,6 @@ int32_t center_window(const Arg *arg) {
 	return 0;
 }
 
-static void close_inherited_fds(void) {
-#ifdef SYS_close_range
-	extern long syscall(long number, ...);
-	if (syscall(SYS_close_range, 3, ~0U, 0) == 0) {
-		return;
-	}
-#endif
-	int fd_max = sysconf(_SC_OPEN_MAX);
-	for (int i = 3; i < fd_max; i++) {
-		close(i);
-	}
-}
-
 int32_t spawn_shell(const Arg *arg) {
 	if (!arg->v)
 		return 0;
@@ -1271,8 +1255,6 @@ int32_t spawn_shell(const Arg *arg) {
 	if (fork() == 0) {
 		if (activation_token)
 			setenv("XDG_ACTIVATION_TOKEN", activation_token, 1);
-
-		close_inherited_fds();
 
 		dup2(STDERR_FILENO, STDOUT_FILENO);
 		setsid();
@@ -1298,8 +1280,6 @@ int32_t spawn(const Arg *arg) {
 	if (fork() == 0) {
 		if (activation_token)
 			setenv("XDG_ACTIVATION_TOKEN", activation_token, 1);
-
-		close_inherited_fds();
 
 		dup2(STDERR_FILENO, STDOUT_FILENO);
 		setsid();
