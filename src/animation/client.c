@@ -530,14 +530,20 @@ void client_draw_blur(Client *c, struct ivec2 clip_box) {
 			blur_y = c->bw;
 			blur_width = c->animation.current.width - 2 * (int32_t)c->bw;
 			blur_height = c->animation.current.height - 2 * (int32_t)c->bw;
+		} else {
+			blur_x = clip_box.x + (int32_t)c->bw;
+			blur_y = clip_box.y + (int32_t)c->bw;
+			blur_width = c->animation.current.width - 2 * (int32_t)c->bw -
+						 clip_box.width - clip_box.x;
+			blur_height = c->animation.current.height - 2 * (int32_t)c->bw -
+						  clip_box.height - clip_box.y;
 		}
 
-		blur_x = clip_box.x + (int32_t)c->bw;
-		blur_y = clip_box.y + (int32_t)c->bw;
-		blur_width = c->animation.current.width - 2 * (int32_t)c->bw -
-					 clip_box.width - clip_box.x;
-		blur_height = c->animation.current.height - 2 * (int32_t)c->bw -
-					  clip_box.height - clip_box.y;
+		if (blur_width <= 0 || blur_height <= 0) {
+			wlr_scene_node_set_enabled(&c->blur->node, false);
+			return;
+		}
+
 		wlr_scene_node_set_enabled(&c->blur->node, true);
 		wlr_scene_node_set_position(&c->blur->node, blur_x, blur_y);
 		wlr_scene_blur_set_size(c->blur, blur_width, blur_height);
@@ -758,6 +764,11 @@ void client_set_drop_area(Client *c) {
 	int32_t bw = (int32_t)c->bw;
 	int32_t client_width = c->geom.width - 2 * bw;
 	int32_t client_height = c->geom.height - 2 * bw;
+
+	if (client_width <= 0 || client_height <= 0) {
+		wlr_scene_node_set_enabled(&c->droparea->node, false);
+		return;
+	}
 
 	double rel_x = server.cursor->x - c->geom.x - bw;
 	double rel_y = server.cursor->y - c->geom.y - bw;

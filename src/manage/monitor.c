@@ -763,8 +763,9 @@ void handle_new_output(struct wl_listener *listener, void *data) {
 	wlr_scene_output_layout_add_output(server.scene_layout, layout_output,
 									   m->scene_output);
 
-	// Gets the effective resolution.
-	wlr_output_effective_resolution(wlr_output, &m->m.width, &m->m.height);
+	// Gets the position and effective resolution from the layout, replacing the
+	// INT32_MAX "auto placement" sentinel before the nodes below are created.
+	wlr_output_layout_get_box(server.output_layout, wlr_output, &m->m);
 
 	// Adds it to the global monitor list.
 	wl_list_insert(&server.monitors, &m->link);

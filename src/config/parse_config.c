@@ -4267,6 +4267,7 @@ void reset_blur_params(void) {
 			m->blur =
 				wlr_scene_optimized_blur_create(&server.scene->tree, 0, 0);
 			wlr_scene_node_reparent(&m->blur->node, server.layers[LyrBlur]);
+			wlr_scene_node_set_position(&m->blur->node, m->m.x, m->m.y);
 			wlr_scene_optimized_blur_set_size(m->blur, m->m.width, m->m.height);
 			wlr_scene_set_blur_data(
 				server.scene, config.blur_params.num_passes,
