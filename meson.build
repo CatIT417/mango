@@ -1,5 +1,5 @@
 project('mango', ['c'],
-  version : '0.17.1',
+  version : '0.17.2',
 )
 
 subdir('protocols')
