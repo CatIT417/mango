@@ -985,8 +985,8 @@ void pointer_process_motion(uint32_t time, struct wlr_input_device *device,
 		/* Update selected_monitor (even while dragging a window) */
 		if (config.sloppyfocus) {
 			Monitor *oldmon = server.selected_monitor;
-			server.selected_monitor =
-				monitor_at_point(server.cursor->x, server.cursor->y);
+			set_selected_monitor(
+				monitor_at_point(server.cursor->x, server.cursor->y));
 			if (oldmon != server.selected_monitor)
 				printstatus(IPC_WATCH_MONITOR | IPC_WATCH_ALL_MONITORS);
 		}
@@ -1409,8 +1409,8 @@ bool pointer_process_button_press(struct wlr_pointer_button_event *event) {
 	switch (event->state) {
 	case WL_POINTER_BUTTON_STATE_PRESSED:
 		server.cursor_mode = CurPressed;
-		server.selected_monitor =
-			monitor_at_point(server.cursor->x, server.cursor->y);
+		set_selected_monitor(
+			monitor_at_point(server.cursor->x, server.cursor->y));
 		if (server.session_locked)
 			break;
 

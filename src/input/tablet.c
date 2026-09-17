@@ -240,8 +240,8 @@ void tablet_tool_motion(struct TabletTool *tool, bool change_x, bool change_y,
 
 	if (config.sloppyfocus) {
 		Monitor *oldmon = server.selected_monitor;
-		server.selected_monitor =
-			monitor_at_point(server.cursor->x, server.cursor->y);
+		set_selected_monitor(
+			monitor_at_point(server.cursor->x, server.cursor->y));
 		if (oldmon != server.selected_monitor)
 			printstatus(IPC_WATCH_MONITOR | IPC_WATCH_ALL_MONITORS);
 	}

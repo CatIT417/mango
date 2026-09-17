@@ -103,10 +103,10 @@ static void xwayland_primary_watch(void) {
 	if (!conn || conn_source) {
 		return;
 	}
-	conn_source = wl_event_loop_add_fd(
-		wl_display_get_event_loop(server.display),
-		xcb_get_file_descriptor(conn), WL_EVENT_READABLE,
-		xwayland_primary_ready, NULL);
+	conn_source =
+		wl_event_loop_add_fd(wl_display_get_event_loop(server.display),
+							 xcb_get_file_descriptor(conn), WL_EVENT_READABLE,
+							 xwayland_primary_ready, NULL);
 }
 
 static void xwayland_primary_close(void) {
@@ -258,12 +258,10 @@ static int32_t xwayland_primary_ready(int32_t fd, uint32_t mask, void *data) {
 			return 0;
 		}
 
-		int32_t len =
-			xcb_randr_get_screen_resources_outputs_length(resources);
+		int32_t len = xcb_randr_get_screen_resources_outputs_length(resources);
 		outputs = malloc(sizeof(*outputs) * (len > 0 ? len : 1));
 		if (outputs && len > 0) {
-			memcpy(outputs,
-				   xcb_randr_get_screen_resources_outputs(resources),
+			memcpy(outputs, xcb_randr_get_screen_resources_outputs(resources),
 				   sizeof(*outputs) * len);
 			outputs_len = len;
 		}
