@@ -1201,6 +1201,8 @@ void client_animation_next_tick(Client *c) {
 			c->animation.current = c->geom;
 		}
 
+		client_apply_clip(c, 1.0f);
+
 		Client *pointer_c = NULL;
 		double sx, sy;
 		node_at_point(server.cursor->x, server.cursor->y, NULL, &pointer_c,

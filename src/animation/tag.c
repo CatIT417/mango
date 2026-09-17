@@ -112,7 +112,12 @@ void set_arrange_visible(Monitor *m, Client *c, bool want_animation) {
 		return;
 	}
 
-	if (!was_enabled && !c->animation.tag_from_rule && want_animation &&
+	bool animation_in_flight = c->animation.running || c->animation.tagouting;
+	bool in_place = was_enabled && !animation_in_flight &&
+					(c->is_pending_open_animation ||
+					 wlr_box_equal(&c->animation.current, &c->geom));
+
+	if (!in_place && !c->animation.tag_from_rule && want_animation &&
 		m->pertag->prevtag != 0 && m->pertag->curtag != 0 &&
 		client_animations_enabled(c)) {
 		c->animation.tagining = true;
