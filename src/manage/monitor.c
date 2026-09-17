@@ -601,6 +601,7 @@ void handle_new_output(struct wl_listener *listener, void *data) {
 
 	struct wl_event_loop *loop = wl_display_get_event_loop(server.display);
 	m = wlr_output->data = ecalloc(1, sizeof(*m));
+	wlr_output_state_init(&m->pending);
 
 	m->iscleanuping = false;
 	m->skip_frame_timeout =
@@ -878,6 +879,7 @@ void handle_output_destroy(struct wl_listener *listener, void *data) {
 
 	wlr_color_transform_unref(m->icc_transform);
 	m->icc_transform = NULL;
+	wlr_output_state_finish(&m->pending);
 	free(m->pertag);
 	free(m);
 }
