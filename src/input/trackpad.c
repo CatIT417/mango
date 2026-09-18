@@ -20,6 +20,8 @@
 #include "mango/switcher/switcher.h"
 #include <linux/input-event-codes.h>
 #include <scenefx/types/wlr_scene.h>
+#include <stdlib.h>
+#include <string.h>
 #include <wlr/backend/libinput.h>
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_data_device.h>
@@ -489,6 +491,30 @@ static bool swipe_drive_pan_flick_target(Monitor *m, double dir,
 	return true;
 }
 
+static void swipe_drive_arg_clear(Arg *arg) {
+	free(arg->v);
+	free(arg->v2);
+	free(arg->v3);
+	arg->v = NULL;
+	arg->v2 = NULL;
+	arg->v3 = NULL;
+}
+
+static void swipe_drive_arg_copy(Arg *dst, const Arg *src) {
+	swipe_drive_arg_clear(dst);
+
+	dst->i = src->i;
+	dst->i2 = src->i2;
+	dst->f = src->f;
+	dst->f2 = src->f2;
+	dst->ui = src->ui;
+	dst->ui2 = src->ui2;
+	dst->tc = src->tc;
+	dst->v = src->v ? strdup(src->v) : NULL;
+	dst->v2 = src->v2 ? strdup(src->v2) : NULL;
+	dst->v3 = src->v3 ? strdup(src->v3) : NULL;
+}
+
 static bool swipe_drive_begin(uint32_t fingers) {
 	Monitor *m = server.selected_monitor;
 	if (!m)
@@ -519,7 +545,7 @@ static bool swipe_drive_begin(uint32_t fingers) {
 	swipe_drive.base = axis - swipe_drive.dir * SWIPE_LOCK_DISTANCE;
 	swipe_drive.motion = motion;
 	swipe_drive.func = exec_func;
-	swipe_drive.arg = exec_arg;
+	swipe_drive_arg_copy(&swipe_drive.arg, &exec_arg);
 	swipe_drive.active = false;
 	swipe_drive.pan = false;
 	swipe_drive.drag = false;
@@ -733,6 +759,7 @@ static void swipe_drive_end(void) {
 		swipe_drive.consumed = false;
 		swipe_drive.speed_points = 0;
 		swipe_drive.avg_speed = 0;
+		swipe_drive_arg_clear(&swipe_drive.arg);
 		return;
 	}
 
@@ -796,6 +823,7 @@ static void swipe_drive_end(void) {
 			swipe_drive.consumed = false;
 			swipe_drive.speed_points = 0;
 			swipe_drive.avg_speed = 0;
+			swipe_drive_arg_clear(&swipe_drive.arg);
 			return;
 		}
 
@@ -885,6 +913,7 @@ static void swipe_drive_end(void) {
 	swipe_drive.consumed = false;
 	swipe_drive.speed_points = 0;
 	swipe_drive.avg_speed = 0;
+	swipe_drive_arg_clear(&swipe_drive.arg);
 }
 
 void handle_cursor_swipe_begin(struct wl_listener *listener, void *data) {
@@ -900,6 +929,7 @@ void handle_cursor_swipe_begin(struct wl_listener *listener, void *data) {
 	swipe_active = true;
 	swipe_locked = false;
 	swipe_horizontal = false;
+	swipe_drive_arg_clear(&swipe_drive.arg);
 	memset(&swipe_drive, 0, sizeof(swipe_drive));
 	server.swipe_fingers = event->fingers;
 	server.swipe_dx = 0;

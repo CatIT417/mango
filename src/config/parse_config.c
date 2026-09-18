@@ -20,6 +20,7 @@
 #include "mango/layout/arrange.h"
 #include "mango/layout/layout.h"
 #include "mango/manage/client.h"
+#include "mango/manage/layer.h"
 #include "mango/manage/monitor.h"
 #include "mango/switcher/switcher.h"
 #include <linux/input-event-codes.h>
@@ -30,6 +31,7 @@
 #include <wlr/types/wlr_cursor.h>
 #include <wlr/types/wlr_input_device.h>
 #include <wlr/types/wlr_keyboard_group.h>
+#include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_output_layout.h>
 #include <wlr/types/wlr_xcursor_manager.h>
 
@@ -4159,8 +4161,91 @@ void set_default_key_bindings(Config *config) {
 	config->key_bindings_count += default_key_bindings_count;
 }
 
-bool parse_config(void) {
+static void config_unbind_refs(void) {
+	Client *c = NULL;
+	LayerSurface *l = NULL;
+	Monitor *m = NULL;
+	int32_t i = 0;
+
+	wl_list_for_each(c, &server.clients, link) {
+		c->animation_type_open = NULL;
+		c->animation_type_close = NULL;
+	}
+
+	wl_list_for_each(c, &server.fadeout_clients, fadeout_link) {
+		c->animation_type_open = NULL;
+		c->animation_type_close = NULL;
+	}
+
+	wl_list_for_each(l, &server.fadeout_layers, fadeout_link) {
+		l->animation_type_open = NULL;
+		l->animation_type_close = NULL;
+	}
+
+	wl_list_for_each(m, &server.monitors, link) {
+		for (i = 0; i < 4; i++) {
+			wl_list_for_each(l, &m->layers[i], link) {
+				l->animation_type_open = NULL;
+				l->animation_type_close = NULL;
+			}
+		}
+	}
+}
+
+static void config_rebind_refs(void) {
+	Client *c = NULL;
+	LayerSurface *l = NULL;
+	Monitor *m = NULL;
+	ConfigWinRule *wr = NULL;
+	ConfigLayerRule *lr = NULL;
+	const char *appid = NULL;
+	const char *title = NULL;
+	char broken[] = "broken";
+	int32_t i = 0;
+	int32_t j = 0;
+
+	wl_list_for_each(c, &server.clients, link) {
+		if (!(appid = client_get_appid(c)))
+			appid = broken;
+		if (!(title = client_get_title(c)))
+			title = broken;
+
+		for (i = 0; i < config.window_rules_count; i++) {
+			wr = &config.window_rules[i];
+			if (!is_window_rule_matches(wr, appid, title))
+				continue;
+			if (wr->animation_type_open)
+				c->animation_type_open = wr->animation_type_open;
+			if (wr->animation_type_close)
+				c->animation_type_close = wr->animation_type_close;
+		}
+	}
+
+	wl_list_for_each(m, &server.monitors, link) {
+		for (i = 0; i < 4; i++) {
+			wl_list_for_each(l, &m->layers[i], link) {
+				if (!l->layer_surface)
+					continue;
+				for (j = 0; j < config.layer_rules_count; j++) {
+					lr = &config.layer_rules[j];
+					if (!regex_match(lr->layer_name,
+									 l->layer_surface->namespace))
+						continue;
+					if (lr->animation_type_open)
+						l->animation_type_open = lr->animation_type_open;
+					if (lr->animation_type_close)
+						l->animation_type_close = lr->animation_type_close;
+				}
+			}
+		}
+	}
+}
+
+bool parse_config(bool reload) {
 	char filename[1024];
+
+	if (reload)
+		config_unbind_refs();
 
 	free_config();
 
@@ -4253,6 +4338,9 @@ bool parse_config(void) {
 		file_paths = NULL;
 		file_paths_count = 0;
 	}
+
+	if (reload)
+		config_rebind_refs();
 
 	return parse_correct || keybindings_conflict;
 }
@@ -4583,7 +4671,7 @@ void reset_tag(int old_tag_num) {
 
 int32_t reload_config(const Arg *arg) {
 	int old_tag_num = config.tag_num;
-	parse_config();
+	parse_config(true);
 	reset_tag(old_tag_num);
 	reset_option();
 	printstatus(IPC_WATCH_ARRANGGE);

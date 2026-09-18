@@ -637,7 +637,7 @@ void set_value_default();
 
 void set_default_key_bindings(Config *config);
 
-bool parse_config(void);
+bool parse_config(bool reload);
 
 void reset_blur_params(void);
 
