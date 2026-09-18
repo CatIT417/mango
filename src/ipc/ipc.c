@@ -1318,12 +1318,19 @@ void ipc_init(struct wl_event_loop *loop) {
 	snprintf(ipc_socket_path, sizeof(ipc_socket_path), "%s/mango-%d.sock",
 			 xdg_runtime, getpid());
 
-	ipc_socket_fd = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
+	ipc_socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (ipc_socket_fd < 0)
 		return;
 
+	int flags = fcntl(ipc_socket_fd, F_GETFD, 0);
+	if (flags == -1 ||
+		fcntl(ipc_socket_fd, F_SETFD, flags | FD_CLOEXEC) == -1) {
+		mango_error(true, WLR_ERROR, "failed to set FD_CLOEXEC on IPC socket");
+		close(ipc_socket_fd);
+		return;
+	}
 	// Sets O_NONBLOCK
-	int flags = fcntl(ipc_socket_fd, F_GETFL, 0);
+	flags = fcntl(ipc_socket_fd, F_GETFL, 0);
 	if (flags == -1 ||
 		fcntl(ipc_socket_fd, F_SETFL, flags | O_NONBLOCK) == -1) {
 		mango_error(true, WLR_ERROR, "failed to set O_NONBLOCK on IPC socket");
