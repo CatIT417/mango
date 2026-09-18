@@ -52,13 +52,9 @@ void set_tagin_animation(Monitor *m, Client *c) {
 }
 
 void set_arrange_visible(Monitor *m, Client *c, bool want_animation) {
-	bool was_enabled = c->scene->node.enabled;
-
-	bool tag_switch_return = !was_enabled && c->scratchpad_tag_hidden &&
-							 want_animation && m->pertag->prevtag != 0 &&
-							 m->pertag->curtag != 0 &&
-							 client_animations_enabled(c);
-	c->scratchpad_tag_hidden = false;
+	bool tag_switch = !c->animation.tag_from_rule && want_animation &&
+					  m->pertag->prevtag != 0 && m->pertag->curtag != 0 &&
+					  client_animations_enabled(c);
 
 	if (!ISTILED(c) || (!c->is_clip_to_hide || !is_scroller_layout(c->mon))) {
 		c->is_clip_to_hide = false;
@@ -70,8 +66,8 @@ void set_arrange_visible(Monitor *m, Client *c, bool want_animation) {
 	}
 
 	/* Scratchpad clients slide in from above the monitor when shown */
-	if (SCRATCHPAD_SHOWN(c) && (!was_enabled || c->animation.tagouting) &&
-		!tag_switch_return) {
+	if (SCRATCHPAD_SHOWN(c) && c->scratchpad_tagin) {
+		c->scratchpad_tagin = false;
 		c->animation.tag_from_rule = false;
 		c->animation.tagouted = false;
 		/* Reverse an in-flight hide instead of restarting from the top. */
@@ -112,14 +108,7 @@ void set_arrange_visible(Monitor *m, Client *c, bool want_animation) {
 		return;
 	}
 
-	bool animation_in_flight = c->animation.running || c->animation.tagouting;
-	bool in_place = was_enabled && !animation_in_flight &&
-					(c->is_pending_open_animation ||
-					 wlr_box_equal(&c->animation.current, &c->geom));
-
-	if (!in_place && !c->animation.tag_from_rule && want_animation &&
-		m->pertag->prevtag != 0 && m->pertag->curtag != 0 &&
-		client_animations_enabled(c)) {
+	if (tag_switch) {
 		c->animation.tagining = true;
 		set_tagin_animation(m, c);
 	} else {
@@ -179,14 +168,14 @@ void set_arrange_hidden(Monitor *m, Client *c, bool want_animation) {
 		c->is_clip_to_hide = false;
 		wlr_scene_node_set_enabled(&c->scene->node, true);
 		c->animation.running = false;
+		c->animation.tagining = false;
+		c->animation.tagouting = false;
 		return;
 	}
 
 	/* Scratchpad windows slide up and out when hidden */
 	if (!(c->tags & TAG0_MASK) && c->is_in_scratchpad && c->isminimized) {
-		c->scratchpad_tag_hidden = false;
-		if (client_animations_enabled(c) && !c->animation.tagouted &&
-			c->scene->node.enabled) {
+		if (client_animations_enabled(c) && !c->animation.tagouted) {
 			c->animation.tagouting = true;
 			c->animation.tagining = false;
 			c->pending = c->geom;
@@ -207,7 +196,7 @@ void set_arrange_hidden(Monitor *m, Client *c, bool want_animation) {
 	 * workspace is not active */
 	if (c->tags & TAG0_MASK) {
 		if (want_animation && client_animations_enabled(c) &&
-			!c->animation.tagouted && c->scene->node.enabled) {
+			!c->animation.tagouted) {
 			c->animation.tagouting = true;
 			c->animation.tagining = false;
 			c->pending = c->geom;
@@ -224,10 +213,6 @@ void set_arrange_hidden(Monitor *m, Client *c, bool want_animation) {
 		return;
 	}
 
-	if (!(c->tags & TAG0_MASK) && SCRATCHPAD_SHOWN(c)) {
-		c->scratchpad_tag_hidden = true;
-	}
-
 	if ((c->tags & (1 << (m->pertag->prevtag - 1))) &&
 		m->pertag->prevtag != 0 && m->pertag->curtag != 0 &&
 		client_animations_enabled(c)) {
@@ -236,6 +221,8 @@ void set_arrange_hidden(Monitor *m, Client *c, bool want_animation) {
 		set_tagout_animation(m, c);
 	} else {
 		c->animation.running = false;
+		c->animation.tagining = false;
+		c->animation.tagouting = false;
 		wlr_scene_node_set_enabled(&c->scene->node, false);
 		c->animainit_geom = c->current = c->pending = c->animation.current =
 			c->geom;

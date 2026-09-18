@@ -1248,6 +1248,8 @@ void pre_calculate_before_arrange(Monitor *m, bool want_animation,
 			} else if (special_keep_bg_client(m, c)) {
 				wlr_scene_node_set_enabled(&c->scene->node, true);
 				c->animation.running = false;
+				c->animation.tagining = false;
+				c->animation.tagouting = false;
 			} else if (!only_calculate && c != server.grab_client) {
 				set_arrange_hidden(m, c, want_animation);
 			}

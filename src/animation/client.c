@@ -974,6 +974,8 @@ void client_apply_clip(Client *c, float factor) {
 
 	if (!client_animations_enabled(c) && !c->overview_scene_surface) {
 		c->animation.running = false;
+		c->animation.tagining = false;
+		c->animation.tagouting = false;
 		c->need_output_flush = false;
 		c->animainit_geom = c->current = c->pending = c->animation.current =
 			c->geom;
@@ -1532,6 +1534,8 @@ void resize_apply(Client *c, struct wlr_box geo, ResizeOpts opts) {
 		struct ivec2 offsets = compute_edge_offsets(c);
 
 		c->animation.running = false;
+		c->animation.tagining = false;
+		c->animation.tagouting = false;
 		c->need_output_flush = false;
 		c->animainit_geom = c->current = c->pending = c->animation.current =
 			c->geom;

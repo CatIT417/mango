@@ -1917,7 +1917,7 @@ void init_client_properties(Client *c) {
 	c->is_pending_open_animation = true;
 	c->drag_to_tile = false;
 	c->scratchpad_switching_mon = false;
-	c->scratchpad_tag_hidden = false;
+	c->scratchpad_tagin = false;
 	c->fake_no_border = false;
 	c->focused_opacity = config.focused_opacity;
 	c->unfocused_opacity = config.unfocused_opacity;
@@ -3406,6 +3406,7 @@ bool switch_scratchpad_client_state(Client *c) {
 		// not visible on this tag: move the scratchpad here and show it
 		c->tags = c->mon->tagset[c->mon->seltags];
 		c->oldtags = c->tags;
+		c->scratchpad_tagin = true; // apply the scratchpad tagin animation
 		if (SCRATCHPAD_SHOWN(c)) {
 			arrange(c->mon, false, false);
 			client_focus(c, 1);
