@@ -456,6 +456,9 @@ typedef struct {
 	int32_t shadows_position_x;
 	int32_t shadows_position_y;
 	float shadowscolor[4];
+	int32_t dim_enable;
+	float dim_focused_color[4];
+	float dim_unfocused_color[4];
 
 	/* appearance */
 	int32_t smartgaps;

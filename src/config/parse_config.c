@@ -1145,6 +1145,30 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		} else {
 			convert_hex_to_rgba(config->shadowscolor, color);
 		}
+	} else if (strcmp(key, "dim_enable") == 0) {
+		config->dim_enable = atoi(value);
+	} else if (strcmp(key, "dim_focused_color") == 0) {
+		int64_t color = parse_color(value);
+		if (color == -1) {
+			mango_error(false, WLR_ERROR,
+						"Invalid dim_focused_color "
+						"format: %s\n",
+						value);
+			return false;
+		} else {
+			convert_hex_to_rgba(config->dim_focused_color, color);
+		}
+	} else if (strcmp(key, "dim_unfocused_color") == 0) {
+		int64_t color = parse_color(value);
+		if (color == -1) {
+			mango_error(false, WLR_ERROR,
+						"Invalid dim_unfocused_color "
+						"format: %s\n",
+						value);
+			return false;
+		} else {
+			convert_hex_to_rgba(config->dim_unfocused_color, color);
+		}
 	} else if (strcmp(key, "bordercolor") == 0) {
 		int64_t color = parse_color(value);
 		if (color == -1) {
@@ -3824,6 +3848,7 @@ void override_config(void) {
 	config.focused_opacity = CLAMP_FLOAT(config.focused_opacity, 0.0f, 1.0f);
 	config.unfocused_opacity =
 		CLAMP_FLOAT(config.unfocused_opacity, 0.0f, 1.0f);
+	config.dim_enable = CLAMP_INT(config.dim_enable, 0, 1);
 
 	config.groupbardata.border_width =
 		CLAMP_INT(config.groupbardata.border_width, 0, 100);
@@ -4018,6 +4043,16 @@ void set_value_default() {
 	config.shadowscolor[1] = 0.0f;
 	config.shadowscolor[2] = 0.0f;
 	config.shadowscolor[3] = 1.0f;
+
+	config.dim_enable = 0;
+	config.dim_focused_color[0] = 0.0f;
+	config.dim_focused_color[1] = 0.0f;
+	config.dim_focused_color[2] = 0.0f;
+	config.dim_focused_color[3] = 0.0f;
+	config.dim_unfocused_color[0] = 0.0f;
+	config.dim_unfocused_color[1] = 0.0f;
+	config.dim_unfocused_color[2] = 0.0f;
+	config.dim_unfocused_color[3] = 0x55 / 255.0f;
 
 	config.animation_curve_move[0] = 0.46;
 	config.animation_curve_move[1] = 1.0;
