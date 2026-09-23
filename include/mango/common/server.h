@@ -21,6 +21,7 @@ enum {
 	LyrFloat,
 	LyrTop,
 	LyrFullscreen,
+	LyrOverlay,
 	LyrSpecialDim,
 	LyrSpecialTile,
 	LyrSpecialMaximize,
@@ -28,7 +29,7 @@ enum {
 	LyrSpecialFloat,
 	LyrSpecialFullscreen,
 	LyrFadeOut,
-	LyrOverlay,
+	LyrSpecialOverlay,
 	LyrIMPopup,
 	LyrBlock,
 	NUM_LAYERS
