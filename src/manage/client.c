@@ -354,7 +354,52 @@ void client_set_scale(struct wlr_surface *s, float scale) {
  * stays logically scaled, and the buffer node is moved to the clip origin so
  * visible content stays at its on-screen position when the window overflows to
  * the left instead of spilling off-screen.
+ *
+ * A whole visible window uses xwayland_device_source_box instead, so the
+ * sampled size matches the device-pixel box wlroots draws and a fractional
+ * scale cannot stretch the buffer by one pixel.
  */
+#ifdef XWAYLAND
+/*
+ * Device-pixel size wlroots draws a logical box into: wlr_scene rounds both
+ * edges of the box separately (scale_box), so with fractional scaling the drawn
+ * size is not round(size * scale) but depends on where the box sits on the
+ * output.
+ */
+static int32_t xwayland_device_length(int32_t length, int32_t offset,
+									  float scale) {
+	return (int32_t)roundf((float)(offset + length) * scale) -
+		   (int32_t)roundf((float)offset * scale);
+}
+
+/*
+ * Source box (buffer pixels) that maps 1:1 onto the device-pixel box wlroots
+ * draws for the logical box at (dest_x, dest_y) sized dest_w x dest_h; (win_x,
+ * win_y) is the buffer's own logical origin.
+ *
+ * Sampling round(size * scale) pixels into a per-edge rounded device box
+ * stretches the buffer by one pixel and blurs text at fractional scales. Using
+ * the scene's own rounding keeps X11 content pixel-exact; the source box may
+ * then overhang the buffer by that pixel, which samples the edge pixel again
+ * instead of interpolating it.
+ */
+static void xwayland_device_source_box(Client *c, int32_t win_x, int32_t win_y,
+									   int32_t dest_x, int32_t dest_y,
+									   int32_t dest_w, int32_t dest_h,
+									   struct wlr_fbox *src) {
+	float scale = c->xwayland_scale > 0.f ? c->xwayland_scale : 1.f;
+	int32_t mon_x = c->mon ? c->mon->m.x : 0;
+	int32_t mon_y = c->mon ? c->mon->m.y : 0;
+
+	src->x = (float)((int32_t)roundf((float)(dest_x - mon_x) * scale) -
+					 (int32_t)roundf((float)(win_x - mon_x) * scale));
+	src->y = (float)((int32_t)roundf((float)(dest_y - mon_y) * scale) -
+					 (int32_t)roundf((float)(win_y - mon_y) * scale));
+	src->width = (float)xwayland_device_length(dest_w, dest_x - mon_x, scale);
+	src->height = (float)xwayland_device_length(dest_h, dest_y - mon_y, scale);
+}
+#endif
+
 void client_update_xwayland_clip(Client *c, struct wlr_box *clip) {
 #ifdef XWAYLAND
 	if (!c->xwl_root_buffer || !c->xwl_root_buffer->buffer)
@@ -369,41 +414,85 @@ void client_update_xwayland_clip(Client *c, struct wlr_box *clip) {
 	if (clip->width <= 0 || clip->height <= 0)
 		return;
 
-	struct wlr_fbox src = {
-		.x = (float)clip->x * scale,
-		.y = (float)clip->y * scale,
-		.width = (float)clip->width * scale,
-		.height = (float)clip->height * scale,
-	};
-	bool zoom_like = clip->x == 0 && clip->y == 0 &&
-					 clip->width < c->geom.width - 2 * (int32_t)c->bw &&
-					 clip->height < c->geom.height - 2 * (int32_t)c->bw;
-	if (zoom_like) {
-		src.x = 0;
-		src.y = 0;
-		src.width = buf->width;
-		src.height = buf->height;
-	}
-	/* Clamps to the physical buffer bounds to prevent out-of-range sampling. */
-	if (src.x < 0.f)
-		src.x = 0.f;
-	if (src.y < 0.f)
-		src.y = 0.f;
-	if (src.x + src.width > buf->width)
-		src.width = buf->width - src.x;
-	if (src.y + src.height > buf->height)
-		src.height = buf->height - src.y;
+	/* Buffer origin (client area) and its logical size. */
+	int32_t win_x = c->geom.x + (int32_t)c->bw;
+	int32_t win_y = c->geom.y + (int32_t)c->bw;
+	int32_t inner_w = c->geom.width - 2 * (int32_t)c->bw;
+	int32_t inner_h = c->geom.height - 2 * (int32_t)c->bw;
+
 	/*
-	 * When the clip origin is beyond the buffer, src.width/height can become
-	 * negative; guard against invalid source boxes so wlr_scene_buffer does not
-	 * misbehave.
+	 * Whole window visible: sample it exactly as the scene draws it, so a
+	 * fractional scale cannot stretch the buffer by one pixel. When the scene
+	 * draws the window one pixel wider or taller than the buffer, nearest
+	 * filtering repeats a pixel instead of interpolating it (sampling outside
+	 * the buffer is not allowed). A buffer that did not keep up with the window
+	 * (mid-resize) is scaled instead.
 	 */
-	if (src.width < 0.f)
-		src.width = 0.f;
-	if (src.height < 0.f)
-		src.height = 0.f;
+	struct wlr_fbox src;
+	bool nearest = false;
+	bool device_aligned =
+		clip->x == 0 && clip->y == 0 && clip->width == inner_w &&
+		clip->height == inner_h;
+	if (device_aligned) {
+		struct wlr_fbox dev;
+		xwayland_device_source_box(c, win_x, win_y, win_x, win_y, inner_w,
+								   inner_h, &dev);
+		if (dev.width > 0.f && dev.height > 0.f &&
+			fabsf(dev.width - (float)buf->width) <= 2.f &&
+			fabsf(dev.height - (float)buf->height) <= 2.f) {
+			nearest = dev.width > (float)buf->width ||
+					  dev.height > (float)buf->height;
+			src = (struct wlr_fbox){
+				.x = dev.x,
+				.y = dev.y,
+				.width = MANGO_MIN(dev.width, (float)buf->width),
+				.height = MANGO_MIN(dev.height, (float)buf->height),
+			};
+		} else {
+			device_aligned = false;
+		}
+	}
+
+	if (!device_aligned) {
+		src = (struct wlr_fbox){
+			.x = (float)clip->x * scale,
+			.y = (float)clip->y * scale,
+			.width = (float)clip->width * scale,
+			.height = (float)clip->height * scale,
+		};
+		bool zoom_like = clip->x == 0 && clip->y == 0 &&
+						 clip->width < inner_w && clip->height < inner_h;
+		if (zoom_like) {
+			src.x = 0;
+			src.y = 0;
+			src.width = buf->width;
+			src.height = buf->height;
+		}
+		/* Clamps to the physical buffer bounds to prevent out-of-range
+		 * sampling. */
+		if (src.x < 0.f)
+			src.x = 0.f;
+		if (src.y < 0.f)
+			src.y = 0.f;
+		if (src.x + src.width > buf->width)
+			src.width = buf->width - src.x;
+		if (src.y + src.height > buf->height)
+			src.height = buf->height - src.y;
+		/*
+		 * When the clip origin is beyond the buffer, src.width/height can become
+		 * negative; guard against invalid source boxes so wlr_scene_buffer does
+		 * not misbehave.
+		 */
+		if (src.width < 0.f)
+			src.width = 0.f;
+		if (src.height < 0.f)
+			src.height = 0.f;
+	}
 
 	wlr_scene_buffer_set_source_box(c->xwl_root_buffer, &src);
+	wlr_scene_buffer_set_filter_mode(c->xwl_root_buffer,
+									 nearest ? WLR_SCALE_FILTER_NEAREST
+											 : WLR_SCALE_FILTER_BILINEAR);
 	wlr_scene_buffer_set_dest_size(c->xwl_root_buffer, clip->width,
 								   clip->height);
 	/* Moves the buffer node to the clip origin so visible content stays at its
