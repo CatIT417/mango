@@ -15,6 +15,7 @@
 #include "mango/ext-protocol/text-input.h"
 #include "mango/ext-protocol/xdg-activation.h"
 #include "mango/ext-protocol/xdg-output.h"
+#include "mango/input/device.h"
 #include "mango/input/keyboard.h"
 #include "mango/input/pointer.h"
 #include "mango/input/tablet.h"
@@ -751,6 +752,7 @@ void setup(void) {
 	 * to let us know when new input devices are available on the backend.
 	 */
 	wl_list_init(&server.input_devices);
+	wl_list_init(&server.seat_devices);
 	wl_list_init(&server.standalone_keyboards);
 	wl_list_init(&server.virtual_keyboards);
 	wl_list_init(&server.tablets);
@@ -796,6 +798,7 @@ void setup(void) {
 				  &server.cursor_touch_frame_listener);
 
 	server.seat = wlr_seat_create(server.display, "seat0");
+	update_seat_capabilities();
 
 	wl_list_init(&server.last_cursor_surface_destroy_listener.link);
 	wl_signal_add(&server.seat->events.request_set_cursor,
