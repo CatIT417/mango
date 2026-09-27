@@ -1250,9 +1250,12 @@ void client_animation_next_tick(Client *c) {
 			wlr_scene_node_set_enabled(&c->scene->node, false);
 			c->animation.tagouted = true;
 			c->animation.current = c->geom;
+			client_apply_clip(c, 1.0f);
+		} else {
+			/* Snap to the final box: an interpolated one can be a pixel off,
+			 * which leaves X11 content stretched (blurry). */
+			client_apply_finish_geometry(c);
 		}
-
-		client_apply_clip(c, 1.0f);
 
 		Client *pointer_c = NULL;
 		double sx, sy;
