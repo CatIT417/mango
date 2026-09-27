@@ -151,6 +151,7 @@ typedef struct {
 	int32_t force_tiled_state;
 	int32_t force_tearing;
 	int32_t noswallow;
+	int32_t confine_pointer;
 	int32_t noblur;
 	float focused_opacity;
 	float unfocused_opacity;

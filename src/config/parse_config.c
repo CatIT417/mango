@@ -1617,6 +1617,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		rule->force_tiled_state = -1;
 		rule->force_tearing = -1;
 		rule->noswallow = -1;
+		rule->confine_pointer = -1;
 		rule->noblur = -1;
 		rule->nofocus = -1;
 		rule->nofadein = -1;
@@ -1744,6 +1745,8 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 					rule->force_tearing = atoi(val);
 				} else if (strcmp(key, "noswallow") == 0) {
 					rule->noswallow = atoi(val);
+				} else if (strcmp(key, "confine_pointer") == 0) {
+					rule->confine_pointer = atoi(val);
 				} else if (strcmp(key, "noblur") == 0) {
 					rule->noblur = atoi(val);
 				} else if (strcmp(key, "scroller_proportion") == 0) {
