@@ -46,8 +46,9 @@ typedef struct SeatDevice {
 	struct wl_listener destroy;
 } SeatDevice;
 
-static bool seat_device_provides_capability(
-	const struct wlr_input_device *device, uint32_t capability) {
+static bool
+seat_device_provides_capability(const struct wlr_input_device *device,
+								uint32_t capability) {
 	switch (device->type) {
 	case WLR_INPUT_DEVICE_POINTER:
 	case WLR_INPUT_DEVICE_TABLET:

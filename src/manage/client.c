@@ -430,9 +430,8 @@ void client_update_xwayland_clip(Client *c, struct wlr_box *clip) {
 	 */
 	struct wlr_fbox src;
 	bool nearest = false;
-	bool device_aligned =
-		clip->x == 0 && clip->y == 0 && clip->width == inner_w &&
-		clip->height == inner_h;
+	bool device_aligned = clip->x == 0 && clip->y == 0 &&
+						  clip->width == inner_w && clip->height == inner_h;
 	if (device_aligned) {
 		struct wlr_fbox dev;
 		xwayland_device_source_box(c, win_x, win_y, win_x, win_y, inner_w,
@@ -479,9 +478,9 @@ void client_update_xwayland_clip(Client *c, struct wlr_box *clip) {
 		if (src.y + src.height > buf->height)
 			src.height = buf->height - src.y;
 		/*
-		 * When the clip origin is beyond the buffer, src.width/height can become
-		 * negative; guard against invalid source boxes so wlr_scene_buffer does
-		 * not misbehave.
+		 * When the clip origin is beyond the buffer, src.width/height can
+		 * become negative; guard against invalid source boxes so
+		 * wlr_scene_buffer does not misbehave.
 		 */
 		if (src.width < 0.f)
 			src.width = 0.f;
