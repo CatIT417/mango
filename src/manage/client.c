@@ -436,19 +436,26 @@ void client_update_xwayland_clip(Client *c, struct wlr_box *clip) {
 		struct wlr_fbox dev;
 		xwayland_device_source_box(c, win_x, win_y, win_x, win_y, inner_w,
 								   inner_h, &dev);
-		if (dev.width > 0.f && dev.height > 0.f &&
-			fabsf(dev.width - (float)buf->width) <= 2.f &&
-			fabsf(dev.height - (float)buf->height) <= 2.f) {
-			nearest = dev.width > (float)buf->width ||
-					  dev.height > (float)buf->height;
+		/*
+		 * Cropping to the drawn box is 1:1 whatever the buffer size is, so a
+		 * bigger buffer is always cropped (it may hold a stale or hint-clamped
+		 * size). Only a smaller buffer needs nearest filtering to repeat a
+		 * pixel, and only for rounding; a stale small buffer is scaled instead.
+		 */
+		bool overhang =
+			dev.width > (float)buf->width || dev.height > (float)buf->height;
+		if (dev.width <= 0.f || dev.height <= 0.f ||
+			(overhang && (dev.width - (float)buf->width > 2.f ||
+						  dev.height - (float)buf->height > 2.f))) {
+			device_aligned = false;
+		} else {
+			nearest = overhang;
 			src = (struct wlr_fbox){
 				.x = dev.x,
 				.y = dev.y,
-				.width = MANGO_MIN(dev.width, (float)buf->width),
-				.height = MANGO_MIN(dev.height, (float)buf->height),
+				.width = MANGO_MIN(dev.width, (float)buf->width - dev.x),
+				.height = MANGO_MIN(dev.height, (float)buf->height - dev.y),
 			};
-		} else {
-			device_aligned = false;
 		}
 	}
 
