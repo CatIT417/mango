@@ -521,6 +521,11 @@ void client_draw_dim(Client *c, struct ivec2 clip_box) {
 		return;
 	}
 
+	if (c->isfullscreen) {
+		mango_dim_node_set_enabled(c->dim_node, false);
+		return;
+	}
+
 	if (!config.dim_enable) {
 		mango_dim_node_set_enabled(c->dim_node, false);
 		return;
