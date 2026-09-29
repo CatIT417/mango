@@ -308,7 +308,18 @@ void unset_activation_env(void) {
 		goto cleanup;
 	}
 
-	mango_exec("systemctl --user stop graphical-session.target");
+	/* These are fired off asynchronously: doing them synchronously (blocking
+	 * on the child) deadlocks when mango itself belongs to the systemd user
+	 * session, because stopping graphical-session.target then waits for mango
+	 * to exit while mango waits for the command to finish. */
+	char *cmd0 = string_printf(
+		"systemctl --user --no-block stop graphical-session.target");
+	if (!cmd0) {
+		mango_error(true, WLR_ERROR, "Failed to allocate command string");
+		goto cleanup;
+	}
+	spawn_shell(&(Arg){.v = cmd0});
+	free(cmd0);
 
 	char *cmd1 =
 		string_printf("systemctl --user unset-environment %s", env_keys);
@@ -316,7 +327,7 @@ void unset_activation_env(void) {
 		mango_error(true, WLR_ERROR, "Failed to allocate command string");
 		goto cleanup;
 	}
-	mango_exec(cmd1);
+	spawn_shell(&(Arg){.v = cmd1});
 	free(cmd1);
 
 	char *cmd2 =
@@ -325,7 +336,7 @@ void unset_activation_env(void) {
 		mango_error(true, WLR_ERROR, "Failed to allocate command string");
 		goto cleanup;
 	}
-	mango_exec(cmd2);
+	spawn_shell(&(Arg){.v = cmd2});
 	free(cmd2);
 
 cleanup:
