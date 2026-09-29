@@ -4106,7 +4106,7 @@ void client_check_tab_node_visible(Client *c) {
 			(cur->group_next || cur->group_prev) && TAGMATCH(c, c->mon) &&
 			ISNORMAL(c) && !c->isfullscreen) {
 			wlr_scene_node_set_enabled(&cur->group_bar->scene->node, true);
-		} else {
+		} else if (cur->group_bar) {
 			wlr_scene_node_set_enabled(&cur->group_bar->scene->node, false);
 		}
 		cur = cur->group_next;
