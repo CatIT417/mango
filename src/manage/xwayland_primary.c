@@ -1,12 +1,14 @@
 #include "mango/manage/xwayland_primary.h"
 
 #include "mango/common/server.h"
+#include "mango/manage/client.h"
 #include "mango/manage/monitor.h"
 
 #ifdef XWAYLAND
 #include <stdlib.h>
 #include <string.h>
 #include <wayland-server-core.h>
+#include <wlr/types/wlr_pointer_constraints_v1.h>
 #include <wlr/xwayland.h>
 #include <xcb/randr.h>
 #include <xcb/xcb.h>
@@ -299,11 +301,34 @@ void xwayland_primary_init(void) {
 	xwayland_primary_start();
 }
 
+/* Monitor hosting the active pointer constraint, NULL when there is none. */
+static Monitor *xwayland_primary_constraint_monitor(void) {
+	struct wlr_pointer_constraint_v1 *constraint = server.active_constraint;
+	Client *c = NULL;
+
+	if (!constraint) {
+		return NULL;
+	}
+	toplevel_from_wlr_surface(constraint->surface, &c, NULL);
+	return c ? c->mon : NULL;
+}
+
 void xwayland_primary_set(Monitor *m) {
 	const char *display =
 		server.xwayland ? server.xwayland->display_name : NULL;
 	if (!display || !m || !m->wlr_output || !m->wlr_output->name) {
 		return;
+	}
+
+	/* Keep the primary output pinned on the constrained window's monitor
+	 * while the constraint is active. */
+	Monitor *cm = xwayland_primary_constraint_monitor();
+	if (cm && cm->wlr_output && cm->wlr_output->name) {
+		const char *primary = applied_name[0] ? applied_name : target_name;
+		if (primary[0] &&
+			strncmp(primary, cm->wlr_output->name, XWL_NAME_MAX) == 0) {
+			return;
+		}
 	}
 
 	if (strncmp(display_name, display, XWL_NAME_MAX) != 0) {
