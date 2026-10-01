@@ -4,7 +4,6 @@
 #include "mango/common/types.h"
 
 void xwayland_primary_init(void);
-void xwayland_primary_set(Monitor *m);
-void xwayland_primary_invalidate(void);
+void xwayland_primary_update(void);
 
 #endif

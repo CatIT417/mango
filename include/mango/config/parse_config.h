@@ -183,6 +183,7 @@ typedef struct {
 	int32_t hdr_force;			 // ignore EDID-derived HDR capability checks
 	char *icc;					 // ICC profile path
 	int32_t disable;			 // prefer disable
+	int32_t primary;			 // X11 (RandR) primary output for XWayland
 } ConfigMonitorRule;
 
 typedef struct {

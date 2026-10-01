@@ -1320,6 +1320,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		rule->icc = NULL;
 		rule->custom = 0;
 		rule->disable = 0;
+		rule->primary = 0;
 
 		bool parse_error = false;
 		char *token = strtok(value, ",");
@@ -1375,6 +1376,8 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 					rule->icc = strdup(val);
 				} else if (strcmp(key, "disable") == 0) {
 					rule->disable = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "primary") == 0) {
+					rule->primary = CLAMP_INT(atoi(val), 0, 1);
 				} else if (strcmp(key, "custom") == 0) {
 					rule->custom = CLAMP_INT(atoi(val), 0, 1);
 				} else {

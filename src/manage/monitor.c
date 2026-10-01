@@ -895,13 +895,7 @@ void handle_output_destroy(struct wl_listener *listener, void *data) {
 	free(m);
 }
 
-void set_selected_monitor(Monitor *m) {
-	server.selected_monitor = m;
-#ifdef XWAYLAND
-	/* Keep the X11 primary output on the current monitor. */
-	xwayland_primary_set(m);
-#endif
-}
+void set_selected_monitor(Monitor *m) { server.selected_monitor = m; }
 
 void monitor_close(Monitor *m) {
 	/* update selected_monitor if needed and
@@ -1178,9 +1172,9 @@ void handle_output_layout_change(struct wl_listener *listener, void *data) {
 	xdg_output_update_all();
 
 #ifdef XWAYLAND
-	/* XWayland's output list may have changed (hotplug or DPMS). Reapply the
-	 * primary output once; the helper itself is single-flight. */
-	xwayland_primary_invalidate();
+	/* XWayland's output list may have changed (hotplug, DPMS or a config
+	 * reload). Reapply the primary output selected by the monitor rules. */
+	xwayland_primary_update();
 #endif
 }
 
