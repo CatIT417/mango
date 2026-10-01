@@ -75,22 +75,6 @@ static void xwayland_primary_close(void) {
 	cache_valid = false;
 }
 
-/* A connection of our own is an X client, and Xwayland exits once the last
- * client disconnects when it is not persistent. Release it in that mode, keep
- * it otherwise so RandR changes stay watchable. */
-static void xwayland_primary_release(void) {
-	if (config.xwayland_persistence) {
-		return;
-	}
-	/* Round trip so a request still in flight is taken before the connection
-	 * goes away, a plain flush can be lost with the disconnect. */
-	if (conn) {
-		free(xcb_randr_get_output_primary_reply(
-			conn, xcb_randr_get_output_primary(conn, root), NULL));
-	}
-	xwayland_primary_close();
-}
-
 static void xwayland_primary_apply(void);
 static void xwayland_primary_start(void);
 static int32_t xwayland_primary_ready(int32_t fd, uint32_t mask, void *data);
@@ -117,17 +101,6 @@ static bool xwayland_primary_connect(void) {
 		return false;
 	}
 	root = it.data->root;
-
-	/* Watch RandR screen changes: whichever way the primary output is touched
-	 * afterwards (a client, a mode change, a hotplug event) it has to end up
-	 * back on the monitor the rules select. */
-	const xcb_query_extension_reply_t *randr =
-		xcb_get_extension_data(conn, &xcb_randr_id);
-	if (randr && randr->present) {
-		xcb_randr_select_input(conn, root, XCB_RANDR_NOTIFY_MASK_SCREEN_CHANGE);
-	}
-	xcb_flush(conn);
-
 	cache_valid = false;
 	return true;
 }
@@ -164,10 +137,14 @@ static void xwayland_primary_apply(void) {
 		}
 		xcb_randr_set_output_primary(conn, root, cache_output[i]);
 		xcb_flush(conn);
+		/* Round trip so the request is taken before the connection is dropped
+		 * below, a plain flush can be lost with the disconnect. */
+		free(xcb_randr_get_output_primary_reply(
+			conn, xcb_randr_get_output_primary(conn, root), NULL));
 		strncpy(applied_name, target_name, XWL_NAME_MAX - 1);
 		applied_name[XWL_NAME_MAX - 1] = '\0';
 		cache_refresh_attempted = false;
-		xwayland_primary_release();
+		xwayland_primary_close();
 		return;
 	}
 
@@ -177,10 +154,8 @@ static void xwayland_primary_apply(void) {
 		xwayland_primary_build_cache();
 		return;
 	}
-	/* The output is not there (yet). Keep watching instead of giving up, the
-	 * next RandR change retries with a fresh cache. */
 	applied_name[0] = '\0';
-	xwayland_primary_release();
+	xwayland_primary_close();
 }
 
 static void xwayland_primary_start(void) {
@@ -266,19 +241,20 @@ static int32_t xwayland_primary_ready(int32_t fd, uint32_t mask, void *data) {
 	outputs = NULL;
 	outputs_len = outputs_idx = 0;
 	cache_valid = true;
-	/* Also the re-assert path: Xwayland tells us about screen changes here and
-	 * the primary is put back on the configured output. Setting it to the
-	 * value it already has is a no-op, so this cannot loop. */
 	xwayland_primary_apply();
+	if (!resources_pending && !info_pending) {
+		xwayland_primary_unwatch();
+	}
 	return 0;
 }
 
-/* Monitor the monitor rules designate as the X11 primary output. Falls back to
- * the monitor the earliest rule matches, or the first enabled one, so X11
- * clients always have a stable origin. */
+/* Monitor the monitor rules designate as the X11 primary output: the monitor of
+ * the earliest rule asking for it, else the monitor of the earliest matching
+ * rule, else the first enabled monitor. X11 clients always have a stable
+ * origin either way. */
 static Monitor *xwayland_primary_rule_monitor(void) {
-	Monitor *m = NULL, *first = NULL, *by_rule = NULL;
-	int32_t best_rule = INT32_MAX;
+	Monitor *m = NULL, *first = NULL, *by_rule = NULL, *primary = NULL;
+	int32_t best_rule = INT32_MAX, primary_rule = INT32_MAX;
 
 	/* The list is head-inserted, walk it backwards to start at the monitor
 	 * that was connected first. */
@@ -302,7 +278,11 @@ static Monitor *xwayland_primary_rule_monitor(void) {
 			continue;
 		}
 		if (config.monitor_rules[i].primary) {
-			return m;
+			if (i < primary_rule) {
+				primary_rule = i;
+				primary = m;
+			}
+			continue;
 		}
 		if (i < best_rule) {
 			best_rule = i;
@@ -310,6 +290,9 @@ static Monitor *xwayland_primary_rule_monitor(void) {
 		}
 	}
 
+	if (primary) {
+		return primary;
+	}
 	return by_rule ? by_rule : first;
 }
 
