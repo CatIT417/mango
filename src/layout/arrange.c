@@ -1165,10 +1165,6 @@ void pre_calculate_before_arrange(Monitor *m, bool want_animation,
 			set_size_per(m, c);
 		}
 
-		if (m->is_jump_mode && !c->jump_label_node) {
-			client_add_jump_label_node(c);
-		}
-
 		if (c->group_bar && c->group_bar->scene->node.enabled) {
 			client_check_tab_node_visible(c);
 		}

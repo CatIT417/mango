@@ -2195,6 +2195,7 @@ void handle_client_map(struct wl_listener *listener, void *data) {
 
 	client_add_group_bar(c);
 	client_add_tab_bar(c);
+	client_add_jump_label_node(c);
 	client_add_dim_node(c);
 
 	c->droparea = wlr_scene_rect_create(c->scene, 0, 0, config.dropcolor);
