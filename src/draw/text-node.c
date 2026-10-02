@@ -39,6 +39,7 @@ void mango_text_global_finish(void) {
 		g_hash_table_destroy(font_desc_cache);
 		font_desc_cache = NULL;
 	}
+	pango_cairo_font_map_set_default(NULL);
 }
 
 void text_buffer_destroy(struct wlr_buffer *wlr_buffer) {
