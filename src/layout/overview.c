@@ -553,8 +553,6 @@ void create_jump_hints(Monitor *m) {
 			find_keycodes_for_char(c_char, &c->jump_keycodes);
 
 			char label_text[2] = {c_char, '\0'};
-			if (!c->jump_label_node)
-				continue;
 			mango_jump_label_node_update(c->jump_label_node, label_text,
 										 m->wlr_output->scale);
 			overview_update_jump_label(c);

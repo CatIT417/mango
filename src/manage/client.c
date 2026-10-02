@@ -3718,9 +3718,7 @@ void client_replace(Client *c, Client *w, bool is_group_change_member,
 		wlr_scene_node_set_enabled(&w->group_bar->scene->node, false);
 	}
 
-	if (w->jump_label_node) {
-		wlr_scene_node_set_enabled(&w->jump_label_node->scene->node, false);
-	}
+	wlr_scene_node_set_enabled(&w->jump_label_node->scene->node, false);
 
 	c->tag_visible = w->tag_visible;
 	w->tag_visible = false;
@@ -4281,9 +4279,8 @@ void client_set_group_config(Client *c) {
 
 	Client *cur = head;
 	while (cur) {
-		if (cur->jump_label_node)
-			mango_jump_label_node_apply_config(cur->jump_label_node,
-											   &config.jumplabeldata);
+		mango_jump_label_node_apply_config(cur->jump_label_node,
+										   &config.jumplabeldata);
 		wlr_scene_rect_set_color(cur->droparea, config.dropcolor);
 		wlr_scene_rect_set_color(cur->splitindicator[0], config.splitcolor);
 		wlr_scene_rect_set_color(cur->splitindicator[1], config.splitcolor);
