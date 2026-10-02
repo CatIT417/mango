@@ -27,8 +27,6 @@
 #include <sys/event.h>
 #endif
 
-#define CONFIG_WATCH_POLL_INTERVAL_MS 500
-
 #define CONFIG_WATCH_DEBOUNCE_MS 150
 
 typedef struct {
@@ -53,12 +51,6 @@ static void schedule_check(void) {
 		wl_event_source_timer_update(watch_timer, CONFIG_WATCH_DEBOUNCE_MS);
 }
 #endif
-
-static void arm_poll_timer(void) {
-	if (watcher_active && watch_timer != NULL && watched_files_count > 0)
-		wl_event_source_timer_update(watch_timer,
-									 CONFIG_WATCH_POLL_INTERVAL_MS);
-}
 
 static bool refresh_file_state(WatchedFile *file) {
 	struct stat st;
@@ -392,7 +384,7 @@ static void backend_sync(void) {
 
 static bool backend_init(struct wl_event_loop *loop) {
 	(void)loop;
-	return true;
+	return false;
 }
 
 static void backend_destroy(void) {}
@@ -413,7 +405,6 @@ static int on_watch_timer(void *data) {
 	if (changed)
 		reload_config(NULL);
 
-	arm_poll_timer();
 	return 0;
 }
 
@@ -429,9 +420,12 @@ void config_watcher_init(struct wl_event_loop *loop) {
 		return;
 	}
 
-	if (!backend_init(loop))
+	if (!backend_init(loop)) {
 		mango_error(false, WLR_ERROR,
-					"config auto reload falls back to periodic polling\n");
+					"config auto reload disabled: no filesystem event backend "
+					"available\n");
+		return;
+	}
 
 	watcher_active = true;
 	config_watcher_update();
@@ -451,7 +445,6 @@ void config_watcher_update(void) {
 	}
 
 	backend_sync();
-	arm_poll_timer();
 }
 
 void config_watcher_destroy(void) {
