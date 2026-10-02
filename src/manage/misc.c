@@ -723,11 +723,72 @@ void handle_request_set_primary_selection(struct wl_listener *listener,
 										  void *data) {
 	/* This event is raised by the seat when a client wants to set the
 	 * selection, usually when the user copies something. wlroots allows
-	 * compositors to ignore such requests if they so choose, but in mango we
-	 * always honor
+	 * compositors to ignore such requests if they so choose; honors them
+	 * unless primary selection is disabled
 	 */
 	struct wlr_seat_request_set_primary_selection_event *event = data;
+	if (config.disable_middle_paste)
+		return;
 	wlr_seat_set_primary_selection(server.seat, event->source, event->serial);
+}
+
+void apply_primary_selection(void) {
+	if (!config.disable_middle_paste || server.seat == NULL)
+		return;
+	if (server.seat->primary_selection_source != NULL)
+		wlr_seat_set_primary_selection(server.seat, NULL,
+									   wl_display_next_serial(server.display));
+}
+
+struct PrimarySelectionPolicy {
+	struct wl_listener destroy;
+	bool disable_middle_paste;
+};
+
+static void
+handle_primary_selection_policy_destroy(struct wl_listener *listener,
+										void *data) {
+	struct PrimarySelectionPolicy *policy;
+	policy = wl_container_of(listener, policy, destroy);
+	wl_list_remove(&policy->destroy.link);
+	free(policy);
+}
+
+static struct PrimarySelectionPolicy *
+primary_selection_policy(struct wl_client *client) {
+	struct wl_listener *listener = wl_client_get_destroy_listener(
+		client, handle_primary_selection_policy_destroy);
+	if (listener) {
+		struct PrimarySelectionPolicy *policy;
+		return wl_container_of(listener, policy, destroy);
+	}
+
+	struct PrimarySelectionPolicy *policy = calloc(1, sizeof(*policy));
+	if (!policy)
+		return NULL;
+	policy->disable_middle_paste = config.disable_middle_paste;
+	policy->destroy.notify = handle_primary_selection_policy_destroy;
+	wl_client_add_destroy_listener(client, &policy->destroy);
+	return policy;
+}
+
+bool mango_global_filter(const struct wl_client *client,
+						 const struct wl_global *global, void *data) {
+	if (client == NULL)
+		return true;
+
+	const struct wl_interface *interface = wl_global_get_interface(global);
+	if (interface == NULL)
+		return true;
+
+	if (strcmp(interface->name, "zwp_primary_selection_device_manager_v1") ==
+		0) {
+		struct PrimarySelectionPolicy *policy =
+			primary_selection_policy((struct wl_client *)client);
+		return policy == NULL || !policy->disable_middle_paste;
+	}
+
+	return true;
 }
 
 void handle_request_set_selection(struct wl_listener *listener, void *data) {

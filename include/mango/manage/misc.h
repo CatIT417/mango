@@ -44,6 +44,9 @@ void handle_xdg_decoration_mode_request(struct wl_listener *listener,
 void handle_drm_lease_request(struct wl_listener *listener, void *data);
 void handle_request_set_primary_selection(struct wl_listener *listener,
 										  void *data);
+void apply_primary_selection(void);
+bool mango_global_filter(const struct wl_client *client,
+						 const struct wl_global *global, void *data);
 void handle_request_set_selection(struct wl_listener *listener, void *data);
 void check_keep_idle_inhibit(Client *c);
 int32_t idle_keep_inhibit(void *data);

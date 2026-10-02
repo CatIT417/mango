@@ -547,6 +547,7 @@ typedef struct {
 	float drag_floating_refresh_interval;
 	int32_t allow_tearing;
 	int32_t allow_shortcuts_inhibit;
+	int32_t disable_middle_paste;
 	int32_t allow_lock_transparent;
 	int32_t auto_reload_config;
 

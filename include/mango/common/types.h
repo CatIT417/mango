@@ -39,6 +39,7 @@ struct wl_client;
 struct wl_display;
 struct wl_event_loop;
 struct wl_event_source;
+struct wl_global;
 struct wl_listener;
 struct wl_resource;
 struct wl_signal;

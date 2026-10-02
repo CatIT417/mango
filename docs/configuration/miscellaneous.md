@@ -29,6 +29,7 @@ description: Advanced settings for XWayland, focus behavior, and system integrat
 | `drag_corner` | `3` | Corner for drag-to-tile detection (0: none, 1–3: corners, 4: auto-detect). |
 | `drag_warp_cursor` | `1` | Warp cursor when dragging windows to tile. |
 | `axis_bind_apply_timeout` | `100` | Timeout (ms) for detecting consecutive scroll events for axis bindings. |
+| `disable_middle_paste` | `0` | Disable middle-click paste by turning off the whole primary selection. Only affects Wayland apps; X11 apps are unaffected. Restart apps after re-enabling. |
 
 ## Multi-Monitor & Tags
 

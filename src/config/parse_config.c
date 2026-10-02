@@ -22,6 +22,7 @@
 #include "mango/layout/layout.h"
 #include "mango/manage/client.h"
 #include "mango/manage/layer.h"
+#include "mango/manage/misc.h"
 #include "mango/manage/monitor.h"
 #include "mango/manage/tab.h"
 #include "mango/switcher/switcher.h"
@@ -624,6 +625,8 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->hdr_depth = atoi(value);
 	} else if (strcmp(key, "allow_shortcuts_inhibit") == 0) {
 		config->allow_shortcuts_inhibit = atoi(value);
+	} else if (strcmp(key, "disable_middle_paste") == 0) {
+		config->disable_middle_paste = atoi(value);
 	} else if (strcmp(key, "allow_lock_transparent") == 0) {
 		config->allow_lock_transparent = atoi(value);
 	} else if (strcmp(key, "auto_reload_config") == 0) {
@@ -3946,6 +3949,7 @@ void override_config(void) {
 	config.hdr_depth = CLAMP_INT(config.hdr_depth, 0, 2);
 	config.allow_shortcuts_inhibit =
 		CLAMP_INT(config.allow_shortcuts_inhibit, 0, 1);
+	config.disable_middle_paste = CLAMP_INT(config.disable_middle_paste, 0, 1);
 	config.allow_lock_transparent =
 		CLAMP_INT(config.allow_lock_transparent, 0, 1);
 	config.auto_reload_config = CLAMP_INT(config.auto_reload_config, 0, 1);
@@ -4205,6 +4209,7 @@ void set_value_default() {
 	config.allow_tearing = TEARING_DISABLED;
 	config.hdr_depth = MANGO_RENDER_BIT_DEPTH_10;
 	config.allow_shortcuts_inhibit = SHORTCUTS_INHIBIT_ENABLE;
+	config.disable_middle_paste = 0;
 	config.allow_lock_transparent = 0;
 	config.auto_reload_config = 1;
 	config.no_border_when_single = 0;
@@ -4915,6 +4920,7 @@ int32_t reload_config(const Arg *arg) {
 	reset_tag(old_tag_num);
 	reset_option();
 	update_seat_capabilities();
+	apply_primary_selection();
 	printstatus(IPC_WATCH_ARRANGGE);
 	config_watcher_update();
 	return 1;
