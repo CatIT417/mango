@@ -4017,7 +4017,8 @@ bool client_should_visible(Client *c) {
 	if (c->animation.tagouting)
 		return true;
 
-	if (client_gesture_driven(c))
+	if (client_gesture_driven(c) &&
+		(c->animation.tagining || c->animation.tagouting))
 		return true;
 
 	return c->tag_visible;
