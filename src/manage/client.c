@@ -2157,6 +2157,7 @@ void handle_client_map(struct wl_listener *listener, void *data) {
 	// init client geom
 	c->geom.width += 2 * c->bw;
 	c->geom.height += 2 * c->bw;
+	c->float_geom = c->geom;
 	c->overview_backup_geom = c->geom;
 
 	struct wayland_string appid, title;
