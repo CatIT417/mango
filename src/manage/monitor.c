@@ -1033,6 +1033,10 @@ void handle_output_layout_change(struct wl_listener *listener, void *data) {
 		/* Remove this output from the layout to avoid cursor enter inside
 		 * it */
 		wlr_output_layout_remove(server.output_layout, m->wlr_output);
+		/* The wl_output global went away with the layout entry, so make the
+		 * xdg-output resources inert as well. Otherwise later layout changes
+		 * keep sending geometry to proxies whose owners are already gone. */
+		xdg_output_cleanup_output(m->wlr_output);
 
 		monitor_close(m);
 		m->m = m->w = (struct wlr_box){0};
