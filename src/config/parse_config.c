@@ -4621,40 +4621,61 @@ void reset_blur_params(void) {
 }
 
 void reapply_monitor_rules(void) {
-	ConfigMonitorRule *mr;
 	Monitor *m = NULL;
 	int32_t ji;
-	int32_t mx, my;
 
 	wl_list_for_each(m, &server.monitors, link) {
-		if (!m->wlr_output->enabled)
-			continue;
+		ConfigMonitorRule *mr = NULL;
+		bool was_enabled = m->wlr_output->enabled;
 
+		/* Match disabled outputs too, so a rule can re-enable them. */
 		for (ji = config.monitor_rules_count - 1; ji >= 0; ji--) {
-			mr = &config.monitor_rules[ji];
-
-			if (monitor_matches_rule(m, mr)) {
-				mx = mr->x == INT32_MAX ? m->m.x : mr->x;
-				my = mr->y == INT32_MAX ? m->m.y : mr->y;
-
-				apply_rule_to_state(m, mr, &m->pending);
-
-				wlr_output_layout_add(server.output_layout, m->wlr_output, mx,
-									  my);
+			if (monitor_matches_rule(m, &config.monitor_rules[ji])) {
+				mr = &config.monitor_rules[ji];
 				break;
 			}
 		}
 
-		if (m->prefer_disable) {
-			wlr_output_state_set_enabled(&m->pending, false);
-		} else {
+		if (mr)
+			apply_rule_to_state(m, mr, &m->pending);
+		else
+			/* No rule matches: same default as a new output, enabled. */
 			wlr_output_state_set_enabled(&m->pending, true);
+
+		/* Enable the output first so it can safely enter the layout:
+		 * adding a still-disabled output re-enters
+		 * handle_output_layout_change and crashes. */
+		if (m->pending.enabled && !m->wlr_output->enabled &&
+			!mango_scene_output_commit(m->scene_output, &m->pending))
+			continue;
+
+		if (mr && m->wlr_output->enabled) {
+			if (mr->x == INT32_MAX && mr->y == INT32_MAX) {
+				if (!was_enabled)
+					wlr_output_layout_add_auto(server.output_layout,
+											   m->wlr_output);
+			} else {
+				int32_t mx = mr->x == INT32_MAX ? m->m.x : mr->x;
+				int32_t my = mr->y == INT32_MAX ? m->m.y : mr->y;
+				wlr_output_layout_add(server.output_layout, m->wlr_output, mx,
+									  my);
+			}
 		}
 
+		/* Image descriptions only take effect in a scene commit that
+		 * carries a buffer, so HDR is applied after the output is in the
+		 * layout. */
+		bool was_hdr = m->is_hdr_enabling;
 		if (m->hdr_enable) {
 			output_state_setup_hdr(m, false, &m->pending);
 		} else {
 			output_enable_hdr(m, &m->pending, false, false);
+		}
+
+		if (m->is_hdr_enabling != was_hdr) {
+			m->pending.allow_reconfiguration = true;
+			if (m->scene_output)
+				wlr_damage_ring_add_whole(&m->scene_output->damage_ring);
 		}
 
 		if (!(mango_scene_output_commit(m->scene_output, &m->pending))) {
@@ -4662,6 +4683,7 @@ void reapply_monitor_rules(void) {
 				output_state_setup_hdr(m, true, &m->pending);
 			}
 		}
+
 		/* After scale/mode changes, force one frame so wl_output events are
 		 * sent. */
 		wlr_output_schedule_frame(m->wlr_output);
