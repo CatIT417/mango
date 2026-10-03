@@ -194,8 +194,10 @@ void cleanup_listeners(void) {
 		wl_list_remove(&server.drm_lease_request_listener.link);
 	}
 #ifdef XWAYLAND
-	wl_list_remove(&server.new_xwayland_surface_listener.link);
-	wl_list_remove(&server.xwayland_ready_listener.link);
+	if (server.xwayland) {
+		wl_list_remove(&server.new_xwayland_surface_listener.link);
+		wl_list_remove(&server.xwayland_ready_listener.link);
+	}
 #endif
 }
 
