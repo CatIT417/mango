@@ -360,7 +360,7 @@ void apply_rule_properties(Client *c, const ConfigWinRule *r);
 void set_float_malposition(Client *tc);
 void client_reset_mon_tags(Client *c, Monitor *mon, uint32_t newtags);
 void check_match_tag_floating_rule(Client *c, Monitor *mon);
-void client_apply_rules(Client *c);
+void client_apply_rules(Client *c, Monitor **rule_mon, uint32_t *rule_tags);
 void apply_window_snap(Client *c);
 /*
  * Client management: window lifecycle, rules, focus, tiled/floating/fullscreen
@@ -432,7 +432,8 @@ void client_swap_layout_properties(Client *c1, Client *c2);
 void client_swap_monitors_and_tags(Client *c1, Client *c2);
 void finish_exchange_arrange_and_focus(Client *c1, Client *c2, Monitor *m1,
 									   Monitor *m2);
-void client_tile_resize(Client *c, struct wlr_box geo, int32_t interact);
+void client_tile_resize(Client *c, struct wlr_box geo, int32_t interact,
+						const LayoutContext *ctx);
 uint32_t generate_client_id(void);
 void client_pending_force_kill(Client *c);
 void client_add_jump_label_node(Client *c);
