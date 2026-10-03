@@ -144,14 +144,18 @@ void set_client_open_animation(Client *c, struct wlr_box geo) {
 	int32_t vertical, vertical_value;
 	int32_t special_direction;
 	int32_t center_x, center_y;
+	int32_t type = client_open_animation_type(c);
 
-	if (client_open_animation_type(c) == ANIM_TYPE_FADE) {
+	if (type == ANIM_TYPE_NONE || c->animation.duration == 0) {
+		c->animainit_geom = geo;
+		return;
+	} else if (type == ANIM_TYPE_FADE) {
 		c->animainit_geom.width = geo.width;
 		c->animainit_geom.height = geo.height;
 		c->animainit_geom.x = geo.x;
 		c->animainit_geom.y = geo.y;
 		return;
-	} else if (client_open_animation_type(c) == ANIM_TYPE_ZOOM) {
+	} else if (type == ANIM_TYPE_ZOOM) {
 		c->animainit_geom.width = geo.width * config.zoom_initial_ratio;
 		c->animainit_geom.height = geo.height * config.zoom_initial_ratio;
 		c->animainit_geom.x = geo.x + (geo.width - c->animainit_geom.width) / 2;

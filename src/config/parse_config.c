@@ -3880,15 +3880,15 @@ void override_config(void) {
 	config.fadeout_begin_opacity =
 		CLAMP_FLOAT(config.fadeout_begin_opacity, 0.0f, 1.0f);
 	config.animation_duration_move =
-		CLAMP_INT(config.animation_duration_move, 1, 50000);
+		CLAMP_INT(config.animation_duration_move, 0, 50000);
 	config.animation_duration_open =
-		CLAMP_INT(config.animation_duration_open, 1, 50000);
+		CLAMP_INT(config.animation_duration_open, 0, 50000);
 	config.animation_duration_tag =
-		CLAMP_INT(config.animation_duration_tag, 1, 50000);
+		CLAMP_INT(config.animation_duration_tag, 0, 50000);
 	config.animation_duration_close =
-		CLAMP_INT(config.animation_duration_close, 1, 50000);
+		CLAMP_INT(config.animation_duration_close, 0, 50000);
 	config.animation_duration_focus =
-		CLAMP_INT(config.animation_duration_focus, 1, 50000);
+		CLAMP_INT(config.animation_duration_focus, 0, 50000);
 	config.scroller_default_proportion =
 		CLAMP_FLOAT(config.scroller_default_proportion, 0.1f, 1.0f);
 	config.scroller_default_proportion_single =

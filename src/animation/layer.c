@@ -516,7 +516,9 @@ void layer_set_pending_state(LayerSurface *l) {
 
 	if (l->animation.action == OPEN && !l->animation.running) {
 
-		if (layer_open_animation_type(l) == ANIM_TYPE_ZOOM) {
+		if (l->animation.duration == 0) {
+			l->animainit_geom = l->geom;
+		} else if (layer_open_animation_type(l) == ANIM_TYPE_ZOOM) {
 			l->animainit_geom.width = l->geom.width * config.zoom_initial_ratio;
 			l->animainit_geom.height =
 				l->geom.height * config.zoom_initial_ratio;
