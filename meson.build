@@ -254,3 +254,16 @@ install_data(
   ),
   install_dir : join_paths(mandir, 'man1'),
 )
+
+# generate the mangonag man page at build time so the version always
+# matches the project version
+mangonag_man_conf = configuration_data()
+mangonag_man_conf.set('VERSION', meson.project_version())
+install_data(
+  configure_file(
+    input : 'mangonag/mangonag.1.in',
+    output : 'mangonag.1',
+    configuration : mangonag_man_conf,
+  ),
+  install_dir : join_paths(mandir, 'man1'),
+)
