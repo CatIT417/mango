@@ -73,7 +73,9 @@ void set_arrange_visible(Monitor *m, Client *c, bool want_animation) {
 		c->animation.tag_from_rule = false;
 		c->animation.tagouted = false;
 		/* Reverse an in-flight hide instead of restarting from the top. */
-		bool reversing = c->animation.tagouting && c->animation.running;
+		bool reversing =
+			c->animation.tagouting && c->animation.running &&
+			!wlr_box_equal(&c->animation.current, &c->animation.initial);
 		c->animation.tagouting = false;
 		if (client_animations_enabled(c)) {
 			c->animation.tagining = true;
