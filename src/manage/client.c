@@ -4080,14 +4080,14 @@ bool client_should_visible(Client *c) {
 	if (!c || !c->scene)
 		return false;
 
-	if (c->ov_card_tree || (c->mon && c->mon->isoverview))
-		return true;
-
 	if (c->snapshot_temp_visible)
 		return true;
 
 	if (c->is_clip_to_hide)
 		return false;
+
+	if (c->ov_card_tree || (c->mon && c->mon->isoverview))
+		return true;
 
 	if (c->is_tab_hidden)
 		return false;
