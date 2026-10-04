@@ -64,6 +64,40 @@ env=QT_IM_MODULES,wayland;fcitx
 env=XMODIFIERS,@im=fcitx
 ```
 
+## Configuration Variables
+
+You can define your own variables and reuse them anywhere in the config. A
+variable is defined with `var=name,value` and referenced with `$name` or
+`${name}`. Names must start with a letter or `_`, followed by letters, digits,
+or `_`.
+
+```ini
+var=term,kitty
+var=editor,nvim
+var=screenshot_dir,~/Pictures/Screenshots
+
+bind=SUPER,Return,spawn,$term
+bind=SUPER,E,spawn,$term -e $editor
+bind=SUPER,Print,spawn_shell,grim ${screenshot_dir}/$(date +%Y%m%d%H%M%S).png
+```
+
+Variables must be defined before they are used, and they are shared across
+`source`/`source-optional` files (the included file can use variables defined
+before the `source` line).
+
+> **Note:** Only names you actually defined are expanded. Anything else is left
+> untouched, so shell commands keep working exactly as before:
+>
+> ```ini
+> # $HOME, $(date ...), $1 and $$ are not config variables here,
+> # so the shell still receives them verbatim.
+> bind=SUPER,P,spawn_shell,echo "$HOME" | rofi -dmenu
+> ```
+>
+> Defining a variable with the same name as a shell variable you use in a
+> `spawn_shell` command will cause mango to expand it first. Prefer distinctive
+> names to avoid surprises.
+
 ## Autostart
 
 mangowm can automatically run commands or scripts upon startup. There are two modes for execution:
