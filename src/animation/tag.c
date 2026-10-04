@@ -201,7 +201,7 @@ void set_arrange_hidden(Monitor *m, Client *c, bool want_animation) {
 	/* Special workspace windows should animate out or hide when special
 	 * workspace is not active */
 	if (c->tags & TAG0_MASK) {
-		if (want_animation && client_animations_enabled(c) &&
+		if (want_animation && !m->isoverview && client_animations_enabled(c) &&
 			!c->animation.tagouted) {
 			c->animation.tagouting = true;
 			c->animation.tagining = false;

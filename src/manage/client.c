@@ -4086,7 +4086,10 @@ bool client_should_visible(Client *c) {
 	if (c->is_clip_to_hide)
 		return false;
 
-	if (c->ov_card_tree || (c->mon && c->mon->isoverview))
+	if (c->ov_card_tree)
+		return true;
+
+	if (c->mon && c->mon->isoverview && !(c->tags & TAG0_MASK))
 		return true;
 
 	if (c->is_tab_hidden)

@@ -241,8 +241,9 @@ struct MangoXDGOutput *xdg_output_find(struct wlr_output *wlr_output) {
  * layout changes keep sending geometry to proxies whose output is already
  * gone. Owning the teardown here keeps callers out of xdg-output internals.
  */
-static void handle_xdg_output_layout_output_destroy(
-	struct wl_listener *listener, void *data) {
+static void
+handle_xdg_output_layout_output_destroy(struct wl_listener *listener,
+										void *data) {
 	struct MangoXDGOutput *output =
 		wl_container_of(listener, output, layout_output_destroy);
 	/* The signal owner does not unlink the listener for us. */
