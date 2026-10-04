@@ -71,6 +71,7 @@ c_args = [
   '-O2',
   '-U_FORTIFY_SOURCE',
   '-Wno-unused-function',
+  '-Wno-unused-parameter',
   '-Wno-unused-result',
   '-DWLR_USE_UNSTABLE',
   '-D_POSIX_C_SOURCE=200809L',
@@ -149,6 +150,7 @@ wayland_scanner_private_code = generator(
 # use generator in mmsg target
 executable('mmsg',
   'mmsg/mmsg.c',
+  'src/config/config_error_store.c',
   'src/common/log.c',
   'src/common/util.c',
 
@@ -169,6 +171,59 @@ executable('mmsg',
     '-O2',
     '-U_FORTIFY_SOURCE',
     '-Wno-unused-function',
+    '-Wno-unused-parameter',
+    '-DWLR_USE_UNSTABLE',
+  ],
+)
+
+# build mangonag (layer-shell nag/notification client)
+
+mangonag_proto_h = custom_target('mangonag-layer-shell-client-proto',
+  input : 'protocols/wlr-layer-shell-unstable-v1.xml',
+  output : 'wlr-layer-shell-unstable-v1-client-protocol.h',
+  command : [wayland_scanner, 'client-header', '@INPUT@', '@OUTPUT@'],
+)
+
+mangonag_proto_c = custom_target('mangonag-layer-shell-private-code',
+  input : 'protocols/wlr-layer-shell-unstable-v1.xml',
+  output : 'wlr-layer-shell-unstable-v1-protocol.c',
+  command : [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@'],
+)
+
+mangonag_xdg_proto_h = custom_target('mangonag-xdg-shell-client-proto',
+  input : wl_protocol_dir + '/stable/xdg-shell/xdg-shell.xml',
+  output : 'xdg-shell-client-protocol.h',
+  command : [wayland_scanner, 'client-header', '@INPUT@', '@OUTPUT@'],
+)
+
+mangonag_xdg_proto_c = custom_target('mangonag-xdg-shell-private-code',
+  input : wl_protocol_dir + '/stable/xdg-shell/xdg-shell.xml',
+  output : 'xdg-shell-protocol.c',
+  command : [wayland_scanner, 'private-code', '@INPUT@', '@OUTPUT@'],
+)
+
+executable('mangonag',
+  'mangonag/mangonag.c',
+  mangonag_proto_h,
+  mangonag_proto_c,
+  mangonag_xdg_proto_h,
+  mangonag_xdg_proto_c,
+
+  include_directories : mango_inc,
+
+  dependencies: [
+    libwayland_client_dep,
+    pangocairo_dep,
+  ],
+
+  install: true,
+
+  c_args: [
+    '-g',
+    '-O2',
+    '-U_FORTIFY_SOURCE',
+    '-Wno-unused-function',
+    '-Wno-unused-parameter',
     '-DWLR_USE_UNSTABLE',
   ],
 )

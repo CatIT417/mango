@@ -227,8 +227,6 @@ static bool event_matches(const struct inotify_event *event) {
 }
 
 static int on_inotify_event(int fd, uint32_t mask, void *data) {
-	(void)mask;
-	(void)data;
 	alignas(struct inotify_event) char buffer[4096];
 	bool pending = false;
 
@@ -322,8 +320,6 @@ static void add_file_watch(WatchedFile *file) {
 }
 
 static int on_kqueue_event(int fd, uint32_t mask, void *data) {
-	(void)mask;
-	(void)data;
 	struct kevent events[8];
 	struct timespec timeout = {0, 0};
 	bool pending = false;
@@ -383,7 +379,6 @@ static void backend_sync(void) {
 #else
 
 static bool backend_init(struct wl_event_loop *loop) {
-	(void)loop;
 	return false;
 }
 
@@ -394,7 +389,6 @@ static void backend_sync(void) {}
 #endif
 
 static int on_watch_timer(void *data) {
-	(void)data;
 
 	bool changed = false;
 	for (int i = 0; i < watched_files_count; i++) {

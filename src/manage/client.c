@@ -4428,8 +4428,6 @@ void client_group_replace(Client *old, Client *new) {
 
 void mango_surface_frame_done(struct wlr_surface *surface, int sx, int sy,
 							  void *data) {
-	(void)sx;
-	(void)sy;
 	wlr_surface_send_frame_done(surface, data);
 }
 // Feeds frame callbacks to all surfaces (including subsurfaces) of hidden

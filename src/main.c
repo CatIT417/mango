@@ -5,6 +5,7 @@
 #include "mango/common/log.h"
 #include "mango/common/server.h"
 #include "mango/common/util.h"
+#include "mango/config/config_error_nag.h"
 #include "mango/config/config_watcher.h"
 #include "mango/config/parse_config.h"
 #include "mango/dispatch/bind.h"
@@ -208,6 +209,7 @@ void cleanup(void) {
 
 	ipc_cleanup();
 	config_watcher_destroy();
+	config_error_nag_destroy();
 	cleanup_listeners();
 #ifdef XWAYLAND
 	wlr_xwayland_destroy(server.xwayland);
@@ -899,12 +901,14 @@ void setup(void) {
 	server.sync_keymap = wl_event_loop_add_timer(
 		wl_display_get_event_loop(server.display), keyboard_sync_keymap, NULL);
 #endif
+	config_error_nag_init();
 }
 
 int32_t main(int32_t argc, char *argv[]) {
 	char *startup_cmd = NULL;
 	int32_t c;
 	int readiness_fd = 0;
+	bool check_config = false;
 
 	while ((c = getopt(argc, argv, "s:c:r:hdvp")) != -1) {
 		if (c == 's') {
@@ -918,7 +922,7 @@ int32_t main(int32_t argc, char *argv[]) {
 			snprintf(server.cli_config_path, sizeof(server.cli_config_path),
 					 "%s", optarg);
 		} else if (c == 'p') {
-			return parse_config() ? EXIT_SUCCESS : EXIT_FAILURE;
+			check_config = true;
 		} else if (c == 'r') {
 			readiness_fd = atoi(optarg);
 			if (readiness_fd < 3) {
@@ -930,6 +934,9 @@ int32_t main(int32_t argc, char *argv[]) {
 	}
 	if (optind < argc)
 		goto usage;
+
+	if (check_config)
+		return parse_config() ? EXIT_SUCCESS : EXIT_FAILURE;
 
 	/* Wayland requires XDG_RUNTIME_DIR for creating its communications
 	 * socket

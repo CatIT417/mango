@@ -31,13 +31,68 @@ void layer_actual_size(LayerSurface *l, int32_t *width, int32_t *height) {
 	}
 }
 
-void get_layer_area_bound(LayerSurface *l, struct wlr_box *bound) {
+static void layer_consume_exclusive(LayerSurface *it, struct wlr_box *box) {
+	const struct wlr_layer_surface_v1_state *state =
+		&it->layer_surface->current;
+	if (state->exclusive_zone <= 0)
+		return;
+
+	switch (wlr_layer_surface_v1_get_exclusive_edge(it->layer_surface)) {
+	case WLR_EDGE_TOP:
+		box->y += state->exclusive_zone + state->margin.top;
+		box->height -= state->exclusive_zone + state->margin.top;
+		break;
+	case WLR_EDGE_BOTTOM:
+		box->height -= state->exclusive_zone + state->margin.bottom;
+		break;
+	case WLR_EDGE_LEFT:
+		box->x += state->exclusive_zone + state->margin.left;
+		box->width -= state->exclusive_zone + state->margin.left;
+		break;
+	case WLR_EDGE_RIGHT:
+		box->width -= state->exclusive_zone + state->margin.right;
+		break;
+	case WLR_EDGE_NONE:
+		break;
+	}
+
+	if (box->width < 0)
+		box->width = 0;
+	if (box->height < 0)
+		box->height = 0;
+}
+
+static struct wlr_box layer_bound_area(LayerSurface *l) {
 	const struct wlr_layer_surface_v1_state *state = &l->layer_surface->current;
 
-	if (state->exclusive_zone > 0 || state->exclusive_zone == -1)
-		*bound = l->mon->m;
-	else
-		*bound = l->mon->w;
+	if (state->exclusive_zone < 0)
+		return l->mon->m;
+	if (state->exclusive_zone == 0)
+		return l->mon->w;
+
+	struct wlr_box box = l->mon->m;
+	bool reached = false;
+	for (int32_t i = 3; i >= 0 && !reached; i--) {
+		LayerSurface *it;
+		wl_list_for_each(it, &l->mon->layers[i], link) {
+			if (it == l) {
+				reached = true;
+				break;
+			}
+			if (it->being_unmapped || !it->mapped ||
+				!it->layer_surface->initialized)
+				continue;
+			layer_consume_exclusive(it, &box);
+		}
+	}
+
+	if (!reached)
+		return l->mon->m;
+	return box;
+}
+
+void get_layer_area_bound(LayerSurface *l, struct wlr_box *bound) {
+	*bound = layer_bound_area(l);
 }
 void get_layer_target_geometry(LayerSurface *l, struct wlr_box *target_box) {
 
@@ -52,11 +107,7 @@ void get_layer_target_geometry(LayerSurface *l, struct wlr_box *target_box) {
 	// baseline if it's -1, it may mean exclusive use of all available space if
 	// it's 0, it should mean using the available area outside the
 	// exclusive_zone
-	struct wlr_box bounds;
-	if (state->exclusive_zone > 0 || state->exclusive_zone == -1)
-		bounds = l->mon->m;
-	else
-		bounds = l->mon->w;
+	struct wlr_box bounds = layer_bound_area(l);
 
 	// Initialize geometry position
 	struct wlr_box box = {.width = state->desired_width,

@@ -11,6 +11,8 @@
 #include "mango/common/log.h"
 #include "mango/common/server.h"
 #include "mango/common/util.h"
+#include "mango/config/config_error_nag.h"
+#include "mango/config/config_error_store.h"
 #include "mango/config/config_watcher.h"
 #include "mango/dispatch/bind.h"
 #include "mango/ext-protocol/hdr.h"
@@ -146,10 +148,9 @@ int32_t parse_double_array(const char *input, double *output,
 			return -1;
 		}
 		if (val < 0.0) {
-			fprintf(stderr,
-					"\033[1m\033[31m[ERROR]:\033[33m Invalid number in "
-					"array (must be non-negative): %s\n",
-					token);
+			mango_error(false, WLR_ERROR,
+						"Invalid number in array (must be non-negative): %s\n",
+						token);
 			free(dup);
 			return -1;
 		}
@@ -3341,7 +3342,7 @@ bool parse_config_file(Config *config, const char *file_path, bool must_exist) {
 						"\033[1;31m╰─\033[1;33m[Index]\033[0m "
 						"\033[1;36m%s\033[0m:\033[1;35m%d\033[0m\n"
 						"   \033[1;36m╰─\033[0;33m%s\033[0m\n\n",
-						file_path, line_count, line);
+						full_path, line_count, line);
 		}
 	}
 
@@ -3419,15 +3420,14 @@ bool check_key_binding_conflicts(Config *config) {
 											 : "(built-in)";
 
 					conflict_found = true;
-					fprintf(stderr,
-							"\033[1;33m[WARNING]\033[0m Key binding conflict "
-							"in keymode \033[1;36m%s\033[0m:\n"
-							"  File \033[1;32m\"%s\"\033[0m, line "
-							"\033[1;35m%d\033[0m\n"
-							"  File \033[1;32m\"%s\"\033[0m, line "
-							"\033[1;35m%d\033[0m\n\n",
-							(any_common ? "common" : binds[a].mode), file_a,
-							binds[a].line_number, file_b, binds[b].line_number);
+					mango_error(false, WLR_INFO,
+								"[WARNING] Key binding conflict in keymode "
+								"%s:\n"
+								"  File \"%s\", line %d\n"
+								"  File \"%s\", line %d\n",
+								(any_common ? "common" : binds[a].mode), file_a,
+								binds[a].line_number, file_b,
+								binds[b].line_number);
 				}
 			}
 		}
@@ -3467,15 +3467,12 @@ bool check_simple_binding_conflicts(void *arr, size_t count, size_t elem_size,
 										 : "(built-in)";
 
 				conflict_found = true;
-				fprintf(stderr,
-						"\033[1;33m[WARN]\033[0m %s conflict "
-						"in keymode \033[1;36m%s\033[0m:\n"
-						"  File \033[1;32m\"%s\"\033[0m, line "
-						"\033[1;35m%d\033[0m\n"
-						"  File \033[1;32m\"%s\"\033[0m, line "
-						"\033[1;35m%d\033[0m\n\n",
-						kind, (any_common ? "common" : ma.mode), file_a,
-						ma.line_number, file_b, mb.line_number);
+				mango_error(false, WLR_INFO,
+							"[WARN] %s conflict in keymode %s:\n"
+							"  File \"%s\", line %d\n"
+							"  File \"%s\", line %d\n",
+							kind, (any_common ? "common" : ma.mode), file_a,
+							ma.line_number, file_b, mb.line_number);
 			}
 		}
 	}
@@ -4488,6 +4485,8 @@ void set_default_key_bindings(Config *config) {
 bool parse_config(void) {
 	char filename[1024];
 
+	config_error_store_begin();
+
 	if (file_paths) {
 		for (int i = 0; i < file_paths_count; i++) {
 			free(file_paths[i]);
@@ -4552,6 +4551,7 @@ bool parse_config(void) {
 		const char *homedir = getenv("HOME");
 		if (!homedir) {
 			// Cannot continue if that fails.
+			config_error_store_end();
 			return false;
 		}
 		// Builds the log file path.
@@ -4580,7 +4580,10 @@ bool parse_config(void) {
 	keybindings_conflict |= check_switch_binding_conflicts(&config);
 	keybindings_conflict |= check_gesture_binding_conflicts(&config);
 
-	return parse_correct || keybindings_conflict;
+	bool result = parse_correct || keybindings_conflict;
+	config_error_store_end();
+	config_error_nag_update();
+	return result;
 }
 
 char **config_get_file_paths(int *count) {

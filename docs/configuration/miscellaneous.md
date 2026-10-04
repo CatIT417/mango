@@ -59,3 +59,14 @@ description: Advanced settings for XWayland, focus behavior, and system integrat
 | `tag_carousel` | `0` | Enable tag carousel (cycling through tags). |
 | `drag_tile_refresh_interval` | `8.0` | Interval (1.0–16.0) to refresh tiled window resize during drag. Too small may cause application lag. |
 | `drag_floating_refresh_interval` | `8.0` | Interval (1.0–16.0) to refresh floating window resize during drag. Too small may cause application lag. |
+
+## Config errors
+
+When the config file contains errors, mango shows a `mangonag` bar at the top of
+the focused output.
+
+- **Close** dismisses the bar.
+- **Edit** opens the first reported error in your editor at the reported line.
+
+The editor is taken from `$EDITOR`, then `$VISUAL`, then `vi`; terminal editors
+open in `$TERMINAL`.

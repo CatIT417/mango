@@ -122,6 +122,29 @@ void arrange_layers(Monitor *m) {
 	for (i = 3; i >= 0; i--)
 		arrange_layer(m, &m->layers[i], &usable_area, 1);
 
+	/* Recompute geometry for already-mapped exclusive layers so that an
+	 * existing layer does not keep a stale position (and animation target)
+	 * after another exclusive layer appears or leaves. */
+	for (i = 3; i >= 0; i--) {
+		LayerSurface *l;
+		wl_list_for_each(l, &m->layers[i], link) {
+			if (!l->mapped || l->being_unmapped)
+				continue;
+			if (l->layer_surface->current.exclusive_zone <= 0)
+				continue;
+			struct wlr_box box = l->geom;
+			get_layer_target_geometry(l, &box);
+			if (!wlr_box_equal(&box, &l->geom)) {
+				l->geom = box;
+				l->animainit_geom = l->animation.current = l->current =
+					l->pending = l->geom;
+				l->animation.initial = l->geom;
+				l->need_output_flush = true;
+				wlr_scene_node_set_position(&l->scene->node, box.x, box.y);
+			}
+		}
+	}
+
 	if (!wlr_box_equal(&usable_area, &m->w)) {
 		m->w = usable_area;
 		arrange(m, false, false);
