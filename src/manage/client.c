@@ -4083,6 +4083,9 @@ bool client_should_visible(Client *c) {
 	if (c->snapshot_temp_visible)
 		return true;
 
+	if (c->isminimized && !c->animation.tagouting)
+		return false;
+
 	if (c->is_clip_to_hide)
 		return false;
 

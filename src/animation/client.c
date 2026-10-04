@@ -34,6 +34,8 @@ static int32_t client_close_animation_type(const Client *c) {
 }
 
 bool client_animations_enabled(const Client *c) {
+	if (c && c->isnoanimation)
+		return false;
 	if (config.animations)
 		return true;
 	return client_gesture_driven(c);
