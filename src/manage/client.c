@@ -4089,7 +4089,7 @@ bool client_should_visible(Client *c) {
 	if (c->ov_card_tree)
 		return true;
 
-	if (c->mon && c->mon->isoverview && !(c->tags & TAG0_MASK))
+	if (c->mon && c->mon->isoverview && c->overview_scene_surface)
 		return true;
 
 	if (c->is_tab_hidden)
