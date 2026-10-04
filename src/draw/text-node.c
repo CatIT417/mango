@@ -429,8 +429,8 @@ static void jump_label_apply_geometry(MangoJumpLabel *node) {
 	node->logical_height = height;
 
 	rect_apply_border(node->border, node->border_color,
-					  node->corner_radius + border, node->corner_radius,
-					  border, width, height);
+					  node->corner_radius + border, node->corner_radius, border,
+					  width, height);
 	rect_apply(node->bg, node->focused ? node->focus_bg_color : node->bg_color,
 			   node->corner_radius, border, border, width - 2 * border,
 			   height - 2 * border);
@@ -638,8 +638,8 @@ static void bar_decoration_apply_geometry(MangoBarDecoration *node) {
 	}
 
 	rect_apply_border(node->border, node->border_color,
-					  node->corner_radius + border, node->corner_radius,
-					  border, width, height);
+					  node->corner_radius + border, node->corner_radius, border,
+					  width, height);
 	rect_apply(node->bg, node->focused ? node->focus_bg_color : node->bg_color,
 			   node->corner_radius, border, border, inner_w, inner_h);
 
