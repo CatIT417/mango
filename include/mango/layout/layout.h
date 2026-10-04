@@ -8,6 +8,7 @@
 #include "mango/layout/scroll.h"
 #include "mango/layout/vertical.h"
 #include <stdint.h>
+#include <stdbool.h>
 #include <wlr/util/box.h>
 
 struct LayoutContext {

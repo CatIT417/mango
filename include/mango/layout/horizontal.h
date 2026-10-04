@@ -2,6 +2,7 @@
 #define __HORIZONTAL_H__
 
 #include "mango/common/types.h"
+#include <stdbool.h>
 
 void tile(Monitor *m);
 bool tile_predict(Monitor *m, Client *c, struct wlr_box *out);
