@@ -250,14 +250,14 @@ static void nag_spawn(void) {
 			out = server.selected_monitor->wlr_output->name;
 		if (out && edit)
 			execlp("mangonag", "mangonag", "-o", out, "-t", "error", "-e",
-				   "top", "-l", "-s", "Close", "-z", "Edit", edit,
+				   "top", "-l", "-s", "Close", "-b", "Edit", edit,
 				   (char *)NULL);
 		else if (out)
 			execlp("mangonag", "mangonag", "-o", out, "-t", "error", "-e",
 				   "top", "-l", "-s", "Close", (char *)NULL);
 		else if (edit)
 			execlp("mangonag", "mangonag", "-t", "error", "-e", "top", "-l",
-				   "-s", "Close", "-z", "Edit", edit, (char *)NULL);
+				   "-s", "Close", "-b", "Edit", edit, (char *)NULL);
 		else
 			execlp("mangonag", "mangonag", "-t", "error", "-e", "top", "-l",
 				   "-s", "Close", (char *)NULL);
