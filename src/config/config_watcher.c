@@ -378,9 +378,7 @@ static void backend_sync(void) {
 
 #else
 
-static bool backend_init(struct wl_event_loop *loop) {
-	return false;
-}
+static bool backend_init(struct wl_event_loop *loop) { return false; }
 
 static void backend_destroy(void) {}
 

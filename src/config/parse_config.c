@@ -2925,8 +2925,7 @@ static bool toml_apply_value(Config *config, const char *key, const char *raw,
 		if (toml_key_joins_array(key)) {
 			ctx.joined[0] = '\0';
 			ctx.joined_len = 0;
-			if (!toml_foreach_array_element(p + 1, toml_join_element,
-											&ctx))
+			if (!toml_foreach_array_element(p + 1, toml_join_element, &ctx))
 				return false;
 			return apply_option_expanded(config, ctx.key, ctx.joined,
 										 line_number);
@@ -2942,15 +2941,15 @@ static bool toml_apply_value(Config *config, const char *key, const char *raw,
 }
 
 static bool toml_is_rule_type(const char *name) {
-	return strcmp(name, "monitor_rule") == 0 ||
-		   strcmp(name, "tag_rule") == 0 || strcmp(name, "layer_rule") == 0 ||
+	return strcmp(name, "monitor_rule") == 0 || strcmp(name, "tag_rule") == 0 ||
+		   strcmp(name, "layer_rule") == 0 ||
 		   strcmp(name, "window_rule") == 0 ||
 		   strcmp(name, "window_rule_once") == 0 ||
 		   strcmp(name, "device_rule") == 0;
 }
 
 static bool toml_section_add(TomlSection *section, const char *subkey,
-						   const char *raw_value) {
+							 const char *raw_value) {
 	char value[2048];
 	toml_value_to_string(raw_value, value, sizeof(value));
 	if (value[0] == '\0')
@@ -3063,8 +3062,7 @@ static bool toml_section_begin(Config *config, TomlSection *section,
 		snprintf(section->name, sizeof(section->name), "%.255s", name);
 	} else {
 		mango_error(false, WLR_ERROR,
-					"Unknown toml section: \033[1m\033[31m%s\033[0m\n",
-					name);
+					"Unknown toml section: \033[1m\033[31m%s\033[0m\n", name);
 		report_config_line_error(full_path, line_number, stmt);
 		section->skip = true;
 		return false;
@@ -3092,8 +3090,7 @@ static bool toml_section_begin(Config *config, TomlSection *section,
 			continue;
 
 		if (depth == 0) {
-			snprintf(section->keymode, sizeof(section->keymode), "%.27s",
-					 tok);
+			snprintf(section->keymode, sizeof(section->keymode), "%.27s", tok);
 		} else {
 			int flag = toml_bind_flag_char(tok);
 			if (flag == 0) {
@@ -3185,8 +3182,8 @@ static bool toml_bind_prefix(const char *base, const char *combo, char *prefix,
 	if (n >= 2) {
 		size_t len = 0;
 		for (int i = 0; i < n - 1; i++) {
-			len += snprintf(mod + len, sizeof(mod) - len, "%s%s",
-							i ? "+" : "", segs[i]);
+			len += snprintf(mod + len, sizeof(mod) - len, "%s%s", i ? "+" : "",
+							segs[i]);
 		}
 	} else {
 		snprintf(mod, sizeof(mod), "none");
@@ -3218,16 +3215,14 @@ static bool toml_section_leaf(Config *config, TomlSection *section,
 		return toml_section_add(section, key, raw_value);
 	if (section->kind == TOML_SECTION_BIND) {
 		TomlBindCtx bind;
-		snprintf(bind.keyword, sizeof(bind.keyword), "%.23s",
-				 section->keyword);
+		snprintf(bind.keyword, sizeof(bind.keyword), "%.23s", section->keyword);
 		bind.config = config;
 		bind.line_number = line_number;
 
 		char *expanded_key = expand_config_variables(key);
-		bool prefix_ok =
-			toml_bind_prefix(section->bindtype,
-							 expanded_key ? expanded_key : key, bind.prefix,
-							 sizeof(bind.prefix));
+		bool prefix_ok = toml_bind_prefix(section->bindtype,
+										  expanded_key ? expanded_key : key,
+										  bind.prefix, sizeof(bind.prefix));
 		free(expanded_key);
 		if (!prefix_ok)
 			return false;
@@ -3236,8 +3231,7 @@ static bool toml_section_leaf(Config *config, TomlSection *section,
 		while (*p != '\0' && isspace((unsigned char)*p))
 			p++;
 		if (*p == '[')
-			return toml_foreach_array_element(p + 1, toml_bind_element,
-											  &bind);
+			return toml_foreach_array_element(p + 1, toml_bind_element, &bind);
 
 		char action[2048];
 		toml_value_to_string(raw_value, action, sizeof(action));
@@ -3357,9 +3351,8 @@ static bool toml_process_statement(Config *config, const char *stmt,
 	trim_whitespace(key);
 
 	size_t key_quoted = strlen(key);
-	if (key_quoted >= 2 &&
-		((key[0] == '"' && key[key_quoted - 1] == '"') ||
-		 (key[0] == '\'' && key[key_quoted - 1] == '\''))) {
+	if (key_quoted >= 2 && ((key[0] == '"' && key[key_quoted - 1] == '"') ||
+							(key[0] == '\'' && key[key_quoted - 1] == '\''))) {
 		memmove(key, key + 1, key_quoted - 2);
 		key[key_quoted - 2] = '\0';
 	}
@@ -3429,8 +3422,7 @@ static bool parse_toml_stream(Config *config, FILE *file,
 	}
 
 	if (stmt_len > 0 &&
-		!toml_process_statement(config, stmt, stmt_line, full_path,
-								&section)) {
+		!toml_process_statement(config, stmt, stmt_line, full_path, &section)) {
 		parse_correct = false;
 	}
 
@@ -3441,7 +3433,8 @@ static bool parse_toml_stream(Config *config, FILE *file,
 	return parse_correct;
 }
 
-static ConfigFileFormat detect_config_format(const char *full_path, FILE *file) {
+static ConfigFileFormat detect_config_format(const char *full_path,
+											 FILE *file) {
 	const char *dot = strrchr(full_path, '.');
 	if (dot != NULL && strcasecmp(dot, ".toml") == 0)
 		return CONFIG_FORMAT_TOML;
@@ -3479,8 +3472,7 @@ static bool resolve_config_path(const char *file_path, char *full_path,
 							"HOME environment variable not set.\n");
 				return false;
 			}
-			snprintf(full_path, size, "%s/.config/mango/%s", home,
-					 rel);
+			snprintf(full_path, size, "%s/.config/mango/%s", home, rel);
 		}
 	} else if (file_path[0] == '~' &&
 			   (file_path[1] == '/' || file_path[1] == '\0')) {
@@ -5576,8 +5568,8 @@ bool parse_config(void) {
 		snprintf(filename, sizeof(filename), "%s/.config/mango/config.conf",
 				 homedir);
 		if (access(filename, F_OK) != 0) {
-			snprintf(filename, sizeof(filename),
-					 "%s/.config/mango/config.toml", homedir);
+			snprintf(filename, sizeof(filename), "%s/.config/mango/config.toml",
+					 homedir);
 		}
 
 		if (access(filename, F_OK) != 0) {

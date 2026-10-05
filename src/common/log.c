@@ -37,9 +37,9 @@ static const char *mango_tag_plain(enum wlr_log_importance verbosity) {
 	}
 }
 
-static void mango_emit(bool log, bool tagged,
-					   enum wlr_log_importance verbosity, const char *file,
-					   int line, const char *fmt, va_list args) {
+static void mango_emit(bool log, bool tagged, enum wlr_log_importance verbosity,
+					   const char *file, int line, const char *fmt,
+					   va_list args) {
 	if (!log) {
 		bool capture = config_error_store_active();
 		bool printable = verbosity == WLR_ERROR || verbosity == WLR_INFO ||
@@ -58,7 +58,8 @@ static void mango_emit(bool log, bool tagged,
 		if (capture) {
 			char buf[4096];
 			if (vsnprintf(buf, sizeof(buf), fmt, copy) >= 0) {
-				const char *plain_tag = tagged ? mango_tag_plain(verbosity) : "";
+				const char *plain_tag =
+					tagged ? mango_tag_plain(verbosity) : "";
 				if (plain_tag[0] != '\0') {
 					char full[4096 + 32];
 					snprintf(full, sizeof(full), "%s%s", plain_tag, buf);
