@@ -28,6 +28,15 @@ mangowm uses a simple configuration file format. By default, it looks for a conf
    mango -c /path/to/your_config.conf
    ```
 
+### TOML Format
+
+mangowm also reads TOML config files. When looking for a user config,
+`~/.config/mango/config.conf` is preferred, then `~/.config/mango/config.toml`
+(likewise under `/etc/mango/`).
+
+See [TOML Conversion](/docs/configuration/toml) for the syntax and how to convert
+an existing conf file.
+
 ### Sub-Configuration
 
 To keep your configuration organized, you can split it into multiple files and include them using the `source` keyword.
