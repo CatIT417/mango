@@ -1,5 +1,5 @@
-#ifndef __CONFIG_PARSE_CONFIG_H__
-#define __CONFIG_PARSE_CONFIG_H__ 1
+#ifndef __CONFIG_PARSE_H__
+#define __CONFIG_PARSE_H__ 1
 
 #include "mango/common/types.h"
 #include "mango/dispatch/bind.h"

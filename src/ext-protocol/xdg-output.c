@@ -1,6 +1,6 @@
 #include "mango/ext-protocol/xdg-output.h"
 #include "mango/common/server.h"
-#include "mango/config/parse_config.h"
+#include "mango/config/parse.h"
 #include "mango/manage/client.h"
 #include "mango/manage/monitor.h"
 #ifdef XWAYLAND

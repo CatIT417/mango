@@ -1,6 +1,6 @@
 #include "mango/layout/overview.h"
 #include "mango/common/server.h"
-#include "mango/config/parse_config.h"
+#include "mango/config/parse.h"
 #include "mango/manage/client.h"
 #include "mango/manage/monitor.h"
 #include "mango/overview/overview.h"

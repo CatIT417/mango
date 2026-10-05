@@ -1,7 +1,7 @@
 #define _GNU_SOURCE
 #include "mango/common/log.h"
 #include "mango/common/util.h"
-#include "mango/config/config_error_store.h"
+#include "mango/config/error_store.h"
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>

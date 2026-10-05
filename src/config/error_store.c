@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 
-#include "mango/config/config_error_store.h"
+#include "mango/config/error_store.h"
 
 #include <fcntl.h>
 #include <limits.h>

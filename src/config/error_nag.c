@@ -1,10 +1,10 @@
 #define _GNU_SOURCE
 
-#include "mango/config/config_error_nag.h"
+#include "mango/config/error_nag.h"
 
 #include "mango/common/server.h"
 #include "mango/common/util.h"
-#include "mango/config/config_error_store.h"
+#include "mango/config/error_store.h"
 #include "mango/manage/monitor.h"
 #include <limits.h>
 #include <signal.h>

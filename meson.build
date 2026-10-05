@@ -150,7 +150,7 @@ wayland_scanner_private_code = generator(
 # use generator in mmsg target
 executable('mmsg',
   'mmsg/mmsg.c',
-  'src/config/config_error_store.c',
+  'src/config/error_store.c',
   'src/common/log.c',
   'src/common/util.c',
 

@@ -1,4 +1,4 @@
-#include "mango/config/config_watcher.h"
+#include "mango/config/watcher.h"
 
 #include <errno.h>
 #include <stdalign.h>
@@ -11,7 +11,7 @@
 #include <unistd.h>
 
 #include "mango/common/log.h"
-#include "mango/config/parse_config.h"
+#include "mango/config/parse.h"
 
 #if defined(__linux__)
 #define CONFIG_WATCH_INOTIFY 1
