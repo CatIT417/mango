@@ -1933,16 +1933,31 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 					/* "touchpad" was the historical name of this device
 					 * type; keep it as a deprecated alias so existing
 					 * rules are not silently dropped. */
+					const char *resolved = val;
 					if (strcmp(val, "touchpad") == 0) {
 						mango_error(false, WLR_INFO,
 									"\033[1;33m[WARN]\033[0m device rule "
 									"type \033[1;36mtouchpad\033[0m is "
 									"deprecated, use \033[1;36mtrackpad\033[0m "
 									"instead\n");
+						resolved = "trackpad";
+					}
+					if (strcmp(resolved, "keyboard") == 0 ||
+						strcmp(resolved, "pointer") == 0 ||
+						strcmp(resolved, "trackpad") == 0 ||
+						strcmp(resolved, "touch") == 0 ||
+						strcmp(resolved, "switch") == 0 ||
+						strcmp(resolved, "tablet") == 0 ||
+						strcmp(resolved, "pad") == 0) {
 						snprintf(rule->type, sizeof(rule->type), "%s",
-								 "trackpad");
+								 resolved);
 					} else {
-						snprintf(rule->type, sizeof(rule->type), "%s", val);
+						mango_error(false, WLR_ERROR,
+									"Invalid device rule type: %s (expected "
+									"one of keyboard, pointer, trackpad, "
+									"touch, switch, tablet, pad)\n",
+									val);
+						parse_error = true;
 					}
 				} else if (strcmp(key, "repeat_rate") == 0) {
 					rule->repeat_rate = CLAMP_INT(atoi(val), 0, 1000);
