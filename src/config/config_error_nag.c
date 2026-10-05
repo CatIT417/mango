@@ -20,6 +20,25 @@ static pid_t nag_pid = -1;
 static int nag_pidfd = -1;
 static struct wl_event_source *nag_timer = NULL;
 
+static void nag_strip_ansi(const char *src, char *dst, size_t dst_size) {
+	size_t j = 0;
+
+	for (size_t i = 0; src[i] != '\0' && j + 1 < dst_size;) {
+		if ((unsigned char)src[i] == '\033' && src[i + 1] == '[') {
+			size_t k = i + 2;
+			while (src[k] != '\0' && !((unsigned char)src[k] >= '@' &&
+									   (unsigned char)src[k] <= '~'))
+				k++;
+			if (src[k] == '\0')
+				break;
+			i = k + 1;
+			continue;
+		}
+		dst[j++] = src[i++];
+	}
+	dst[j] = '\0';
+}
+
 static void nag_kill(void) {
 #ifdef SYS_pidfd_send_signal
 	if (nag_pidfd >= 0) {
@@ -54,8 +73,10 @@ static bool nag_first_target(char *path, size_t path_size, int *line_out) {
 
 	bool found = false;
 	char raw[1024];
+	char line[1024];
 	while (fgets(raw, sizeof(raw), file)) {
-		char *p = strstr(raw, "[Index] ");
+		nag_strip_ansi(raw, line, sizeof(line));
+		char *p = strstr(line, "[Index] ");
 		if (p) {
 			p += 8;
 			while (*p == ' ' || *p == '\t')
@@ -73,7 +94,7 @@ static bool nag_first_target(char *path, size_t path_size, int *line_out) {
 			found = true;
 			break;
 		}
-		p = strstr(raw, "File \"");
+		p = strstr(line, "File \"");
 		if (p) {
 			p += 6;
 			char *end = strchr(p, '"');

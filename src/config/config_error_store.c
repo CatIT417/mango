@@ -88,25 +88,6 @@ void config_error_store_end(void) {
 
 bool config_error_store_active(void) { return store_active; }
 
-static void strip_ansi(const char *src, char *dst, size_t dst_size) {
-	size_t j = 0;
-
-	for (size_t i = 0; src[i] != '\0' && j + 1 < dst_size;) {
-		if ((unsigned char)src[i] == '\033' && src[i + 1] == '[') {
-			size_t k = i + 2;
-			while (src[k] != '\0' && !((unsigned char)src[k] >= '@' &&
-									   (unsigned char)src[k] <= '~'))
-				k++;
-			if (src[k] == '\0')
-				break;
-			i = k + 1;
-			continue;
-		}
-		dst[j++] = src[i++];
-	}
-	dst[j] = '\0';
-}
-
 void config_error_store_record(const char *message) {
 	if (!store_active || store_file == NULL || message == NULL)
 		return;
@@ -115,7 +96,7 @@ void config_error_store_record(const char *message) {
 	char *clean = malloc(len + 1);
 	if (clean == NULL)
 		return;
-	strip_ansi(message, clean, len + 1);
+	memcpy(clean, message, len + 1);
 
 	size_t clean_len = strlen(clean);
 	while (clean_len > 0 &&
@@ -125,6 +106,9 @@ void config_error_store_record(const char *message) {
 
 	if (clean_len > 0) {
 		fputs(clean, store_file);
+		if (strchr(clean, '\033') != NULL &&
+			!(clean_len >= 4 && strcmp(clean + clean_len - 4, "\033[0m") == 0))
+			fputs("\033[0m", store_file);
 		fputc('\n', store_file);
 		fflush(store_file);
 	}

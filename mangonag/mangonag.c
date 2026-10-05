@@ -39,12 +39,12 @@ struct nag_type {
 };
 
 static const struct nag_type type_error = {
-	.background = 0x1A1A1AFF,
-	.text = 0xFFFFFFFF,
-	.button_background = 0x404040FF,
-	.button_text = 0xFFFFFFFF,
-	.border = 0xFF4D4DFF,
-	.border_bottom = 0xFF4D4DFF,
+	.background = 0x201B14FF,
+	.text = 0xE1D1B6FF,
+	.button_background = 0x3A332AFF,
+	.button_text = 0xE1D1B6FF,
+	.border = 0xEF2929FF,
+	.border_bottom = 0xEF2929FF,
 };
 
 static const struct nag_type type_warning = {
@@ -305,11 +305,339 @@ static PangoLayout *nag_layout(cairo_t *cr, const char *text, int width) {
 	return layout;
 }
 
+struct nag_style {
+	int fg;
+	bool truecolor;
+	uint32_t rgb;
+	int bg;
+	bool bg_true;
+	uint32_t bg_rgb;
+	bool bold;
+	bool dim;
+	bool italic;
+	bool underline;
+};
+
+static const uint32_t nag_palette[16] = {
+	0x262626FF, 0xDE5959FF, 0x84D082FF, 0xE9B959FF, 0xE9B959FF, 0xD5A7E0FF,
+	0xA5DE86FF, 0xE1D1B6FF, 0xC6C09CFF, 0xF57474FF, 0xB3EC7BFF, 0xF1E69FFF,
+	0xA3C1E0FF, 0xCAACC6FF, 0xF1E69FFF, 0xF4F4F3FF,
+};
+
+static uint32_t nag_color(int index) {
+	if (index < 0)
+		return 0;
+	if (index < 16)
+		return nag_palette[index];
+	if (index < 232) {
+		int c = index - 16;
+		int r = c / 36;
+		int g = (c / 6) % 6;
+		int b = c % 6;
+		r = r ? 55 + r * 40 : 0;
+		g = g ? 55 + g * 40 : 0;
+		b = b ? 55 + b * 40 : 0;
+		return (uint32_t)((r << 24) | (g << 16) | (b << 8) | 0xFF);
+	}
+	int v = 8 + (index - 232) * 10;
+	return (uint32_t)((v << 24) | (v << 16) | (v << 8) | 0xFF);
+}
+
+static void nag_style_reset(struct nag_style *style) {
+	style->fg = -1;
+	style->truecolor = false;
+	style->rgb = 0;
+	style->bg = -1;
+	style->bg_true = false;
+	style->bg_rgb = 0;
+	style->bold = false;
+	style->dim = false;
+	style->italic = false;
+	style->underline = false;
+}
+
+static void nag_style_code(struct nag_style *style, int code) {
+	if (code == 0)
+		nag_style_reset(style);
+	else if (code == 1)
+		style->bold = true;
+	else if (code == 2)
+		style->dim = true;
+	else if (code == 3)
+		style->italic = true;
+	else if (code == 4)
+		style->underline = true;
+	else if (code == 22)
+		style->bold = style->dim = false;
+	else if (code == 23)
+		style->italic = false;
+	else if (code == 24)
+		style->underline = false;
+	else if (code == 39) {
+		style->fg = -1;
+		style->truecolor = false;
+	} else if (code == 49) {
+		style->bg = -1;
+		style->bg_true = false;
+	} else if (code >= 30 && code <= 37)
+		style->fg = code - 30;
+	else if (code >= 90 && code <= 97)
+		style->fg = code - 90 + 8;
+	else if (code >= 40 && code <= 47)
+		style->bg = code - 40;
+	else if (code >= 100 && code <= 107)
+		style->bg = code - 100 + 8;
+}
+
+static void nag_style_params(struct nag_style *style, const char *params) {
+	int values[64];
+	int count = 0;
+	const char *p = params;
+
+	while (*p != '\0' && count < 64) {
+		values[count++] = atoi(p);
+		while (*p != '\0' && *p != ';')
+			p++;
+		if (*p == ';')
+			p++;
+	}
+
+	if (count == 0) {
+		nag_style_reset(style);
+		return;
+	}
+
+	for (int i = 0; i < count; i++) {
+		int code = values[i];
+		if (code == 38 && i + 2 < count && values[i + 1] == 5) {
+			style->fg = values[i + 2];
+			style->truecolor = false;
+			i += 2;
+		} else if (code == 38 && i + 4 < count && values[i + 1] == 2) {
+			style->rgb =
+				(uint32_t)((values[i + 2] << 24) | (values[i + 3] << 16) |
+						   (values[i + 4] << 8) | 0xFF);
+			style->truecolor = true;
+			i += 4;
+		} else if (code == 48 && i + 2 < count && values[i + 1] == 5) {
+			style->bg = values[i + 2];
+			style->bg_true = false;
+			i += 2;
+		} else if (code == 48 && i + 4 < count && values[i + 1] == 2) {
+			style->bg_rgb =
+				(uint32_t)((values[i + 2] << 24) | (values[i + 3] << 16) |
+						   (values[i + 4] << 8) | 0xFF);
+			style->bg_true = true;
+			i += 4;
+		} else {
+			nag_style_code(style, code);
+		}
+	}
+}
+
+static void nag_attr_emit(PangoAttrList *list, const struct nag_style *style,
+						  int start, int end) {
+	if (end <= start)
+		return;
+
+	PangoAttribute *attr;
+
+	if (style->truecolor || style->fg >= 0) {
+		uint32_t color = style->truecolor ? style->rgb : nag_color(style->fg);
+		attr =
+			pango_attr_foreground_new((guint16)(((color >> 24) & 0xFF) * 257),
+									  (guint16)(((color >> 16) & 0xFF) * 257),
+									  (guint16)(((color >> 8) & 0xFF) * 257));
+		attr->start_index = start;
+		attr->end_index = end;
+		pango_attr_list_insert(list, attr);
+	}
+	if (style->bg_true || style->bg >= 0) {
+		uint32_t color = style->bg_true ? style->bg_rgb : nag_color(style->bg);
+		attr =
+			pango_attr_background_new((guint16)(((color >> 24) & 0xFF) * 257),
+									  (guint16)(((color >> 16) & 0xFF) * 257),
+									  (guint16)(((color >> 8) & 0xFF) * 257));
+		attr->start_index = start;
+		attr->end_index = end;
+		pango_attr_list_insert(list, attr);
+	}
+	if (style->bold) {
+		attr = pango_attr_weight_new(PANGO_WEIGHT_BOLD);
+		attr->start_index = start;
+		attr->end_index = end;
+		pango_attr_list_insert(list, attr);
+	}
+	if (style->italic) {
+		attr = pango_attr_style_new(PANGO_STYLE_ITALIC);
+		attr->start_index = start;
+		attr->end_index = end;
+		pango_attr_list_insert(list, attr);
+	}
+	if (style->underline) {
+		attr = pango_attr_underline_new(PANGO_UNDERLINE_SINGLE);
+		attr->start_index = start;
+		attr->end_index = end;
+		pango_attr_list_insert(list, attr);
+	}
+	if (style->dim) {
+		attr = pango_attr_foreground_alpha_new(0x6000);
+		attr->start_index = start;
+		attr->end_index = end;
+		pango_attr_list_insert(list, attr);
+	}
+}
+
+static size_t nag_ansi_skip(const char *text) {
+	if ((unsigned char)text[0] != 0x1b || text[1] != '[')
+		return 0;
+
+	size_t i = 2;
+	while (text[i] != '\0' &&
+		   !((unsigned char)text[i] >= '@' && (unsigned char)text[i] <= '~'))
+		i++;
+	if (text[i] == '\0')
+		return 0;
+	return i + 1;
+}
+
+static bool nag_tag_match(const char *text, int *length, uint32_t *fg,
+						  uint32_t *bg) {
+	static const struct {
+		const char *tag;
+		uint32_t fg;
+		uint32_t bg;
+	} tags[] = {
+		{"[ERROR]", 0x201B14FF, 0xEF2929FF},
+		{"[WARN]", 0x201B14FF, 0xEAD96BFF},
+		{"[INFO]", 0x201B14FF, 0x729FCFFF},
+		{"[DEBUG]", 0x201B14FF, 0x8AE234FF},
+	};
+
+	for (size_t i = 0; i < sizeof(tags) / sizeof(tags[0]); i++) {
+		size_t n = strlen(tags[i].tag);
+		if (strncmp(text, tags[i].tag, n) == 0) {
+			*length = (int)n;
+			*fg = tags[i].fg;
+			*bg = tags[i].bg;
+			return true;
+		}
+	}
+	return false;
+}
+
+static PangoAttrList *nag_ansi_attrs(const char *text, char **clean_out) {
+	if (!text)
+		text = "";
+
+	size_t len = strlen(text);
+	char *clean = malloc(len + 1);
+	if (!clean) {
+		*clean_out = NULL;
+		return NULL;
+	}
+
+	PangoAttrList *list = pango_attr_list_new();
+	struct nag_style style;
+	nag_style_reset(&style);
+
+	size_t offset = 0;
+	size_t run_start = 0;
+	const char *p = text;
+	bool line_start = true;
+
+	while (*p != '\0') {
+		size_t skip = nag_ansi_skip(p);
+		if (skip > 0) {
+			if (p[skip - 1] == 'm') {
+				nag_attr_emit(list, &style, (int)run_start, (int)offset);
+				char params[64];
+				size_t n = skip - 3;
+				if (n >= sizeof(params))
+					n = sizeof(params) - 1;
+				memcpy(params, p + 2, n);
+				params[n] = '\0';
+				nag_style_params(&style, params);
+				run_start = offset;
+			}
+			p += skip;
+			continue;
+		}
+
+		if (line_start) {
+			int tag_len = 0;
+			uint32_t tag_fg = 0;
+			uint32_t tag_bg = 0;
+			if (nag_tag_match(p, &tag_len, &tag_fg, &tag_bg)) {
+				int start = (int)offset;
+				for (int i = 0; i < tag_len; i++)
+					clean[offset++] = p[i];
+				p += tag_len;
+				if (*p == ':')
+					clean[offset++] = *p++;
+				struct nag_style tag_style;
+				nag_style_reset(&tag_style);
+				tag_style.truecolor = true;
+				tag_style.rgb = tag_fg;
+				tag_style.bg_true = true;
+				tag_style.bg_rgb = tag_bg;
+				tag_style.bold = true;
+				nag_attr_emit(list, &tag_style, start, (int)offset);
+				run_start = offset;
+				line_start = false;
+				continue;
+			}
+			line_start = false;
+		}
+
+		if (*p == '\n') {
+			nag_attr_emit(list, &style, (int)run_start, (int)offset);
+			clean[offset++] = '\n';
+			nag_style_reset(&style);
+			run_start = offset;
+			line_start = true;
+			p++;
+			continue;
+		}
+
+		clean[offset++] = *p++;
+	}
+
+	nag_attr_emit(list, &style, (int)run_start, (int)offset);
+	clean[offset] = '\0';
+	*clean_out = clean;
+	return list;
+}
+
+static PangoLayout *nag_layout_markup(cairo_t *cr, const char *text,
+									  int width) {
+	char *clean = NULL;
+	PangoAttrList *attrs = nag_ansi_attrs(text ? text : "", &clean);
+
+	PangoLayout *layout = pango_cairo_create_layout(cr);
+	PangoFontDescription *desc =
+		pango_font_description_from_string(nag.font ? nag.font : "monospace 13");
+	pango_layout_set_font_description(layout, desc);
+	pango_font_description_free(desc);
+	pango_layout_set_text(layout, clean ? clean : "", -1);
+	if (attrs)
+		pango_layout_set_attributes(layout, attrs);
+	pango_layout_set_wrap(layout, PANGO_WRAP_CHAR);
+	pango_layout_set_single_paragraph_mode(layout, false);
+	if (width > 0)
+		pango_layout_set_width(layout, width * PANGO_SCALE);
+
+	if (attrs)
+		pango_attr_list_unref(attrs);
+	free(clean);
+	return layout;
+}
+
 static int nag_text_height(const char *text) {
 	cairo_surface_t *surface =
 		cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 1, 1);
 	cairo_t *cr = cairo_create(surface);
-	PangoLayout *layout = nag_layout(cr, text, 0);
+	PangoLayout *layout = nag_layout_markup(cr, text, 0);
 	int w = 0, h = 0;
 	pango_layout_get_pixel_size(layout, &w, &h);
 	g_object_unref(layout);
@@ -408,7 +736,7 @@ static void nag_render(void) {
 	char *display = nag_truncate_lines(nag.message, text_avail / char_w);
 
 	int text_w = 0, text_h = 0;
-	PangoLayout *layout = nag_layout(cr, display, 0);
+	PangoLayout *layout = nag_layout_markup(cr, display, 0);
 	pango_layout_get_pixel_size(layout, &text_w, &text_h);
 	rgba_to_cairo(nag.type->text, &r, &g, &b, &a);
 	cairo_set_source_rgba(cr, r, g, b, a);
@@ -772,7 +1100,8 @@ static char *nag_limit_lines(const char *text, int max_lines) {
 		p = nl ? nl + 1 : NULL;
 	}
 	char summary[64];
-	snprintf(summary, sizeof(summary), "\xe2\x80\xa6 (+%d more)", lines - keep);
+	snprintf(summary, sizeof(summary), "\033[0m\xe2\x80\xa6 (+%d more)",
+			 lines - keep);
 	strcpy(out + o, summary);
 	return out;
 }
@@ -793,6 +1122,11 @@ static char *nag_truncate_lines(const char *text, int max_chars) {
 		int codepoints = 0;
 		size_t cut = len;
 		for (size_t i = 0; i < len;) {
+			size_t skip = nag_ansi_skip(p + i);
+			if (skip > 0) {
+				i += skip;
+				continue;
+			}
 			unsigned char c = (unsigned char)p[i];
 			if ((c & 0xC0) != 0x80) {
 				if (codepoints == max_chars) {
@@ -807,8 +1141,8 @@ static char *nag_truncate_lines(const char *text, int max_chars) {
 		memcpy(out + o, p, cut);
 		o += cut;
 		if (cut < len) {
-			memcpy(out + o, "\xe2\x80\xa6", 3);
-			o += 3;
+			memcpy(out + o, "\033[0m\xe2\x80\xa6", 7);
+			o += 7;
 		}
 		if (!nl)
 			break;
