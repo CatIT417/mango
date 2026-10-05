@@ -1,11 +1,12 @@
+#if defined(__linux__)
 #define _GNU_SOURCE
+#elif !defined(_POSIX_C_SOURCE)
+#define _POSIX_C_SOURCE 200809L
+#endif
 
 #include <cairo/cairo.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <getopt.h>
-#include <linux/memfd.h>
-#include <linux/input-event-codes.h>
 #include <pango/pangocairo.h>
 #include <poll.h>
 #include <signal.h>
@@ -22,6 +23,7 @@
 #include <wayland-client.h>
 #include <wayland-util.h>
 
+#include "mango/common/input-event-codes.h"
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
 
 #define NAG_NAMESPACE "mangonag"
@@ -245,11 +247,33 @@ static const struct wl_output_listener output_listener = {
 	.description = nag_output_description,
 };
 
+static int nag_create_shm_fd(void) {
+#if defined(__linux__)
+	return memfd_create(NAG_NAMESPACE, MFD_CLOEXEC);
+#else
+	char name[64];
+
+	for (unsigned int attempt = 0; attempt < 16; attempt++) {
+		snprintf(name, sizeof(name), "/" NAG_NAMESPACE "-%ld-%u",
+				 (long)getpid(), attempt);
+		int fd =
+			shm_open(name, O_RDWR | O_CREAT | O_EXCL | O_CLOEXEC, 0600);
+		if (fd >= 0) {
+			shm_unlink(name);
+			return fd;
+		}
+		if (errno != EEXIST)
+			break;
+	}
+	return -1;
+#endif
+}
+
 static struct nag_buffer *nag_buffer_create(int width, int height) {
 	int stride = width * 4;
 	int size = stride * height;
 
-	int fd = memfd_create("mangonag", MFD_CLOEXEC);
+	int fd = nag_create_shm_fd();
 	if (fd < 0)
 		return NULL;
 	if (ftruncate(fd, size) < 0) {
@@ -1017,23 +1041,80 @@ static void nag_setup_surface(void) {
 	wl_surface_commit(nag.surface);
 }
 
-static const struct option long_options[] = {
-	{"message", required_argument, NULL, 'm'},
-	{"detailed-message", no_argument, NULL, 'l'},
-	{"type", required_argument, NULL, 't'},
-	{"edge", required_argument, NULL, 'e'},
-	{"layer", required_argument, NULL, 'y'},
-	{"output", required_argument, NULL, 'o'},
-	{"font", required_argument, NULL, 'f'},
-	{"dismiss-button", required_argument, NULL, 's'},
-	{"button", required_argument, NULL, 'b'},
-	{"button-no-terminal", required_argument, NULL, 'B'},
-	{"button-dismiss", required_argument, NULL, 'z'},
-	{"button-dismiss-no-terminal", required_argument, NULL, 'Z'},
-	{"timeout", required_argument, NULL, 'T'},
-	{"help", no_argument, NULL, 'h'},
-	{NULL, 0, NULL, 0},
+static const struct nag_long_option {
+	const char *name;
+	char short_option;
+} nag_long_options[] = {
+	{"message", 'm'},
+	{"detailed-message", 'l'},
+	{"type", 't'},
+	{"edge", 'e'},
+	{"layer", 'y'},
+	{"output", 'o'},
+	{"font", 'f'},
+	{"dismiss-button", 's'},
+	{"button", 'b'},
+	{"button-no-terminal", 'B'},
+	{"button-dismiss", 'z'},
+	{"button-dismiss-no-terminal", 'Z'},
+	{"timeout", 'T'},
+	{"help", 'h'},
 };
+
+static char **nag_expand_long_options(char **argv, int *argc, char **pool_out) {
+	int capacity = *argc * 2 + 1;
+	char **out = malloc((size_t)capacity * sizeof(*out));
+	char *pool = malloc((size_t)*argc * 3 + 1);
+
+	if (!out || !pool) {
+		free(out);
+		free(pool);
+		return NULL;
+	}
+	*pool_out = pool;
+
+	int n = 0;
+	for (int i = 0; i < *argc; i++) {
+		const char *arg = argv[i];
+		const char *value = NULL;
+		char short_option = '\0';
+
+		if (i > 0 && arg[0] == '-' && arg[1] == '-' && arg[2] != '\0') {
+			const char *body = arg + 2;
+			const char *eq = strchr(body, '=');
+			size_t length = eq ? (size_t)(eq - body) : strlen(body);
+
+			for (size_t j = 0;
+				 j < sizeof(nag_long_options) / sizeof(nag_long_options[0]);
+				 j++) {
+				if (strlen(nag_long_options[j].name) == length &&
+					memcmp(nag_long_options[j].name, body, length) == 0) {
+					short_option = nag_long_options[j].short_option;
+					break;
+				}
+			}
+			if (eq)
+				value = eq + 1;
+		}
+
+		if (short_option != '\0') {
+			pool[0] = '-';
+			pool[1] = short_option;
+			pool[2] = '\0';
+			out[n++] = pool;
+			pool += 3;
+			if (value)
+				out[n++] = (char *)value;
+			continue;
+		}
+
+		out[n++] = argv[i];
+	}
+
+	out[n] = NULL;
+	*argc = n;
+	return out;
+}
 
 static void nag_add_button(const char *text, const char *action, bool terminal,
 						   bool dismiss) {
@@ -1184,9 +1265,14 @@ int main(int argc, char *argv[]) {
 	nag.font = strdup("monospace 13");
 	nag.running = true;
 
+	char *long_pool = NULL;
+	char **nag_argv = nag_expand_long_options(argv, &argc, &long_pool);
+	if (!nag_argv)
+		return EXIT_FAILURE;
+	argv = nag_argv;
+
 	int option;
-	while ((option = getopt_long(argc, argv, "m:lt:e:y:o:f:s:b:B:z:Z:T:h",
-								 long_options, NULL)) != -1) {
+	while ((option = getopt(argc, argv, "m:lt:e:y:o:f:s:b:B:z:Z:T:h")) != -1) {
 		switch (option) {
 		case 'm':
 			free(nag.message);
@@ -1251,12 +1337,18 @@ int main(int argc, char *argv[]) {
 			break;
 		case 'h':
 			usage();
+			free(nag_argv);
+			free(long_pool);
 			return EXIT_SUCCESS;
 		default:
 			usage();
+			free(nag_argv);
+			free(long_pool);
 			return EXIT_FAILURE;
 		}
 	}
+	free(nag_argv);
+	free(long_pool);
 
 	if (nag.details && nag.details[0] != '\0') {
 		size_t a = nag.message ? strlen(nag.message) : 0;

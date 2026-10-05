@@ -2,6 +2,7 @@
  * See LICENSE file for copyright and license details.
  */
 #include "mango/animation/common.h"
+#include "mango/common/input-event-codes.h"
 #include "mango/common/log.h"
 #include "mango/common/server.h"
 #include "mango/common/util.h"
@@ -31,7 +32,6 @@
 #include <getopt.h>
 #include <libinput.h>
 #include <limits.h>
-#include <linux/input-event-codes.h>
 #include <pthread.h>
 #include <scenefx/render/fx_renderer/fx_renderer.h>
 #include <scenefx/types/fx/blur_data.h>

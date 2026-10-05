@@ -9,12 +9,12 @@
 #include <string.h>
 #include <strings.h>
 
+#include "mango/common/input-event-codes.h"
 #include "mango/common/log.h"
 #include "mango/dispatch/bind.h"
 #include "mango/input/pointer.h"
 #include "mango/manage/client.h"
 #include "mango/switcher/switcher.h"
-#include <linux/input-event-codes.h>
 #include <wlr/types/wlr_keyboard.h>
 
 static struct xkb_keymap *reference_keymap_instance = NULL;

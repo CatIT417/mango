@@ -11,6 +11,7 @@
 #include <strings.h>
 
 #include "mango/animation/common.h"
+#include "mango/common/input-event-codes.h"
 #include "mango/common/log.h"
 #include "mango/common/server.h"
 #include "mango/common/util.h"
@@ -31,7 +32,6 @@
 #include "mango/manage/monitor.h"
 #include "mango/manage/tab.h"
 #include "mango/switcher/switcher.h"
-#include <linux/input-event-codes.h>
 #include <scenefx/types/wlr_scene.h>
 #include <unistd.h>
 #include <wlr/backend/libinput.h>
