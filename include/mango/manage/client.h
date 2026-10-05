@@ -128,7 +128,7 @@ struct Client {
 	uint32_t configure_serial;
 	struct wlr_foreign_toplevel_handle_v1 *foreign_toplevel;
 	int32_t isfloating, isurgent, isfullscreen, isfakefullscreen,
-		need_float_size_reduce, isminimized, isoverlay, isnosizehint,
+		need_float_size_reduce, isminimized, isoverlay, no_size_hint,
 		ignore_maximize, ignore_minimize, idleinhibit_when_focus,
 		vrr_only_fullscreen, force_render, activation_bypass;
 	int32_t ismaximizescreen;
@@ -160,10 +160,10 @@ struct Client {
 	int32_t iscustom_scroller_proportion;
 	int32_t iscustom_scroller_proportion_single;
 	int32_t isglobal;
-	int32_t isnoborder;
-	int32_t isnoshadow;
-	int32_t isnoradius;
-	int32_t isnoanimation;
+	int32_t no_border;
+	int32_t no_shadow;
+	int32_t no_radius;
+	int32_t no_animation;
 	int32_t isopensilent;
 	int32_t istagsilent;
 	int32_t iskilling;
@@ -177,7 +177,7 @@ struct Client {
 	bool need_output_flush;
 	struct mango_animation animation;
 	struct mango_opacity_animation opacity_animation;
-	int32_t isterm, noswallow;
+	int32_t isterm, no_swallow;
 	int32_t allow_csd;
 	int32_t force_fakemaximize;
 	int32_t force_tiled_state;
@@ -188,15 +188,15 @@ struct Client {
 	bool scratchpad_switching_mon;
 	bool scratchpad_tagin;
 	bool fake_no_border;
-	int32_t nofocus;
-	int32_t nofadein;
-	int32_t nofadeout;
+	int32_t no_focus;
+	int32_t no_fade_in;
+	int32_t no_fade_out;
 	int32_t no_force_center;
 	int32_t isunglobal;
 	float focused_opacity;
 	float unfocused_opacity;
 	char oldmonname[128];
-	int32_t noblur;
+	int32_t no_blur;
 	float blur_opacity;
 	struct wlr_ext_foreign_toplevel_handle_v1 *ext_foreign_toplevel;
 	double master_mfact_per, master_inner_per, stack_inner_per;

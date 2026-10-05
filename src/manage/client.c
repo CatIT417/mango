@@ -846,7 +846,7 @@ bool check_hit_no_border(Client *c) {
 Client *client_find_terminal(Client *w) {
 	Client *c = NULL;
 
-	if (!w->pid || w->isterm || w->noswallow)
+	if (!w->pid || w->isterm || w->no_swallow)
 		return NULL;
 
 	wl_list_for_each(c, &server.focus_stack, flink) {
@@ -1416,19 +1416,19 @@ void apply_rule_properties(Client *c, const ConfigWinRule *r) {
 	APPLY_INT_PROP(c, r, force_fakemaximize);
 	APPLY_INT_PROP(c, r, force_tiled_state);
 	APPLY_INT_PROP(c, r, force_tearing);
-	APPLY_INT_PROP(c, r, noswallow);
+	APPLY_INT_PROP(c, r, no_swallow);
 	APPLY_INT_PROP(c, r, confine_pointer);
-	APPLY_INT_PROP(c, r, nofocus);
-	APPLY_INT_PROP(c, r, nofadein);
-	APPLY_INT_PROP(c, r, nofadeout);
+	APPLY_INT_PROP(c, r, no_focus);
+	APPLY_INT_PROP(c, r, no_fade_in);
+	APPLY_INT_PROP(c, r, no_fade_out);
 	APPLY_INT_PROP(c, r, no_force_center);
 	APPLY_INT_PROP(c, r, isfloating);
 	APPLY_INT_PROP(c, r, isfullscreen);
 	APPLY_INT_PROP(c, r, isfakefullscreen);
-	APPLY_INT_PROP(c, r, isnoborder);
-	APPLY_INT_PROP(c, r, isnoshadow);
-	APPLY_INT_PROP(c, r, isnoradius);
-	APPLY_INT_PROP(c, r, isnoanimation);
+	APPLY_INT_PROP(c, r, no_border);
+	APPLY_INT_PROP(c, r, no_shadow);
+	APPLY_INT_PROP(c, r, no_radius);
+	APPLY_INT_PROP(c, r, no_animation);
 	APPLY_INT_PROP(c, r, isopensilent);
 	APPLY_INT_PROP(c, r, istagsilent);
 	APPLY_INT_PROP(c, r, isnamedscratchpad);
@@ -1437,13 +1437,13 @@ void apply_rule_properties(Client *c, const ConfigWinRule *r) {
 	APPLY_INT_PROP(c, r, shield_when_capture);
 	APPLY_INT_PROP(c, r, ignore_maximize);
 	APPLY_INT_PROP(c, r, ignore_minimize);
-	APPLY_INT_PROP(c, r, isnosizehint);
+	APPLY_INT_PROP(c, r, no_size_hint);
 	APPLY_INT_PROP(c, r, idleinhibit_when_focus);
 	APPLY_INT_PROP(c, r, vrr_only_fullscreen);
 	APPLY_INT_PROP(c, r, force_render);
 	APPLY_INT_PROP(c, r, activation_bypass);
 	APPLY_INT_PROP(c, r, isunglobal);
-	APPLY_INT_PROP(c, r, noblur);
+	APPLY_INT_PROP(c, r, no_blur);
 	APPLY_INT_PROP(c, r, allow_shortcuts_inhibit);
 
 	APPLY_FLOAT_PROP(c, r, scroller_proportion);
@@ -1616,7 +1616,7 @@ void client_apply_rules(Client *c, Monitor **rule_mon, uint32_t *rule_tags) {
 			c->geom = c->float_geom.width > 0 && c->float_geom.height > 0
 						  ? c->float_geom
 						  : c->geom;
-			if (!c->isnosizehint)
+			if (!c->no_size_hint)
 				client_set_size_bound(c);
 		}
 	}
@@ -1656,7 +1656,7 @@ void client_apply_rules(Client *c, Monitor **rule_mon, uint32_t *rule_tags) {
 
 	// apply swallow rule
 	c->pid = client_get_pid(c);
-	if (!c->noswallow && !c->isfloating && !client_is_float_type(c) &&
+	if (!c->no_swallow && !c->isfloating && !client_is_float_type(c) &&
 		!c->surface.xdg->initial_commit) {
 		Client *p = client_find_terminal(c);
 		if (p && !p->isminimized) {
@@ -2010,12 +2010,12 @@ void init_client_properties(Client *c) {
 	c->isfocusing = false;
 	c->isfloating = 0;
 	c->isfakefullscreen = 0;
-	c->isnoanimation = 0;
+	c->no_animation = 0;
 	c->isopensilent = 0;
 	c->istagsilent = 0;
-	c->noswallow = 0;
+	c->no_swallow = 0;
 	c->isterm = 0;
-	c->noblur = 0;
+	c->no_blur = 0;
 	c->tearing_hint = 0;
 	c->overview_isfullscreenbak = 0;
 	c->overview_ismaximizescreenbak = 0;
@@ -2049,14 +2049,14 @@ void init_client_properties(Client *c) {
 	c->fake_no_border = false;
 	c->focused_opacity = config.focused_opacity;
 	c->unfocused_opacity = config.unfocused_opacity;
-	c->nofocus = 0;
-	c->nofadein = 0;
-	c->nofadeout = 0;
+	c->no_focus = 0;
+	c->no_fade_in = 0;
+	c->no_fade_out = 0;
 	c->no_force_center = 0;
-	c->isnoborder = 0;
-	c->isnosizehint = 0;
-	c->isnoradius = 0;
-	c->isnoshadow = 0;
+	c->no_border = 0;
+	c->no_size_hint = 0;
+	c->no_radius = 0;
+	c->no_shadow = 0;
 	c->ignore_maximize = 1;
 	c->ignore_minimize = 1;
 	c->iscustomsize = 0;
@@ -2242,7 +2242,7 @@ void handle_client_map(struct wl_listener *listener, void *data) {
 	// set special window properties
 	if (client_is_unmanaged(c) || client_is_x11_popup(c)) {
 		c->bw = 0;
-		c->isnoborder = 1;
+		c->no_border = 1;
 	} else {
 		c->bw = config.borderpx;
 	}
@@ -2763,7 +2763,7 @@ void iter_xdg_scene_buffers(struct wlr_scene_buffer *buffer, int32_t sx,
 	if (wlr_subsurface_try_from_wlr_surface(surface) != NULL)
 		return;
 
-	if (config.blur && c && !c->noblur) {
+	if (config.blur && c && !c->no_blur) {
 		if (config.blur_optimized) {
 			wlr_scene_blur_set_should_only_blur_bottom_layer(c->blur, true);
 		} else {
@@ -2817,7 +2817,7 @@ void client_focus(Client *c, int32_t lift) {
 	if (c && client_should_ignore_focus(c) && client_is_x11_popup(c))
 		return;
 
-	if (c && c->nofocus)
+	if (c && c->no_focus)
 		return;
 
 	/* Raise client in stacking order if requested */
@@ -3343,7 +3343,7 @@ void client_apply_fullscreen(
 			resize(c, c->mon->m, 1);
 
 	} else {
-		c->bw = c->isnoborder ? 0 : config.borderpx;
+		c->bw = c->no_border ? 0 : config.borderpx;
 		if (c->isfloating)
 			client_set_floating(c, 1);
 	}
@@ -3401,7 +3401,7 @@ void client_set_maximize_screen(Client *c, int32_t maximizescreen,
 		if (!is_scroller_layout(c->mon) || c->isfloating)
 			resize(c, maximizescreen_box, 0);
 	} else {
-		c->bw = c->isnoborder ? 0 : config.borderpx;
+		c->bw = c->no_border ? 0 : config.borderpx;
 		if (c->isfloating)
 			client_set_floating(c, 1);
 	}
@@ -3556,7 +3556,7 @@ void show_scratchpad(Client *c) {
 	if (c->isfullscreen || c->ismaximizescreen) {
 		client_pending_fullscreen_state(c, 0);
 		client_pending_maximized_state(c, 0);
-		c->bw = c->isnoborder ? 0 : config.borderpx;
+		c->bw = c->no_border ? 0 : config.borderpx;
 	}
 
 	/* return if fullscreen */

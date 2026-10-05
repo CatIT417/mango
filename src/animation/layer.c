@@ -252,7 +252,7 @@ void layer_draw_shadow(LayerSurface *l) {
 	if (!l->mapped || !l->shadow)
 		return;
 
-	if (!config.shadows || !config.layer_shadows || l->noshadow) {
+	if (!config.shadows || !config.layer_shadows || l->no_shadow) {
 		wlr_scene_shadow_set_size(l->shadow, 0, 0);
 		return;
 	}
@@ -416,7 +416,7 @@ void layer_animation_next_tick(LayerSurface *l) {
 							   1.0f);
 
 	if (config.animation_fade_in) {
-		if (config.blur && !l->noblur && !config.blur_optimized) {
+		if (config.blur && !l->no_blur && !config.blur_optimized) {
 			wlr_scene_blur_set_strength(l->blur, opacity);
 			wlr_scene_blur_set_alpha(l->blur, opacity);
 		}
@@ -447,7 +447,7 @@ void layer_animation_next_tick(LayerSurface *l) {
 		.height = height,
 	};
 
-	if (config.blur && config.blur_layer && !l->noblur && l->blur)
+	if (config.blur && config.blur_layer && !l->no_blur && l->blur)
 		wlr_scene_blur_set_size(l->blur, l->animation.current.width,
 								l->animation.current.height);
 
@@ -458,7 +458,7 @@ void layer_animation_next_tick(LayerSurface *l) {
 	}
 }
 void init_fadeout_layers(LayerSurface *l) {
-	if (!config.animations || !config.layer_animations || l->noanim) {
+	if (!config.animations || !config.layer_animations || l->no_animation) {
 		return;
 	}
 
@@ -589,7 +589,7 @@ void layer_set_pending_state(LayerSurface *l) {
 	} else {
 		l->animainit_geom = l->animation.current;
 	}
-	if (!config.animations || !config.layer_animations || l->noanim ||
+	if (!config.animations || !config.layer_animations || l->no_animation ||
 		l->layer_surface->current.layer ==
 			ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND ||
 		l->layer_surface->current.layer == ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM) {
@@ -642,7 +642,7 @@ bool layer_draw_frame(LayerSurface *l) {
 	}
 
 	if (config.animations && config.layer_animations && l->animation.running &&
-		!l->noanim) {
+		!l->no_animation) {
 		layer_animation_next_tick(l);
 		layer_draw_shield(l);
 		layer_draw_shadow(l);

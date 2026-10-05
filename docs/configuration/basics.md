@@ -49,7 +49,7 @@ source=~/.config/mango/bind.conf
 source=./theme.conf
 
 # Optional: ignore if file doesn't exist (useful for shared configs)
-source-optional=~/.config/mango/optional.conf
+source_optional=~/.config/mango/optional.conf
 ```
 
 ### Validate Configuration
@@ -60,7 +60,7 @@ You can check your configuration for errors without starting mangowm:
 mango -c /path/to/config.conf -p
 ```
 
-Use with `source-optional` for shared configs across different setups.
+Use with `source_optional` for shared configs across different setups.
 
 ## Environment Variables
 
@@ -91,7 +91,7 @@ bind=SUPER,Print,spawn_shell,grim ${screenshot_dir}/$(date +%Y%m%d%H%M%S).png
 ```
 
 Variables must be defined before they are used, and they are shared across
-`source`/`source-optional` files (the included file can use variables defined
+`source`/`source_optional` files (the included file can use variables defined
 before the `source` line).
 
 > **Note:** Only names you actually defined are expanded. Anything else is left
@@ -113,17 +113,17 @@ mangowm can automatically run commands or scripts upon startup. There are two mo
 
 | Command | Behavior | Usage Case |
 | :--- | :--- | :--- |
-| `exec-once` | Runs **only once** when mangowm starts. | Status bars, Wallpapers, Notification daemons |
+| `exec_once` | Runs **only once** when mangowm starts. | Status bars, Wallpapers, Notification daemons |
 | `exec` | Runs **every time** the config is reloaded. | Scripts that need to refresh settings |
 
 ### Example Setup
 
 ```ini
 # Start the status bar once
-exec-once=waybar
+exec_once=waybar
 
 # Set wallpaper
-exec-once=swaybg -i ~/.config/mango/wallpaper/room.png
+exec_once=swaybg -i ~/.config/mango/wallpaper/room.png
 
 # Reload a custom script on config change
 exec=bash ~/.config/mango/reload-settings.sh

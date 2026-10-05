@@ -209,10 +209,10 @@ void handle_layer_surface_map(struct wl_listener *listener, void *data) {
 	// Initializes the geometry position.
 	get_layer_target_geometry(l, &l->geom);
 
-	l->noanim = 0;
+	l->no_animation = 0;
 	l->dirty = false;
 	l->shield_when_capture = false;
-	l->noblur = 0;
+	l->no_blur = 0;
 	l->shadow = NULL;
 	l->need_output_flush = true;
 	l->animation_type_open = ANIM_TYPE_UNSET;
@@ -225,9 +225,9 @@ void handle_layer_surface_map(struct wl_listener *listener, void *data) {
 
 			r = &config.layer_rules[ji];
 			APPLY_INT_PROP(l, r, shield_when_capture);
-			APPLY_INT_PROP(l, r, noblur);
-			APPLY_INT_PROP(l, r, noanim);
-			APPLY_INT_PROP(l, r, noshadow);
+			APPLY_INT_PROP(l, r, no_blur);
+			APPLY_INT_PROP(l, r, no_animation);
+			APPLY_INT_PROP(l, r, no_shadow);
 			APPLY_INT_PROP(l, r, animation_type_open);
 			APPLY_INT_PROP(l, r, animation_type_close);
 		}
@@ -256,7 +256,7 @@ void handle_layer_surface_map(struct wl_listener *listener, void *data) {
 	}
 
 	// Initializes the animation.
-	if (config.animations && config.layer_animations && !l->noanim) {
+	if (config.animations && config.layer_animations && !l->no_animation) {
 		l->animation.duration = config.animation_duration_open;
 		l->animation.action = OPEN;
 		layer_set_pending_state(l);
@@ -315,7 +315,7 @@ void handle_layer_surface_commit(struct wl_listener *listener, void *data) {
 		l->geom.width = box.width;
 		l->geom.height = box.height;
 
-		if (config.animations && config.layer_animations && !l->noanim &&
+		if (config.animations && config.layer_animations && !l->no_animation &&
 			l->mapped &&
 			layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
 			layer_surface->current.layer !=
@@ -333,7 +333,7 @@ void handle_layer_surface_commit(struct wl_listener *listener, void *data) {
 
 	if (config.blur && config.blur_layer) {
 
-		if (!l->noblur &&
+		if (!l->no_blur &&
 			layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM &&
 			layer_surface->current.layer !=
 				ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND &&

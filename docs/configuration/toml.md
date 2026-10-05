@@ -21,18 +21,18 @@ parsed with the reader that matches its own extension, so the two can be mixed.
 | `key=value` | `[global]` + `key = value` |
 | `env=NAME,value` | `[env]` + `"NAME" = "value"` |
 | `var=name,value` | `[var]` + `name = "value"` |
-| `bind=mod,key,func,args` | `[bind.<keymode>]` + `"mod+key" = "func,args"` |
-| `bindc=mod,key,func,args` | `[bind.<keymode>.conflict]` + `"mod+key" = "func,args"` |
-| `mousebind=mod,btn,func,args` | `[mousebind.<keymode>]` + `"mod+btn" = "func,args"` |
-| `axisbind=mod,dir,func,args` | `[axisbind.<keymode>]` + `"mod+dir" = "func,args"` |
-| `gesturebind=mod,dir,fingers,func,args` | `[gesturebind.<keymode>]` + `"mod+dir+fingers" = "func,args"` |
-| `switchbind=fold,func,args` | `[switchbind.<keymode>]` + `"fold" = "func,args"` |
-| `monitorrule=k:v,k:v` | `[[rule.monitorrule]]` + `k = v` |
-| `tagrule=k:v,k:v` | `[[rule.tagrule]]` + `k = v` |
-| `layerrule=k:v,k:v` | `[[rule.layerrule]]` + `k = v` |
-| `windowrule=k:v,k:v` | `[[rule.windowrule]]` + `k = v` |
-| `windowrule-once=k:v,k:v` | `[[rule.windowrule-once]]` + `k = v` |
-| `devicerule=k:v,k:v` | `[[rule.devicerule]]` + `k = v` |
+| `bind=mod,key,func,args` | `[bind.<key_mode>]` + `"mod+key" = "func,args"` |
+| `bindc=mod,key,func,args` | `[bind.<key_mode>.conflict]` + `"mod+key" = "func,args"` |
+| `mousebind=mod,btn,func,args` | `[mousebind.<key_mode>]` + `"mod+btn" = "func,args"` |
+| `axisbind=mod,dir,func,args` | `[axisbind.<key_mode>]` + `"mod+dir" = "func,args"` |
+| `gesturebind=mod,dir,fingers,func,args` | `[gesturebind.<key_mode>]` + `"mod+dir+fingers" = "func,args"` |
+| `switchbind=fold,func,args` | `[switchbind.<key_mode>]` + `"fold" = "func,args"` |
+| `monitor_rule=k:v,k:v` | `[[rule.monitor_rule]]` + `k = v` |
+| `tag_rule=k:v,k:v` | `[[rule.tag_rule]]` + `k = v` |
+| `layer_rule=k:v,k:v` | `[[rule.layer_rule]]` + `k = v` |
+| `window_rule=k:v,k:v` | `[[rule.window_rule]]` + `k = v` |
+| `window_rule_once=k:v,k:v` | `[[rule.window_rule_once]]` + `k = v` |
+| `device_rule=k:v,k:v` | `[[rule.device_rule]]` + `k = v` |
 
 ## Plain options → [global]
 
@@ -42,7 +42,7 @@ key names and values.
 ```ini
 blur=1
 border_radius=8
-rootcolor=0x201b14ff
+root_color=0x201b14ff
 animation_curve_open=0.46,1.0,0.29,1
 ```
 
@@ -50,7 +50,7 @@ animation_curve_open=0.46,1.0,0.29,1
 [global]
 blur = 1
 border_radius = 8
-rootcolor = 0x201b14ff
+root_color = 0x201b14ff
 animation_curve_open = [0.46, 1.0, 0.29, 1]
 ```
 
@@ -83,15 +83,15 @@ text `"140"` / `"true"`. Quoting them is still recommended.
 
 ## Bindings
 
-In conf, `keymode` is a state line and `bind=mod,key,func,args` follows it. In
-TOML the keymode becomes a table suffix and the modifier and key are joined with
+In conf, `key_mode` is a state line and `bind=mod,key,func,args` follows it. In
+TOML the key_mode becomes a table suffix and the modifier and key are joined with
 `+` on the left of `=`.
 
 ```ini
-keymode=default
+key_mode=default
 bind=Alt,Return,spawn,foot
 
-keymode=resize
+key_mode=resize
 bind=SUPER,Left,resizewin,-10,0
 ```
 
@@ -103,7 +103,7 @@ bind=SUPER,Left,resizewin,-10,0
 "SUPER+Left" = "resizewin,-10,0"
 ```
 
-The keymode segment is **required** (`default` when there is no `keymode` line).
+The key_mode segment is **required** (`default` when there is no `key_mode` line).
 A binding with no modifier is just the key: `"XF86AudioMute" = "spawn,..."`.
 `code:N` works too: `"code:24" = "killclient"`.
 
@@ -162,29 +162,29 @@ Every `xxxrule=` line becomes one `[[rule.xxx]]` element, and the `k:v,k:v` pair
 become `k = v`.
 
 ```ini
-windowrule=isfloating:1,width:800,height:900,appid:mpv
-tagrule=id:1,layout_name:tile
-layerrule=animation_type_open:zoom,layer_name:rofi
-monitorrule=name:eDP-1,width:1920,height:1080,refresh:60,x:0,y:0,scale:1
-devicerule=type:trackpad,tap_to_click:1,natural_scrolling:0
+window_rule=is_floating:1,width:800,height:900,app_id:mpv
+tag_rule=id:1,layout_name:tile
+layer_rule=animation_type_open:zoom,layer_name:rofi
+monitor_rule=name:eDP-1,width:1920,height:1080,refresh:60,x:0,y:0,scale:1
+device_rule=type:trackpad,tap_to_click:1,natural_scrolling:0
 ```
 
 ```toml
-[[rule.windowrule]]
-isfloating = 1
+[[rule.window_rule]]
+is_floating = 1
 width = 800
 height = 900
-appid = "mpv"
+app_id = "mpv"
 
-[[rule.tagrule]]
+[[rule.tag_rule]]
 id = 1
 layout_name = "tile"
 
-[[rule.layerrule]]
+[[rule.layer_rule]]
 animation_type_open = "zoom"
 layer_name = "rofi"
 
-[[rule.monitorrule]]
+[[rule.monitor_rule]]
 name = "eDP-1"
 width = 1920
 height = 1080
@@ -193,7 +193,7 @@ x = 0
 y = 0
 scale = 1
 
-[[rule.devicerule]]
+[[rule.device_rule]]
 type = "trackpad"
 tap_to_click = 1
 natural_scrolling = 0
@@ -203,22 +203,22 @@ natural_scrolling = 0
 
 TOML forbids repeating a key inside one table, so conf keys that appear on many
 lines become **one key with an array value**. This applies to `source`,
-`source-optional`, `exec` and `exec-once`.
+`source_optional`, `exec` and `exec_once`.
 
 ```ini
 source=./env.conf
 source=./bind.conf
-exec-once=waybar
-exec-once=swaybg -i wall.png
+exec_once=waybar
+exec_once=swaybg -i wall.png
 ```
 
 ```toml
 [global]
 source = ["./env.toml", "./bind.toml"]
-exec-once = ["waybar", "swaybg -i wall.png"]
+exec_once = ["waybar", "swaybg -i wall.png"]
 ```
 
-Repeated rules (`windowrule`, `tagrule`, ...) use array-of-tables instead, so
+Repeated rules (`window_rule`, `tag_rule`, ...) use array-of-tables instead, so
 each `[[rule.<type>]]` is a new rule. Repeating the *same key combination* in one
 bind table is the one remaining case: put the actions in an array.
 

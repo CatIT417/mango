@@ -465,7 +465,7 @@ int32_t animation_type_from_string(const char *value) {
 }
 
 bool parse_option(Config *config, char *key, char *value, int line_number) {
-	if (strcmp(key, "keymode") == 0) {
+	if (strcmp(key, "key_mode") == 0) {
 		snprintf(config->keymode, sizeof(config->keymode), "%.27s", value);
 	} else if (strcmp(key, "animations") == 0) {
 		config->animations = atoi(value);
@@ -489,9 +489,9 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->zoom_initial_ratio = atof(value);
 	} else if (strcmp(key, "zoom_end_ratio") == 0) {
 		config->zoom_end_ratio = atof(value);
-	} else if (strcmp(key, "fadein_begin_opacity") == 0) {
+	} else if (strcmp(key, "fade_in_begin_opacity") == 0) {
 		config->fadein_begin_opacity = atof(value);
-	} else if (strcmp(key, "fadeout_begin_opacity") == 0) {
+	} else if (strcmp(key, "fade_out_begin_opacity") == 0) {
 		config->fadeout_begin_opacity = atof(value);
 	} else if (strcmp(key, "animation_duration_move") == 0) {
 		config->animation_duration_move = atoi(value);
@@ -552,7 +552,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 						value);
 			return false;
 		}
-	} else if (strcmp(key, "animation_curve_opafadein") == 0) {
+	} else if (strcmp(key, "animation_curve_opacity_fade_in") == 0) {
 		int32_t num =
 			parse_double_array(value, config->animation_curve_opafadein, 4);
 		if (num != 4) {
@@ -562,7 +562,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 						value);
 			return false;
 		}
-	} else if (strcmp(key, "animation_curve_opafadeout") == 0) {
+	} else if (strcmp(key, "animation_curve_opacity_fade_out") == 0) {
 		int32_t num =
 			parse_double_array(value, config->animation_curve_opafadeout, 4);
 		if (num != 4) {
@@ -593,7 +593,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->edge_scroller_focus_allow_speed = atof(value);
 	} else if (strcmp(key, "focus_cross_monitor") == 0) {
 		config->focus_cross_monitor = atoi(value);
-	} else if (strcmp(key, "focusdir_only_zone_overlap") == 0) {
+	} else if (strcmp(key, "focus_direction_only_zone_overlap") == 0) {
 		config->focusdir_only_zone_overlap = atoi(value);
 	} else if (strcmp(key, "exchange_cross_monitor") == 0) {
 		config->exchange_cross_monitor = atoi(value);
@@ -643,7 +643,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->xwayland_persistence = atoi(value);
 	} else if (strcmp(key, "xwayland_ignore_scale") == 0) {
 		config->xwayland_ignore_scale = atoi(value);
-	} else if (strcmp(key, "syncobj_enable") == 0) {
+	} else if (strcmp(key, "sync_obj_enable") == 0) {
 		config->syncobj_enable = atoi(value);
 	} else if (strcmp(key, "tag_carousel") == 0) {
 		config->tag_carousel = atoi(value);
@@ -868,9 +868,9 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		free(value_copy);
 	} else if (strcmp(key, "new_is_master") == 0) {
 		config->new_is_master = atoi(value);
-	} else if (strcmp(key, "default_mfact") == 0) {
+	} else if (strcmp(key, "default_master_factor") == 0) {
 		config->default_mfact = atof(value);
-	} else if (strcmp(key, "default_nmaster") == 0) {
+	} else if (strcmp(key, "default_master_count") == 0) {
 		config->default_nmaster = atoi(value);
 	} else if (strcmp(key, "tag_num") == 0) {
 		config->tag_num = atoi(value);
@@ -880,9 +880,9 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->center_master_overspread = atoi(value);
 	} else if (strcmp(key, "center_when_single_stack") == 0) {
 		config->center_when_single_stack = atoi(value);
-	} else if (strcmp(key, "dwindle_vsplit") == 0) {
+	} else if (strcmp(key, "dwindle_vertical_split") == 0) {
 		config->dwindle_vsplit = atoi(value);
-	} else if (strcmp(key, "dwindle_hsplit") == 0) {
+	} else if (strcmp(key, "dwindle_horizontal_split") == 0) {
 		config->dwindle_hsplit = atoi(value);
 	} else if (strcmp(key, "dwindle_preserve_split") == 0) {
 		config->dwindle_preserve_split = atoi(value);
@@ -904,9 +904,9 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->enable_hotarea = atoi(value);
 	} else if (strcmp(key, "hotarea_disable_on_fullscreen") == 0) {
 		config->hotarea_disable_on_fullscreen = atoi(value);
-	} else if (strcmp(key, "overviewgappi") == 0) {
+	} else if (strcmp(key, "overview_gap_inner") == 0) {
 		config->overviewgappi = atoi(value);
-	} else if (strcmp(key, "overviewgappo") == 0) {
+	} else if (strcmp(key, "overview_gap_outer") == 0) {
 		config->overviewgappo = atoi(value);
 	} else if (strcmp(key, "overcircle_center_ratio") == 0) {
 		config->overcircle_center_ratio = atof(value);
@@ -922,21 +922,21 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->axis_bind_apply_timeout = atoi(value);
 	} else if (strcmp(key, "focus_on_activate") == 0) {
 		config->focus_on_activate = atoi(value);
-	} else if (strcmp(key, "numlockon") == 0) {
+	} else if (strcmp(key, "numlock_on") == 0) {
 		config->numlockon = atoi(value);
-	} else if (strcmp(key, "idleinhibit_ignore_visible") == 0) {
+	} else if (strcmp(key, "idle_inhibit_ignore_visible") == 0) {
 		config->idleinhibit_ignore_visible = atoi(value);
-	} else if (strcmp(key, "idleinhibit_when_fullscreen") == 0) {
+	} else if (strcmp(key, "idle_inhibit_when_fullscreen") == 0) {
 		config->idleinhibit_when_fullscreen = atoi(value);
-	} else if (strcmp(key, "sloppyfocus") == 0) {
+	} else if (strcmp(key, "sloppy_focus") == 0) {
 		config->sloppyfocus = atoi(value);
-	} else if (strcmp(key, "warpcursor") == 0) {
+	} else if (strcmp(key, "warp_cursor") == 0) {
 		config->warpcursor = atoi(value);
 	} else if (strcmp(key, "drag_corner") == 0) {
 		config->drag_corner = atoi(value);
 	} else if (strcmp(key, "drag_warp_cursor") == 0) {
 		config->drag_warp_cursor = atoi(value);
-	} else if (strcmp(key, "smartgaps") == 0) {
+	} else if (strcmp(key, "smart_gaps") == 0) {
 		config->smartgaps = atoi(value);
 	} else if (strcmp(key, "monocle_tab_mode") == 0) {
 		config->monocle_tab_mode = atoi(value);
@@ -1226,13 +1226,13 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->axis_scroll_factor = atof(value);
 	} else if (strcmp(key, "trackpad_scroll_factor") == 0) {
 		config->trackpad_scroll_factor = atof(value);
-	} else if (strcmp(key, "gappih") == 0) {
+	} else if (strcmp(key, "gap_inner_horizontal") == 0) {
 		config->gappih = atoi(value);
-	} else if (strcmp(key, "gappiv") == 0) {
+	} else if (strcmp(key, "gap_inner_vertical") == 0) {
 		config->gappiv = atoi(value);
-	} else if (strcmp(key, "gappoh") == 0) {
+	} else if (strcmp(key, "gap_outer_horizontal") == 0) {
 		config->gappoh = atoi(value);
-	} else if (strcmp(key, "gappov") == 0) {
+	} else if (strcmp(key, "gap_outer_vertical") == 0) {
 		config->gappov = atoi(value);
 	} else if (strcmp(key, "scratchpad_width_ratio") == 0) {
 		config->scratchpad_width_ratio = atof(value);
@@ -1240,21 +1240,21 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		config->scratchpad_height_ratio = atof(value);
 	} else if (strcmp(key, "special_dim") == 0) {
 		config->special_dim = atof(value);
-	} else if (strcmp(key, "special_gappih") == 0) {
+	} else if (strcmp(key, "special_gap_inner_horizontal") == 0) {
 		config->special_gappih = atoi(value);
-	} else if (strcmp(key, "special_gappiv") == 0) {
+	} else if (strcmp(key, "special_gap_inner_vertical") == 0) {
 		config->special_gappiv = atoi(value);
-	} else if (strcmp(key, "special_gappoh") == 0) {
+	} else if (strcmp(key, "special_gap_outer_horizontal") == 0) {
 		config->special_gappoh = atoi(value);
-	} else if (strcmp(key, "special_gappov") == 0) {
+	} else if (strcmp(key, "special_gap_outer_vertical") == 0) {
 		config->special_gappov = atoi(value);
-	} else if (strcmp(key, "borderpx") == 0) {
+	} else if (strcmp(key, "border_px") == 0) {
 		config->borderpx = atoi(value);
 	} else if (strcmp(key, "group_bar_height") == 0) {
 		config->group_bar_height = atoi(value);
 	} else if (strcmp(key, "tab_bar_height") == 0) {
 		config->tab_bar_height = atoi(value);
-	} else if (strcmp(key, "rootcolor") == 0) {
+	} else if (strcmp(key, "root_color") == 0) {
 		int64_t color = parse_color(value);
 		if (color == -1) {
 			mango_error(false, WLR_ERROR,
@@ -1267,7 +1267,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 			convert_hex_to_rgba(config->rootcolor, color);
 		}
 
-	} else if (strcmp(key, "shadowscolor") == 0) {
+	} else if (strcmp(key, "shadows_color") == 0) {
 		int64_t color = parse_color(value);
 		if (color == -1) {
 			mango_error(false, WLR_ERROR,
@@ -1302,7 +1302,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		} else {
 			convert_hex_to_rgba(config->dim_unfocused_color, color);
 		}
-	} else if (strcmp(key, "bordercolor") == 0) {
+	} else if (strcmp(key, "border_color") == 0) {
 		int64_t color = parse_color(value);
 		if (color == -1) {
 			mango_error(false, WLR_ERROR,
@@ -1313,7 +1313,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		} else {
 			convert_hex_to_rgba(config->bordercolor, color);
 		}
-	} else if (strcmp(key, "dropcolor") == 0) {
+	} else if (strcmp(key, "drop_color") == 0) {
 		int64_t color = parse_color(value);
 		if (color == -1) {
 			mango_error(false, WLR_ERROR,
@@ -1324,7 +1324,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		} else {
 			convert_hex_to_rgba(config->dropcolor, color);
 		}
-	} else if (strcmp(key, "splitcolor") == 0) {
+	} else if (strcmp(key, "split_color") == 0) {
 		int64_t color = parse_color(value);
 		if (color == -1) {
 			mango_error(false, WLR_ERROR,
@@ -1335,7 +1335,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		} else {
 			convert_hex_to_rgba(config->splitcolor, color);
 		}
-	} else if (strcmp(key, "focuscolor") == 0) {
+	} else if (strcmp(key, "focus_color") == 0) {
 		int64_t color = parse_color(value);
 		if (color == -1) {
 			mango_error(false, WLR_ERROR,
@@ -1346,7 +1346,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		} else {
 			convert_hex_to_rgba(config->focuscolor, color);
 		}
-	} else if (strcmp(key, "maximizescreencolor") == 0) {
+	} else if (strcmp(key, "maximized_screen_color") == 0) {
 		int64_t color = parse_color(value);
 		if (color == -1) {
 			mango_error(false, WLR_ERROR,
@@ -1358,7 +1358,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		} else {
 			convert_hex_to_rgba(config->maximizescreencolor, color);
 		}
-	} else if (strcmp(key, "urgentcolor") == 0) {
+	} else if (strcmp(key, "urgent_color") == 0) {
 		int64_t color = parse_color(value);
 		if (color == -1) {
 			mango_error(false, WLR_ERROR,
@@ -1369,7 +1369,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		} else {
 			convert_hex_to_rgba(config->urgentcolor, color);
 		}
-	} else if (strcmp(key, "scratchpadcolor") == 0) {
+	} else if (strcmp(key, "scratchpad_color") == 0) {
 		int64_t color = parse_color(value);
 		if (color == -1) {
 			mango_error(false, WLR_ERROR,
@@ -1381,7 +1381,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		} else {
 			convert_hex_to_rgba(config->scratchpadcolor, color);
 		}
-	} else if (strcmp(key, "globalcolor") == 0) {
+	} else if (strcmp(key, "global_color") == 0) {
 		int64_t color = parse_color(value);
 		if (color == -1) {
 			mango_error(false, WLR_ERROR,
@@ -1392,7 +1392,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		} else {
 			convert_hex_to_rgba(config->globalcolor, color);
 		}
-	} else if (strcmp(key, "overlaycolor") == 0) {
+	} else if (strcmp(key, "overlay_color") == 0) {
 		int64_t color = parse_color(value);
 		if (color == -1) {
 			mango_error(false, WLR_ERROR,
@@ -1403,7 +1403,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		} else {
 			convert_hex_to_rgba(config->overlaycolor, color);
 		}
-	} else if (strcmp(key, "monitorrule") == 0) {
+	} else if (strcmp(key, "monitor_rule") == 0) {
 		config->monitor_rules =
 			realloc(config->monitor_rules, (config->monitor_rules_count + 1) *
 											   sizeof(ConfigMonitorRule));
@@ -1521,7 +1521,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 
 		config->monitor_rules_count++;
 		return !parse_error;
-	} else if (strcmp(key, "tagrule") == 0) {
+	} else if (strcmp(key, "tag_rule") == 0) {
 		config->tag_rules =
 			realloc(config->tag_rules,
 					(config->tag_rules_count + 1) * sizeof(ConfigTagRule));
@@ -1588,9 +1588,9 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 					rule->open_as_floating = CLAMP_INT(atoi(val), 0, 1);
 				} else if (strcmp(key, "no_hide") == 0) {
 					rule->no_hide = CLAMP_INT(atoi(val), 0, 1);
-				} else if (strcmp(key, "nmaster") == 0) {
+				} else if (strcmp(key, "master_count") == 0) {
 					rule->nmaster = CLAMP_INT(atoi(val), 1, 99);
-				} else if (strcmp(key, "mfact") == 0) {
+				} else if (strcmp(key, "master_factor") == 0) {
 					rule->mfact = CLAMP_FLOAT(atof(val), 0.1f, 0.9f);
 				} else if (strcmp(key, "scroller_default_proportion") == 0) {
 					rule->scroller_default_proportion =
@@ -1617,7 +1617,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 
 		config->tag_rules_count++;
 		return !parse_error;
-	} else if (strcmp(key, "layerrule") == 0) {
+	} else if (strcmp(key, "layer_rule") == 0) {
 		config->layer_rules =
 			realloc(config->layer_rules,
 					(config->layer_rules_count + 1) * sizeof(ConfigLayerRule));
@@ -1636,9 +1636,9 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		rule->animation_type_open = ANIM_TYPE_UNSET;
 		rule->animation_type_close = ANIM_TYPE_UNSET;
 		rule->shield_when_capture = 0;
-		rule->noblur = 0;
-		rule->noanim = 0;
-		rule->noshadow = 0;
+		rule->no_blur = 0;
+		rule->no_animation = 0;
+		rule->no_shadow = 0;
 
 		bool parse_error = false;
 		char *token = strtok(value, ",");
@@ -1661,12 +1661,12 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 						animation_type_from_string(val);
 				} else if (strcmp(key, "shield_when_capture") == 0) {
 					rule->shield_when_capture = CLAMP_INT(atoi(val), 0, 1);
-				} else if (strcmp(key, "noblur") == 0) {
-					rule->noblur = CLAMP_INT(atoi(val), 0, 1);
-				} else if (strcmp(key, "noanim") == 0) {
-					rule->noanim = CLAMP_INT(atoi(val), 0, 1);
-				} else if (strcmp(key, "noshadow") == 0) {
-					rule->noshadow = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "no_blur") == 0) {
+					rule->no_blur = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "no_animation") == 0) {
+					rule->no_animation = CLAMP_INT(atoi(val), 0, 1);
+				} else if (strcmp(key, "no_shadow") == 0) {
+					rule->no_shadow = CLAMP_INT(atoi(val), 0, 1);
 				} else {
 					mango_error(false, WLR_ERROR,
 								"Unknown "
@@ -1686,8 +1686,8 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 
 		config->layer_rules_count++;
 		return !parse_error;
-	} else if (strcmp(key, "windowrule") == 0 ||
-			   strcmp(key, "windowrule-once") == 0) {
+	} else if (strcmp(key, "window_rule") == 0 ||
+			   strcmp(key, "window_rule_once") == 0) {
 		config->window_rules =
 			realloc(config->window_rules,
 					(config->window_rules_count + 1) * sizeof(ConfigWinRule));
@@ -1703,7 +1703,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 
 		// int32_t rule value, relay to a client property
 
-		if (strcmp(key, "windowrule-once") == 0) {
+		if (strcmp(key, "window_rule_once") == 0) {
 			rule->is_once = 1;
 			rule->is_once_applied = 0;
 		} else {
@@ -1714,10 +1714,10 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		rule->isfloating = -1;
 		rule->isfullscreen = -1;
 		rule->isfakefullscreen = -1;
-		rule->isnoborder = -1;
-		rule->isnoshadow = -1;
-		rule->isnoradius = -1;
-		rule->isnoanimation = -1;
+		rule->no_border = -1;
+		rule->no_shadow = -1;
+		rule->no_radius = -1;
+		rule->no_animation = -1;
 		rule->isopensilent = -1;
 		rule->istagsilent = -1;
 		rule->isnamedscratchpad = -1;
@@ -1728,7 +1728,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		rule->allow_shortcuts_inhibit = -1;
 		rule->ignore_maximize = -1;
 		rule->ignore_minimize = -1;
-		rule->isnosizehint = -1;
+		rule->no_size_hint = -1;
 		rule->idleinhibit_when_focus = -1;
 		rule->vrr_only_fullscreen = -1;
 		rule->force_render = -1;
@@ -1738,12 +1738,12 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		rule->force_fakemaximize = -1;
 		rule->force_tiled_state = -1;
 		rule->force_tearing = -1;
-		rule->noswallow = -1;
+		rule->no_swallow = -1;
 		rule->confine_pointer = -1;
-		rule->noblur = -1;
-		rule->nofocus = -1;
-		rule->nofadein = -1;
-		rule->nofadeout = -1;
+		rule->no_blur = -1;
+		rule->no_focus = -1;
+		rule->no_fade_in = -1;
+		rule->no_fade_out = -1;
 		rule->no_force_center = -1;
 
 		// string rule value, relay to a client property
@@ -1780,11 +1780,11 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 				trim_whitespace(key);
 				trim_whitespace(val);
 
-				if (strcmp(key, "isfloating") == 0) {
+				if (strcmp(key, "is_floating") == 0) {
 					rule->isfloating = atoi(val);
 				} else if (strcmp(key, "title") == 0) {
 					rule->title = strdup(val);
-				} else if (strcmp(key, "appid") == 0) {
+				} else if (strcmp(key, "app_id") == 0) {
 					rule->id = strdup(val);
 				} else if (strcmp(key, "animation_type_open") == 0) {
 					rule->animation_type_open = animation_type_from_string(val);
@@ -1795,39 +1795,39 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 					rule->tags = parse_tag_mask(val);
 				} else if (strcmp(key, "monitor") == 0) {
 					rule->monitor = strdup(val);
-				} else if (strcmp(key, "offsetx") == 0) {
+				} else if (strcmp(key, "offset_x") == 0) {
 					rule->offsetx = atoi(val);
-				} else if (strcmp(key, "offsety") == 0) {
+				} else if (strcmp(key, "offset_y") == 0) {
 					rule->offsety = atoi(val);
-				} else if (strcmp(key, "nofocus") == 0) {
-					rule->nofocus = atoi(val);
-				} else if (strcmp(key, "nofadein") == 0) {
-					rule->nofadein = atoi(val);
-				} else if (strcmp(key, "nofadeout") == 0) {
-					rule->nofadeout = atoi(val);
+				} else if (strcmp(key, "no_focus") == 0) {
+					rule->no_focus = atoi(val);
+				} else if (strcmp(key, "no_fade_in") == 0) {
+					rule->no_fade_in = atoi(val);
+				} else if (strcmp(key, "no_fade_out") == 0) {
+					rule->no_fade_out = atoi(val);
 				} else if (strcmp(key, "no_force_center") == 0) {
 					rule->no_force_center = atoi(val);
 				} else if (strcmp(key, "width") == 0) {
 					rule->width = atof(val);
 				} else if (strcmp(key, "height") == 0) {
 					rule->height = atof(val);
-				} else if (strcmp(key, "isnoborder") == 0) {
-					rule->isnoborder = atoi(val);
-				} else if (strcmp(key, "isnoshadow") == 0) {
-					rule->isnoshadow = atoi(val);
-				} else if (strcmp(key, "isnoradius") == 0) {
-					rule->isnoradius = atoi(val);
-				} else if (strcmp(key, "isnoanimation") == 0) {
-					rule->isnoanimation = atoi(val);
-				} else if (strcmp(key, "isopensilent") == 0) {
+				} else if (strcmp(key, "no_border") == 0) {
+					rule->no_border = atoi(val);
+				} else if (strcmp(key, "no_shadow") == 0) {
+					rule->no_shadow = atoi(val);
+				} else if (strcmp(key, "no_radius") == 0) {
+					rule->no_radius = atoi(val);
+				} else if (strcmp(key, "no_animation") == 0) {
+					rule->no_animation = atoi(val);
+				} else if (strcmp(key, "is_open_silent") == 0) {
 					rule->isopensilent = atoi(val);
-				} else if (strcmp(key, "istagsilent") == 0) {
+				} else if (strcmp(key, "is_tag_silent") == 0) {
 					rule->istagsilent = atoi(val);
-				} else if (strcmp(key, "isnamedscratchpad") == 0) {
+				} else if (strcmp(key, "is_named_scratchpad") == 0) {
 					rule->isnamedscratchpad = atoi(val);
-				} else if (strcmp(key, "isunglobal") == 0) {
+				} else if (strcmp(key, "is_unmanaged_global") == 0) {
 					rule->isunglobal = atoi(val);
-				} else if (strcmp(key, "isglobal") == 0) {
+				} else if (strcmp(key, "is_global") == 0) {
 					rule->isglobal = atoi(val);
 				} else if (strcmp(key, "scroller_proportion_single") == 0) {
 					rule->scroller_proportion_single = atof(val);
@@ -1835,7 +1835,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 					rule->unfocused_opacity = atof(val);
 				} else if (strcmp(key, "focused_opacity") == 0) {
 					rule->focused_opacity = atof(val);
-				} else if (strcmp(key, "isoverlay") == 0) {
+				} else if (strcmp(key, "is_overlay") == 0) {
 					rule->isoverlay = atoi(val);
 				} else if (strcmp(key, "shield_when_capture") == 0) {
 					rule->shield_when_capture = atoi(val);
@@ -1845,9 +1845,9 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 					rule->ignore_maximize = atoi(val);
 				} else if (strcmp(key, "ignore_minimize") == 0) {
 					rule->ignore_minimize = atoi(val);
-				} else if (strcmp(key, "isnosizehint") == 0) {
-					rule->isnosizehint = atoi(val);
-				} else if (strcmp(key, "idleinhibit_when_focus") == 0) {
+				} else if (strcmp(key, "no_size_hint") == 0) {
+					rule->no_size_hint = atoi(val);
+				} else if (strcmp(key, "idle_inhibit_when_focus") == 0) {
 					rule->idleinhibit_when_focus = atoi(val);
 				} else if (strcmp(key, "vrr_only_fullscreen") == 0) {
 					rule->vrr_only_fullscreen = atoi(val);
@@ -1855,29 +1855,29 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 					rule->force_render = atoi(val);
 				} else if (strcmp(key, "activation_bypass") == 0) {
 					rule->activation_bypass = atoi(val);
-				} else if (strcmp(key, "isterm") == 0) {
+				} else if (strcmp(key, "is_term") == 0) {
 					rule->isterm = atoi(val);
 				} else if (strcmp(key, "allow_csd") == 0) {
 					rule->allow_csd = atoi(val);
-				} else if (strcmp(key, "force_fakemaximize") == 0) {
+				} else if (strcmp(key, "force_fake_maximize") == 0) {
 					rule->force_fakemaximize = atoi(val);
 				} else if (strcmp(key, "force_tiled_state") == 0) {
 					rule->force_tiled_state = atoi(val);
 				} else if (strcmp(key, "force_tearing") == 0) {
 					rule->force_tearing = atoi(val);
-				} else if (strcmp(key, "noswallow") == 0) {
-					rule->noswallow = atoi(val);
+				} else if (strcmp(key, "no_swallow") == 0) {
+					rule->no_swallow = atoi(val);
 				} else if (strcmp(key, "confine_pointer") == 0) {
 					rule->confine_pointer = atoi(val);
-				} else if (strcmp(key, "noblur") == 0) {
-					rule->noblur = atoi(val);
+				} else if (strcmp(key, "no_blur") == 0) {
+					rule->no_blur = atoi(val);
 				} else if (strcmp(key, "scroller_proportion") == 0) {
 					rule->scroller_proportion = atof(val);
-				} else if (strcmp(key, "isfullscreen") == 0) {
+				} else if (strcmp(key, "is_fullscreen") == 0) {
 					rule->isfullscreen = atoi(val);
-				} else if (strcmp(key, "isfakefullscreen") == 0) {
+				} else if (strcmp(key, "is_fake_fullscreen") == 0) {
 					rule->isfakefullscreen = atoi(val);
-				} else if (strcmp(key, "globalkeybinding") == 0) {
+				} else if (strcmp(key, "global_key_binding") == 0) {
 					char mod_str[256], keysym_str[256];
 					sscanf(val, "%255[^-]-%255[a-zA-Z]", mod_str, keysym_str);
 					trim_whitespace(mod_str);
@@ -1907,7 +1907,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 		}
 		config->window_rules_count++;
 		return !parse_error;
-	} else if (strcmp(key, "devicerule") == 0) {
+	} else if (strcmp(key, "device_rule") == 0) {
 		config->device_rules =
 			realloc(config->device_rules, (config->device_rules_count + 1) *
 											  sizeof(ConfigDeviceRule));
@@ -2179,7 +2179,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 
 		config->exec_count++;
 
-	} else if (strncmp(key, "exec-once", 9) == 0) {
+	} else if (strncmp(key, "exec_once", 9) == 0) {
 
 		char **new_exec_once = realloc(
 			config->exec_once, (config->exec_once_count + 1) * sizeof(char *));
@@ -2621,7 +2621,7 @@ bool parse_option(Config *config, char *key, char *value, int line_number) {
 			config->gesture_bindings_count++;
 		}
 
-	} else if (strncmp(key, "source-optional", 15) == 0) {
+	} else if (strncmp(key, "source_optional", 15) == 0) {
 		parse_config_file(config, value, false);
 	} else if (strncmp(key, "source", 6) == 0) {
 		parse_config_file(config, value, true);
@@ -2942,11 +2942,11 @@ static bool toml_apply_value(Config *config, const char *key, const char *raw,
 }
 
 static bool toml_is_rule_type(const char *name) {
-	return strcmp(name, "monitorrule") == 0 ||
-		   strcmp(name, "tagrule") == 0 || strcmp(name, "layerrule") == 0 ||
-		   strcmp(name, "windowrule") == 0 ||
-		   strcmp(name, "windowrule-once") == 0 ||
-		   strcmp(name, "devicerule") == 0;
+	return strcmp(name, "monitor_rule") == 0 ||
+		   strcmp(name, "tag_rule") == 0 || strcmp(name, "layer_rule") == 0 ||
+		   strcmp(name, "window_rule") == 0 ||
+		   strcmp(name, "window_rule_once") == 0 ||
+		   strcmp(name, "device_rule") == 0;
 }
 
 static bool toml_section_add(TomlSection *section, const char *subkey,
@@ -3793,7 +3793,7 @@ void reapply_property(void) {
 	// reset border width when config change
 	wl_list_for_each(c, &server.clients, link) {
 		if (c && !c->iskilling) {
-			if (!c->isnoborder && !c->isfullscreen) {
+			if (!c->no_border && !c->isfullscreen) {
 				c->bw = config.borderpx;
 			}
 			client_set_group_config(c);
