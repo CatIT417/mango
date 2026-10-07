@@ -176,8 +176,9 @@ static bool scene_node_search(struct wlr_scene_node *node, double px, double py,
 	return true;
 }
 
-struct wlr_scene_node *mango_scene_node_at(struct wlr_scene_node *node, double lx,
-										   double ly, double *nx, double *ny) {
+struct wlr_scene_node *mango_scene_node_at(struct wlr_scene_node *node,
+										   double lx, double ly, double *nx,
+										   double *ny) {
 	struct wlr_scene_node *result = NULL;
 	int32_t node_x = 0, node_y = 0;
 	double rx = 0, ry = 0;
