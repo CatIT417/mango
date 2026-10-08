@@ -173,6 +173,7 @@ executable('mmsg',
     '-Wno-unused-function',
     '-Wno-unused-parameter',
     '-DWLR_USE_UNSTABLE',
+    '-D_POSIX_C_SOURCE=200809L',
   ],
 )
 
